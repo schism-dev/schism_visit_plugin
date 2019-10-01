@@ -91,12 +91,12 @@ avtgr3FileFormat::avtgr3FileFormat(const char *filename)
 	
     if (!(startPos == std::string::npos))
     {
-       suffix  = gr3File.substr(startPos+1,2);
+       suffix  = gr3File.substr(startPos+1,3);
     }
 
 	if(!(suffix=="gr3"))
     { 
-		EXCEPTION1(InvalidDBTypeException,"This file cann't be opend as gr3 file\n")
+		EXCEPTION1(InvalidDBTypeException,"This file cann't be opend as gr3 file\n");
 	}
 
 	try

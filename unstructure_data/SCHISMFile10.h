@@ -149,6 +149,7 @@ public:
   virtual bool              get(int *       a_buffer)  ;
   virtual bool              get(long *       a_buffer) ;
   virtual bool              get(float *     a_buffer) ;
+  virtual bool              get(double *     a_buffer) ;
   virtual void              set_cur(const int& a_record);
   //virtual void              set_current(const int& a_record);
 

@@ -55,7 +55,7 @@ protected:
 
   void           Initialize(std::string a_data_file);
   
-private:
+//private:
 
   void           PopulateStateMetaData(avtDatabaseMetaData * a_metaData, 
 	                                    avtSCHISMFileFormat * a_avtFile,

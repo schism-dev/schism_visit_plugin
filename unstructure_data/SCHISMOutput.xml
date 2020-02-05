@@ -21,6 +21,8 @@
       avtSCHISMFileFormatImpl.h
       avtSCHISMFileFormatImpl10.C
       avtSCHISMFileFormatImpl10.h
+      avtSCHISMFileFormatImpl11.C
+      avtSCHISMFileFormatImpl11.h
       FileFormatFavorInterface.h
       Registar.h
       Registar.cpp
@@ -72,6 +74,8 @@
       avtSCHISMFileFormatImpl.h
       avtSCHISMFileFormatImpl10.C
       avtSCHISMFileFormatImpl10.h
+      avtSCHISMFileFormatImpl11.C
+      avtSCHISMFileFormatImpl11.h
       FileFormatFavorInterface.h
       Registar.h
       Registar.cpp

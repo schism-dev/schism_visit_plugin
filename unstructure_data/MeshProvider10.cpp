@@ -57,6 +57,43 @@ bool MeshProvider10::fillEleCenterCoord2D(float * a_pointCoord,const int & a_tim
 	return false;
 }
 
+bool MeshProvider10::fillPointCoord2D(double * a_pointCoord,const int & a_timeStep) const
+{
+	return false;
+}
+
+bool MeshProvider10::fillPointCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	return false;
+}
+
+bool MeshProvider10::fillSideCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	return false;
+}
+
+bool MeshProvider10::fillSideFaceCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	return false;
+}
+
+
+bool MeshProvider10::fillSideCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const
+{
+	return false;
+}
+
+bool MeshProvider10::fillEleCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	return false;
+}
+
+
+bool MeshProvider10::fillEleCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const
+{
+	return false;
+}
+
 bool  MeshProvider10::fillMeshElement(long * a_elementCache) const
 {
 	return false;

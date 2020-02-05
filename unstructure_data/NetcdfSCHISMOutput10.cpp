@@ -641,6 +641,13 @@ bool  NetcdfSchismOutputVar10::get(float *     a_buffer)
   return load_from_file<float>(a_buffer);
 }
 
+bool  NetcdfSchismOutputVar10::get(double *     a_buffer) 
+{
+
+ int dataSize = computeDataNumPerTIMEStep();
+  return load_from_file<double>(a_buffer);
+}
+
 
 bool  NetcdfSchismOutputVar10::get(int *     a_buffer)
 {

@@ -66,6 +66,7 @@ public:
 
   bool              get(int *       a_buffer)  ;
   bool              get(float *     a_buffer)  ;
+  bool              get(double *     a_buffer)  ;
   bool              get(long *     a_buffer) ;
   void              set_cur(const int& a_record);
   

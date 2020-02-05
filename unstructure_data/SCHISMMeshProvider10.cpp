@@ -4,6 +4,7 @@
 #include "NetcdfSCHISMOutput10.h"
 #include "SchismGeometry10.h"
 
+
 SCHISMMeshProvider10::SCHISMMeshProvider10(const std::string & a_fileHasMeshData):MeshProvider10(a_fileHasMeshData),
 	                                                                          m_kbp00(NULL),
 																			  m_layerSCoords(NULL),
@@ -145,7 +146,7 @@ bool SCHISMMeshProvider10::loadSide()
 	 int max_node_in_cell=MeshConstants10::MAX_NUM_NODE_PER_CELL;
 	 long invalid_id = MeshConstants10::INVALID_NUM;
 	
-
+	 
 	 if (!m_node_neighbor_ele_filled)
 	 {
 
@@ -184,6 +185,7 @@ bool SCHISMMeshProvider10::loadSide()
 		 if (all_ele_dry)
 		 {
 			 a_node_dry_wet[inode]=MeshConstants10::DRY_FLAG;
+			
 		 }
 		 else
 		 {
@@ -425,6 +427,49 @@ bool SCHISMMeshProvider10::fillPointCoord2D(float * a_pointCoord,const int & a_t
 	return true;
 }
 
+bool SCHISMMeshProvider10::fillPointCoord2D(double * a_pointCoord,const int & a_timeStep) const
+{
+	if( m_mesh_loaded==false)
+	{
+	   return false;
+	}
+	else
+	{
+		
+      double * nodeXPtr      = new double [m_number_node];
+    
+      double * nodeYPtr      = new double [m_number_node];
+    
+
+      retrieve1DVar( nodeXPtr,
+	                   m_dataFilePtr,
+                       MeshConstants10::NODE_X,
+                       m_number_node);
+
+      retrieve1DVar( nodeYPtr,
+	                   m_dataFilePtr,
+                       MeshConstants10::NODE_Y,
+                       m_number_node);
+
+
+	  for(long iNode=0;iNode < m_number_node; iNode++)
+          {
+            double x            =  nodeXPtr[iNode];
+            double y            =  nodeYPtr[iNode];
+            *a_pointCoord++    = x;
+            *a_pointCoord++    = y;
+            // must put a dummy z value as visit manaul example does
+            *a_pointCoord++    = MeshConstants10::DUMMY_ELEVATION;
+           
+          }
+
+	  delete nodeXPtr;
+	  delete nodeYPtr;
+      
+	}
+	return true;
+}
+
 bool SCHISMMeshProvider10::fillSideCenterCoord3D(float * a_pointCoord,const int & a_timeStep) const
 {
 	//if( m_mesh_loaded==false)
@@ -528,6 +573,110 @@ bool SCHISMMeshProvider10::fillSideCenterCoord3D(float * a_pointCoord,const int 
 	return true;
 }
 
+
+bool SCHISMMeshProvider10::fillSideCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	//if( m_mesh_loaded==false)
+	//{
+	//   return false;
+	//}
+	//else
+	//{
+		
+      double * nodeXPtr      = new double [m_number_node];
+    
+      double * nodeYPtr      = new double [m_number_node];
+    
+	  double * xPtr = nodeXPtr;
+	  double*  yPtr = nodeYPtr;
+
+      retrieve1DVar( nodeXPtr,
+	                 m_dataFilePtr,
+                     MeshConstants10::NODE_X,
+                     m_number_node);
+
+      retrieve1DVar( nodeYPtr,
+	                 m_dataFilePtr,
+                     MeshConstants10::NODE_Y,
+                     m_number_node);
+
+
+	  float*           zPtr = new float [m_number_layer*m_number_node];
+	  zcoords3D2(zPtr,a_timeStep);
+	 
+
+	  long * node_z_start_index  = new long [m_number_node];
+	  long valid_var_size = 0;
+	  int * kbp00 = new int [m_number_node];
+	  fillKbp00(kbp00,a_timeStep);
+	   int * kbs = new int [m_number_side];
+	  fillKbs(kbs,a_timeStep);
+
+      for(long iNode=0;iNode<m_number_node;iNode++)
+      {
+	    node_z_start_index[iNode]=valid_var_size;
+	    valid_var_size+=(m_number_layer-std::max(1,kbp00[iNode])+1);
+      }
+	  float half=0.5;
+	  
+	   for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
+        {
+		 
+          for(long iSide=0;iSide <m_number_side; iSide++)
+            {
+		 
+
+			  if (iLayer>=(std::max(1,kbs[iSide])-1))
+			  {
+ 
+                 long node1 = m_sideNodes[iSide*2];
+		         long node2 = m_sideNodes[iSide*2+1];
+                 double x1            =  nodeXPtr[node1];
+                 double y1            =  nodeYPtr[node1];
+			     double x2            =  nodeXPtr[node2];
+                 double y2            =  nodeYPtr[node2];
+                 *a_pointCoord++     = half*(x1+x2);
+                 *a_pointCoord++     = half*(y1+y2);
+
+				 long node1_z_start = node_z_start_index[node1];
+				 long node2_z_start = node_z_start_index[node2];
+				 int z_displace_node1 = iLayer-std::max(1,kbp00[node1])+1;
+				 int z_displace_node2 = iLayer-std::max(1,kbp00[node2])+1;
+
+				 // degenerated side node at 1
+				 if(z_displace_node1<0)
+				 {
+					 z_displace_node1=0;
+				 }
+				  // degenerated side node at 2
+				  if(z_displace_node2<0)
+				 {
+					 z_displace_node2=0;
+				 }
+		
+				 float z1 = zPtr[node1_z_start+z_displace_node1];
+				 float z2 = zPtr[node2_z_start+z_displace_node2];
+
+                 *a_pointCoord++     = half*(z1+z2);
+			  }
+
+            }
+
+        }
+
+
+
+	  delete nodeXPtr;
+	  delete nodeYPtr;
+	  delete zPtr;
+	  delete node_z_start_index;
+	  delete kbp00;
+	  delete kbs;
+      
+	//}
+	return true;
+}
+
 bool SCHISMMeshProvider10::fillSideFaceCenterCoord3D(float * a_pointCoord,const int & a_timeStep) const
 {
 	/*if( m_mesh_loaded==false)
@@ -572,8 +721,8 @@ bool SCHISMMeshProvider10::fillSideFaceCenterCoord3D(float * a_pointCoord,const 
 	    valid_var_size+=m_number_layer-std::max(1,kbp00[iNode])+1;
       }
 
-	  float half =0.5;
-	  float quater =0.25;
+	  double half =0.5;
+	  double quater =0.25;
 	   for (int iLayer= 1; iLayer<m_number_layer;iLayer++)
         {
 		 
@@ -650,7 +799,127 @@ bool SCHISMMeshProvider10::fillSideFaceCenterCoord3D(float * a_pointCoord,const 
 	return true;
 }
 
+bool SCHISMMeshProvider10::fillSideFaceCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	/*if( m_mesh_loaded==false)
+	{
+	   return false;
+	}
+	else
+	{*/
+		
+      double * nodeXPtr      = new double [m_number_node];
+    
+      double * nodeYPtr      = new double [m_number_node];
+    
+	  double * xPtr = nodeXPtr;
+	  double*  yPtr = nodeYPtr;
 
+      retrieve1DVar( nodeXPtr,
+	                 m_dataFilePtr,
+                     MeshConstants10::NODE_X,
+                     m_number_node);
+
+      retrieve1DVar( nodeYPtr,
+	                 m_dataFilePtr,
+                     MeshConstants10::NODE_Y,
+                     m_number_node);
+
+
+	  float*           zPtr = new float [m_number_layer*m_number_node];
+	  zcoords3D2(zPtr,a_timeStep);
+	 
+	  int * kbp00 = new int [m_number_node];
+	  fillKbp00(kbp00,a_timeStep);
+	  int * kbs= new int [m_number_side];
+	  fillKbs(kbs,a_timeStep);
+
+	  long * node_z_start_index  = new long [m_number_node];
+	  long valid_var_size = 0;
+
+      for(long iNode=0;iNode<m_number_node;iNode++)
+      {
+	    node_z_start_index[iNode]=valid_var_size;
+	    valid_var_size+=m_number_layer-std::max(1,kbp00[iNode])+1;
+      }
+
+	  double half =0.5;
+	  double quater =0.25;
+	   for (int iLayer= 1; iLayer<m_number_layer;iLayer++)
+        {
+		 
+          for(long iSide=0;iSide <m_number_side; iSide++)
+            {
+		 
+
+			  if ((iLayer-1)>=(std::max(1,kbs[iSide])-1))
+			  {
+ 
+                 long node1 = m_sideNodes[iSide*2];
+		         long node2 = m_sideNodes[iSide*2+1];
+                 double x1            =  nodeXPtr[node1];
+                 double y1            =  nodeYPtr[node1];
+			     double x2            =  nodeXPtr[node2];
+                 double y2            =  nodeYPtr[node2];
+                 *a_pointCoord++     = half*(x1+x2);
+                 *a_pointCoord++     = half*(y1+y2);
+
+				 long node1_z_start = node_z_start_index[node1];
+				 long node2_z_start = node_z_start_index[node2];
+				 int z_displace_node1 = iLayer-std::max(1,kbp00[node1])+1;
+				 int z_displace_node2 = iLayer-std::max(1,kbp00[node2])+1;
+
+				 // degenerated side node at 1
+				 if(z_displace_node1<0)
+				 {
+					 z_displace_node1=0;
+				 }
+				  // degenerated side node at 2
+				  if(z_displace_node2<0)
+				 {
+					 z_displace_node2=0;
+				 }
+		
+				 float z1 = zPtr[node1_z_start+z_displace_node1];
+				 float z2 = zPtr[node2_z_start+z_displace_node2];
+				 float z_temp = z1+z2;
+				 z_displace_node1 = iLayer-std::max(1,kbp00[node1]);
+				 z_displace_node2 = iLayer-std::max(1,kbp00[node2]);
+
+				 // degenerated side node at 1
+				 if(z_displace_node1<0)
+				 {
+					 z_displace_node1=0;
+				 }
+				  // degenerated side node at 2
+				  if(z_displace_node2<0)
+				 {
+					 z_displace_node2=0;
+				 }
+		
+				 z1 = zPtr[node1_z_start+z_displace_node1];
+				 z2 = zPtr[node2_z_start+z_displace_node2];
+
+
+                 *a_pointCoord++     = quater*(z1+z2+z_temp);
+			  }
+
+            }
+
+        }
+
+
+
+	  delete nodeXPtr;
+	  delete nodeYPtr;
+	  delete zPtr;
+	  delete node_z_start_index;
+	  delete kbp00;
+	  delete kbs;
+      
+	//}
+	return true;
+}
 
 
 // z is filled with 0
@@ -689,6 +958,56 @@ bool SCHISMMeshProvider10::fillSideCenterCoord2D(float * a_pointCoord,const int 
             float y1            =  nodeYPtr[node1];
 			float x2            =  nodeXPtr[node2];
             float y2            =  nodeYPtr[node2];
+            *a_pointCoord++    = half*(x1+x2);
+            *a_pointCoord++    = half*(y1+y2);
+            // must put a dummy z value as visit manaul example does
+            *a_pointCoord++    = MeshConstants10::DUMMY_ELEVATION;
+           
+          }
+
+	  delete nodeXPtr;
+	  delete nodeYPtr;
+      
+	}
+	return true;
+}
+
+// z is filled with 0
+bool SCHISMMeshProvider10::fillSideCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const
+{
+	if( m_mesh_loaded==false)
+	{
+	   return false;
+	}
+	else
+	{
+		
+      double * nodeXPtr      = new double [m_number_node];
+    
+      double * nodeYPtr      = new double [m_number_node];
+
+	  double half =0.5;
+    
+
+      retrieve1DVar( nodeXPtr,
+	                   m_dataFilePtr,
+                       MeshConstants10::NODE_X,
+                       m_number_node);
+
+      retrieve1DVar( nodeYPtr,
+	                   m_dataFilePtr,
+                       MeshConstants10::NODE_Y,
+                       m_number_node);
+
+
+	  for(long iSide=0;iSide < m_number_side; iSide++)
+          {
+			long node1 = m_sideNodes[iSide*2];
+		    long node2 = m_sideNodes[iSide*2+1];
+            double x1            =  nodeXPtr[node1];
+            double y1            =  nodeYPtr[node1];
+			double x2            =  nodeXPtr[node2];
+            double y2            =  nodeYPtr[node2];
             *a_pointCoord++    = half*(x1+x2);
             *a_pointCoord++    = half*(y1+y2);
             // must put a dummy z value as visit manaul example does
@@ -805,7 +1124,107 @@ bool SCHISMMeshProvider10::fillEleCenterCoord3D(float * a_pointCoord,const int &
 	return true;
 }
 
+bool SCHISMMeshProvider10::fillEleCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	/*if( m_mesh_loaded==false)
+	{
+	   return false;
+	}
+	else
+	{*/
 
+	  long * meshElementNodes = new long [(MeshConstants10::MAX_NUM_NODE_PER_CELL+1)*m_number_element];
+	  fillMeshElement(meshElementNodes);
+		
+      double * nodeXPtr      = new double [m_number_node];
+    
+      double * nodeYPtr      = new double [m_number_node];
+    
+	  double * xPtr = nodeXPtr;
+	  double*  yPtr = nodeYPtr;
+
+      retrieve1DVar( nodeXPtr,
+	                 m_dataFilePtr,
+                     MeshConstants10::NODE_X,
+                     m_number_node);
+
+      retrieve1DVar( nodeYPtr,
+	                 m_dataFilePtr,
+                     MeshConstants10::NODE_Y,
+                     m_number_node);
+
+
+	  float*           zPtr = new float [m_number_layer*m_number_node];
+	  zcoords3D2(zPtr,a_timeStep);
+	  int * kbp00 = new int [m_number_node];
+	  fillKbp00(kbp00,a_timeStep);
+	  int * kbe = new int [m_number_element];
+	  fillKbe(kbe,a_timeStep);
+	 
+
+	  long * node_z_start_index  = new long [m_number_node];
+	  long valid_var_size = 0;
+
+      for(long iNode=0;iNode<m_number_node;iNode++)
+      {
+	    node_z_start_index[iNode]=valid_var_size;
+	    valid_var_size+=m_number_layer-std::max(1,kbp00[iNode])+1;
+      }
+
+	  int max_node_in_cell = MeshConstants10::MAX_NUM_NODE_PER_CELL;
+
+	   for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
+        {
+		 
+          for(long iEle=0;iEle <m_number_element; iEle++)
+            {
+		 
+			  if (iLayer>=(std::max(1,kbe[iEle])-1))
+			  {
+
+				
+			     int numNode = meshElementNodes[iEle*(max_node_in_cell+1)];
+		       
+				 double x_sum = 0.0;
+				 double y_sum = 0.0;
+				 double z_sum = 0.0;
+
+                 for (int iNode=0;iNode<numNode;iNode++)
+		         {  
+                   long node=meshElementNodes[iEle*(max_node_in_cell+1)+1+iNode]-1;
+		           int kbp= m_kbp00[node];
+				   x_sum += nodeXPtr[iNode];
+				   y_sum += nodeYPtr[iNode];
+				   long node_z_start = node_z_start_index[node];
+
+				   int z_displace_node = iLayer-std::max(1,kbp)+1;
+
+				    // degenerated ele node
+				   if(z_displace_node<0)
+				   {
+					 z_displace_node=0;
+				   }
+				   double z = zPtr[node_z_start+z_displace_node];
+				   z_sum+=z;
+		         }
+ 
+               
+				 *a_pointCoord++     = x_sum/numNode;
+                 *a_pointCoord++     = y_sum/numNode;
+                 *a_pointCoord++     = z_sum/numNode;
+			  }
+
+            }
+
+        }
+	  delete nodeXPtr;
+	  delete nodeYPtr;
+	  delete zPtr;
+	  delete node_z_start_index;
+	  delete meshElementNodes;
+	//}
+	return true;
+}
 // z is filled with 0
 bool SCHISMMeshProvider10::fillEleCenterCoord2D(float * a_pointCoord,const int & a_timeStep) const
 {
@@ -840,6 +1259,63 @@ bool SCHISMMeshProvider10::fillEleCenterCoord2D(float * a_pointCoord,const int &
 		       
 		float x_sum = 0.0;
 		float y_sum = 0.0;
+			
+        for (int iNode=0;iNode<numNode;iNode++)
+		{  
+           long node=meshElementNodes[iEle*(max_node_in_cell+1)+1+iNode]-1;
+		   x_sum += nodeXPtr[iNode];
+		   y_sum += nodeYPtr[iNode];
+		}
+      
+		*a_pointCoord++     = x_sum/numNode;
+        *a_pointCoord++     = y_sum/numNode;
+        *a_pointCoord++     = MeshConstants10::DUMMY_ELEVATION;
+               
+		}
+
+
+	  delete nodeXPtr;
+	  delete nodeYPtr;
+      delete meshElementNodes;
+	}
+	return true;
+}
+
+
+// z is filled with 0
+bool SCHISMMeshProvider10::fillEleCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const
+{
+	if( m_mesh_loaded==false)
+	{
+	   return false;
+	}
+	else
+	{
+	
+	  long * meshElementNodes = new long [(MeshConstants10::MAX_NUM_NODE_PER_CELL+1)*m_number_element];
+	  fillMeshElement(meshElementNodes);
+      double * nodeXPtr      = new double [m_number_node];
+    
+      double * nodeYPtr      = new double [m_number_node];
+    
+
+      retrieve1DVar( nodeXPtr,
+	                   m_dataFilePtr,
+                       MeshConstants10::NODE_X,
+                       m_number_node);
+
+      retrieve1DVar( nodeYPtr,
+	                   m_dataFilePtr,
+                       MeshConstants10::NODE_Y,
+                       m_number_node);
+	  int max_node_in_cell = MeshConstants10::MAX_NUM_NODE_PER_CELL;
+
+      for(long iEle=0;iEle <m_number_element; iEle++)
+      {		
+		int numNode = meshElementNodes[iEle*(max_node_in_cell+1)];
+		       
+		double x_sum = 0.0;
+		double y_sum = 0.0;
 			
         for (int iNode=0;iNode<numNode;iNode++)
 		{  
@@ -904,6 +1380,70 @@ bool SCHISMMeshProvider10::fillPointCoord3D(float * a_pointCoord,const int & a_t
 		 
               float x            = xPtr[iNode];
               float y            = yPtr[iNode];
+			  if (iLayer>=(std::max(1,kbp00[iNode])-1))
+			  {
+                  *a_pointCoord++         = x;
+                  *a_pointCoord++         = y;
+                  *a_pointCoord++         = *zPtrTemp++;
+			  }
+
+            }
+
+        }
+
+
+
+	  delete nodeXPtr;
+	  delete nodeYPtr;
+	  delete zPtr;
+	  delete kbp00;
+      
+	//}
+	return true;
+}
+
+
+bool SCHISMMeshProvider10::fillPointCoord3D(double * a_pointCoord,const int & a_timeStep) const
+{
+	/*if( m_mesh_loaded==false)
+	{
+	   return false;
+	}
+	else
+	{*/
+		
+      double * nodeXPtr      = new double [m_number_node];
+      double * nodeYPtr      = new double [m_number_node];
+    
+	  double * xPtr = nodeXPtr;
+	  double*  yPtr = nodeYPtr;
+
+      retrieve1DVar( nodeXPtr,
+	                 m_dataFilePtr,
+                     MeshConstants10::NODE_X,
+                     m_number_node);
+
+      retrieve1DVar( nodeYPtr,
+	                 m_dataFilePtr,
+                    MeshConstants10::NODE_Y,
+                     m_number_node);
+
+
+	  float*           zPtr = new float [m_number_layer*m_number_node];
+      float*           zPtrTemp = zPtr;
+	  zcoords3D(zPtr,a_timeStep);
+
+	 int * kbp00 = new int [m_number_node];
+	 fillKbp00(kbp00,a_timeStep);
+
+	   for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
+        {
+		 
+          for(long iNode=0;iNode <m_number_node; iNode++)
+            {
+		 
+              double x            = xPtr[iNode];
+              double y            = yPtr[iNode];
 			  if (iLayer>=(std::max(1,kbp00[iNode])-1))
 			  {
                   *a_pointCoord++         = x;

@@ -44,6 +44,29 @@ public :
    // provides side centers x,y, z at a time step
    virtual bool fillEleCenterCoord3D(float * a_pointCoord,const int & a_timeStep) const;
 
+
+      // provides point x,y,z coords at a time step
+   virtual bool fillPointCoord2D(double * a_pointCoord,const int & a_timeStep) const;
+
+    // provides point x,y,z coords at a time step
+   virtual bool fillPointCoord3D(double * a_pointCoord,const int & a_timeStep) const;
+
+
+   // provides side centers x,y, z at a time step
+   virtual bool fillSideCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const;
+
+   // provides side centers x,y, z at a time step
+   virtual bool fillSideCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const;
+
+    // provides side centers x,y, z at a time step
+   virtual bool fillSideFaceCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const;
+
+   // provides side centers x,y, z at a time step
+   virtual bool fillEleCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const;
+
+   // provides side centers x,y, z at a time step
+   virtual bool fillEleCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const;
+
    //provides mesh element nodes
    virtual bool fillMeshElement(long * a_elementCache) const;
    

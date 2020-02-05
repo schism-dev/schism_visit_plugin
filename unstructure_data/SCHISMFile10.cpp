@@ -313,6 +313,11 @@ bool   SCHISMVar10::get(float *     a_buffer)
 	return false;
 }
 
+bool   SCHISMVar10::get(double *     a_buffer) 
+{
+	return false;
+}
+
 void    SCHISMVar10::set_cur(const int& a_timeRecord)
 {
 	return;

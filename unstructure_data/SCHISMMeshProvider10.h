@@ -34,6 +34,27 @@ public :
 
    // provides side centers x,y, z at a time step
    bool fillEleCenterCoord3D(float * a_pointCoord,const int & a_timeStep) const;
+
+
+      // provides point x,y,z coords at a time step
+   bool fillPointCoord2D(double * a_pointCoord,const int & a_timeStep) const;
+
+    // provides point x,y,z coords at a time step
+   bool fillPointCoord3D(double * a_pointCoord,const int & a_timeStep) const;
+
+    // provides side centers x,y, z at a time step
+   bool fillSideCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const;
+
+   // provides side centers x,y, z at a time step
+   bool fillSideCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const;
+
+    // provides sideface centers x,y, z at a time step
+   bool fillSideFaceCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const;
+
+   bool fillEleCenterCoord2D(double * a_pointCoord,const int & a_timeStep) const;
+
+   // provides side centers x,y, z at a time step
+   bool fillEleCenterCoord3D(double * a_pointCoord,const int & a_timeStep) const;
    
    // updates z coords at a timestep
    bool zcoords2D(float * a_zCachePtr,const int & a_timeStep) const;

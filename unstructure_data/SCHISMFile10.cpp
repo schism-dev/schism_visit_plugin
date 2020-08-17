@@ -446,7 +446,6 @@ int  SCHISMVar10::computeDataNumPerTIMEStep() const
      }
   }
   return dataSize;
-
 }
 
 bool SCHISMVar10::cache_data(int *  a_data)
@@ -646,7 +645,10 @@ SCHISMFile10::SCHISMFile10(const std::string a_SCHISMOutputFile):m_total_num_var
 SCHISMFile10::~SCHISMFile10()
 {
 }
-
+int  SCHISMFile10::get_dry_wet_val_flag()
+{
+	return 1;
+}
 SCHISMFile10::SCHISMFile10(const SCHISMFile10& a_other_file)
 {
 	throw SCHISMFileException10("SCHISMFile copy is not allowed ");

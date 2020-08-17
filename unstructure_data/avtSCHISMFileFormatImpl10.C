@@ -101,7 +101,8 @@ avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
       m_dry_surface(MeshConstants10::DRY_SURFACE),
 	  m_total_valid_3D_point(0),
 	  m_total_valid_3D_side(0),
-	  m_total_valid_3D_ele(0)
+	  m_total_valid_3D_ele(0),
+	  m_dry_wet_flag(1)
 {
   // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
   m_center_map[NODE]  = AVT_NODECENT;
@@ -3074,14 +3075,18 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
      int idata = 0;    
      for( int iNode = 0 ; iNode < numData; iNode++)
        {
+		   float valTemp = valBuff[iNode];
 		   if((!(drywet[iNode]))||(!strcmp(a_varName,m_node_depth_label.c_str())))
 		   {
-             float valTemp = valBuff[iNode];
+             
 		     rv->SetTuple1(idata, valTemp); 
 		   }
 		   else
 		   {
-			 rv->SetTuple1(idata, MeshConstants10::DRY_STATE); 
+			 if(m_dry_wet_flag)
+			    rv->SetTuple1(idata, MeshConstants10::DRY_STATE); 
+			 else
+				rv->SetTuple1(idata, valTemp);  
 		   }
          
          idata++;             
@@ -3220,16 +3225,22 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
 			 
 			  if(layer>=valid_bottom_layer)
 			  {
+				  long data_loc = start_index+layer-valid_bottom_layer;
+                  valTemp =  valBuff[data_loc]; 
 			   if (!(drywet[iNode])) 
 				{
-				  long data_loc = start_index+layer-valid_bottom_layer;
-                  valTemp =  valBuff[data_loc];
+
 			      rv->SetTuple1(idata, valTemp); 
 			    }
 			   else
 			    {
+				  if(m_dry_wet_flag)
 				  {
-				  rv->SetTuple1(idata, MeshConstants10::DRY_STATE); 
+				     rv->SetTuple1(idata, MeshConstants10::DRY_STATE); 
+				  }
+				  else
+				  {
+					 rv->SetTuple1(idata, valTemp); 
 				  }
 			    }
 			    idata++;
@@ -3253,7 +3264,8 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
        idata  = 0;
        for( int iNode = 0 ; iNode   < numDataPerLayer; iNode++)
          {
-		   if (!(drywet[iNode]))
+		   //if (!(drywet[iNode]))
+		   if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
 		   {
              float valTemp   = averageState[iNode];
              rv->SetTuple1(idata, valTemp);  
@@ -3364,7 +3376,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
       for( long iNode = 0 ; iNode   < ntuples; iNode++)
          {
 
-		   if(!drywet[iNode])
+		   if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
 		   {
              for(int iComp = 0; iComp < ncomps; iComp++)
              {
@@ -3541,7 +3553,8 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 
 			  if(layer>=bottom_layer) 
 			  {
-				  if(!drywet[iNode])
+				  //if(!drywet[iNode])
+				  if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
 				  {
 
 					  for(int iComp = 0; iComp < ncomps; iComp++)
@@ -3585,7 +3598,8 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
        for( int iNode = 0 ; iNode   < numDataPerLayer; iNode++)
          {
 				
-		   if(!drywet[iNode])
+		   //if(!drywet[iNode])
+		   if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
 		   {
 				for(int iComp = 0; iComp < ncomps; iComp++)
 				{
@@ -3868,8 +3882,6 @@ avtSCHISMFileFormatImpl10:: depthAverage(float         *  a_averageState,
 	  {
          a_averageState[iNode] = MeshConstants10::DRY_STATE;
 	  }
-     
-    
     }  
     delete zPtr;
 	delete mapper;
@@ -4194,6 +4206,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 		
 
     okay = m_data_file_ptr->is_valid();
+	
    
     // If your file format API could not open the file then throw   
     // an exception.
@@ -4203,10 +4216,13 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
                     (m_data_file_path+"is not a valid SCHISM output file").c_str());
       }
     debug1<<"file is opened\n";
+	
+	m_dry_wet_flag=m_data_file_ptr->get_dry_wet_val_flag();
+	debug1<<"wet_dry_flag is "<<m_dry_wet_flag<<"\n";
     debug1<<"begin get dim\n";
 
 
- 
+    
 
 	debug1<<"loading zcor/hgrid file";
 

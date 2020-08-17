@@ -109,7 +109,22 @@ void  NetcdfSchismOutput10::close()
    m_outputNcFilePtr->close();
  }
 }
-
+int    NetcdfSchismOutput10::get_dry_wet_val_flag()// 0: filled with last wetting val 1: junk
+{
+	try
+	{
+	  NcVar * ncvar = m_outputNcFilePtr->get_var(MeshConstants10::DRY_VALUE_FLAG.c_str());
+	  int val;
+	  int count[1];
+	  count[0]=1;
+	  ncvar->get(&val,count[0]);
+      return val;
+	}
+	catch(...) 
+	{
+       return 1;
+    }
+}
 
 int  NetcdfSchismOutput10::global_att_as_int(const std::string& a_att_name) const
 {

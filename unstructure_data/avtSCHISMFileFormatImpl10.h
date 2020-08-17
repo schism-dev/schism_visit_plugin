@@ -335,7 +335,7 @@ private:
   //  it is differnt from m_kbp00 for element/prism centred data
   int       *  m_kbp_data;
 
-
+  int          m_dry_wet_flag; // 0: dry cell/ele/side filled with last wetting val, 1: junk
   int       *  m_node_dry_wet;
   int       *  m_ele_dry_wet;
   int       *  m_side_dry_wet;

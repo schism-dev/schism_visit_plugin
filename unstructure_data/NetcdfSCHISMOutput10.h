@@ -15,7 +15,7 @@ public:
                      NetcdfSchismOutput10(const std::string a_outputFile);
   virtual            ~NetcdfSchismOutput10();
   void               close();
-
+  int               get_dry_wet_val_flag();// 0: filled with last wetting val 1: junk
   void              get_node_bottom(int* a_node_bottom,const int& a_time);
   void              get_face_bottom(int* a_face_bottom,const int& a_time);
   void              get_edge_bottom(int* a_ele_bottom,const int& a_time);

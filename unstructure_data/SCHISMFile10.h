@@ -234,7 +234,7 @@ public:
                                                                     // if bottom changes it will return true, or false.
                                                                     // for mesh with fixed bottom it is not used.
  
-  
+  virtual int               get_dry_wet_val_flag();// 0: filled with last wetting val 1: junk
   virtual void              get_node_bottom(int* a_node_bottom,const int& a_time);
   virtual void              get_face_bottom(int* a_face_bottom,const int& a_time);
   virtual void              get_edge_bottom(int* a_ele_bottom,const int& a_time);

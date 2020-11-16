@@ -100,7 +100,7 @@ avtSCHISMFileFormat::avtSCHISMFileFormat(const char *filename)
 	}
 	else
 	{
-		 m_impl.reset(FileFormatFavorFactory::Instance()->CreateInstance("combine10_nc4"));
+		 m_impl.reset(FileFormatFavorFactory::Instance()->CreateInstance("combine10_nc4_double_xy"));
 	}
 }
 

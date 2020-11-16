@@ -71,16 +71,21 @@ void   avtSCHISMFileFormatImpl11::create2DUnstructuredMesh( vtkUnstructuredGrid 
 {
 	long   numNodes           = m_num_mesh_nodes;
 	vtkPoints *points      = vtkPoints::New();
-    points->SetNumberOfPoints(numNodes);
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
+	points->SetNumberOfPoints(numNodes);
+	
+    
     double * pointPtr       = (double *) points->GetVoidPointer(0);
-    debug1<<"begin  filling mesh xy \n";    
+    debug1<<"begin  filling mesh double xy \n";    
+	
     if (!m_external_mesh_provider->fillPointCoord2D(pointPtr,a_timeState))
     {
         stringstream msgStream(stringstream::out);
         msgStream <<"Fail to retrieve faces nodes coord at step " <<a_timeState;
         EXCEPTION3(DBYieldedNoDataException,m_data_file,m_plugin_name,msgStream.str());
     }
-
+	
     debug1<<"finish filling mesh xy \n";
     a_uGrid ->SetPoints(points);
     points->Delete();
@@ -137,6 +142,8 @@ void   avtSCHISMFileFormatImpl11::create2DUnstructuredMeshNoDryWet( vtkUnstructu
 {
 	long   numNodes           = m_num_mesh_nodes;
 	vtkPoints *points      = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
     points->SetNumberOfPoints(numNodes);
     double * pointPtr       = (double *) points->GetVoidPointer(0);
         
@@ -201,7 +208,9 @@ void   avtSCHISMFileFormatImpl11::createLayerMesh(vtkUnstructuredGrid *a_uGrid,
 										    long                *a_2DPointto3DPoints,
 										    const  int          &a_timeState) 
 {
-	 vtkPoints *points      = vtkPoints::New();
+	  vtkPoints *points      = vtkPoints::New();
+	  points->SetDataTypeToDouble();
+	  points->GetData()->SetNumberOfComponents(3);
       points->SetNumberOfPoints(m_total_valid_3D_point);
       double * pointPtr       = (double *) points->GetVoidPointer(0);
 	  //debug only
@@ -289,10 +298,12 @@ void   avtSCHISMFileFormatImpl11::create3DUnstructuredMesh(vtkUnstructuredGrid *
 												     const  int          &a_timeState) 
 {
 	 vtkPoints *points      = vtkPoints::New();
-      points->SetNumberOfPoints(m_total_valid_3D_point);
+	 points->SetDataTypeToDouble();
+	 points->GetData()->SetNumberOfComponents(3);
+     points->SetNumberOfPoints(m_total_valid_3D_point);
 	  debug1<<"total valid 3d pts: "<<m_total_valid_3D_point<<"\n";
       double * pointPtr       = (double *) points->GetVoidPointer(0);
-
+	  debug1 << "pointer of mesh " << m_external_mesh_provider << "\n";
 	  if (!m_external_mesh_provider->fillPointCoord3D(pointPtr,a_timeState))
         {
           stringstream msgStream(stringstream::out);
@@ -389,6 +400,8 @@ void    avtSCHISMFileFormatImpl11::create2DPointMesh( vtkUnstructuredGrid *a_uGr
 {
 	long   numNodes           = m_num_mesh_edges;
 	vtkPoints *points      = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
     points->SetNumberOfPoints(numNodes);
     double * pointPtr       = (double *) points->GetVoidPointer(0);
         
@@ -418,6 +431,8 @@ void   avtSCHISMFileFormatImpl11::create3DPointMesh( vtkUnstructuredGrid *a_uGri
 {
 	long   numNodes           = m_total_valid_3D_side;
 	vtkPoints *points      = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
     points->SetNumberOfPoints(numNodes);
     double * pointPtr       = (double *) points->GetVoidPointer(0);
 
@@ -447,6 +462,8 @@ void   avtSCHISMFileFormatImpl11::create3DPointFaceMesh( vtkUnstructuredGrid *a_
 {
 	int   numNodes           = m_total_valid_3D_side-(m_external_mesh_provider->numberOfSide());
 	vtkPoints *points      = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
     points->SetNumberOfPoints(numNodes);
     double * pointPtr       = (double *) points->GetVoidPointer(0);
         
@@ -469,51 +486,6 @@ void   avtSCHISMFileFormatImpl11::create3DPointFaceMesh( vtkUnstructuredGrid *a_
  
 }
 
-
-
-void    avtSCHISMFileFormatImpl11::loadMeshCoordinates(MeshProvider10 * a_meshProviderPtr)
-{
-	 // read in x,y coordinates for nodes 
-
-  if (!m_node_x_ptr)
-    {
-      m_node_x_ptr      = new  double [m_num_mesh_nodes];
-    }
-  if (!m_node_y_ptr)
-    {
-      m_node_y_ptr      = new double [m_num_mesh_nodes];
-    }
-
-  bool state=false;
-
-  double * coordCachePtr = new double [m_num_mesh_nodes*3];
-  int timeStep=0;
-  state=a_meshProviderPtr->fillPointCoord2D(coordCachePtr,timeStep);
-  if(!state)
-  {
-	   stringstream msgStream(stringstream::out);
-       msgStream <<"load mesh x,y from provider \n";
-	   EXCEPTION3(DBYieldedNoDataException,m_data_file,m_plugin_name,msgStream.str());
-  }
-
-  double * coordPoints = coordCachePtr;
-
-  for(int iNode=0;iNode < m_num_mesh_nodes; iNode++)
-    {
-             
-        m_node_x_ptr[iNode] = *coordPoints;
-		coordPoints++;
-        m_node_y_ptr[iNode] = *coordPoints;
-		coordPoints++;
-		coordPoints++;
-     }
-  
-
-  delete coordCachePtr;
-
-  debug1<<"get node x y\n";
-
- }
 
 
 static Registrar registrar("combine10_nc4_double_xy", &avtSCHISMFileFormatImpl11::create);

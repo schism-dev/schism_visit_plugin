@@ -82,33 +82,33 @@ protected:
 								   const std::string   & a_varLabel,
 								    const avtCentering  & a_center);
 
-  void           create2DUnstructuredMesh( vtkUnstructuredGrid *a_uGrid,
+ virtual void           create2DUnstructuredMesh( vtkUnstructuredGrid *a_uGrid,
 	                                       long                 *a_meshEle,
 										   const  int          &a_timeState);
 
-  void           create2DUnstructuredMeshNoDryWet( vtkUnstructuredGrid *a_uGrid,
+ virtual void           create2DUnstructuredMeshNoDryWet( vtkUnstructuredGrid *a_uGrid,
 	                                                  long                 *a_meshEle,
 												      const  int          &a_timeState);
 
-  void           create3DUnstructuredMesh(vtkUnstructuredGrid *a_uGrid,
+ virtual  void           create3DUnstructuredMesh(vtkUnstructuredGrid *a_uGrid,
 	                                      long                 *a_meshEle,
 										  long                 *a_2DPointto3DPoints,
 										  const  int          &a_timeState);
 
-  void           createLayerMesh(vtkUnstructuredGrid *a_uGrid,
+ virtual void           createLayerMesh(vtkUnstructuredGrid *a_uGrid,
 	                             long                 *a_meshEle,
 								 long                 *a_2DPointto3DPoints,
 							     const  int          &a_timeState);
 
-  void           create2DPointMesh( vtkUnstructuredGrid *a_uGrid,
+ virtual void           create2DPointMesh( vtkUnstructuredGrid *a_uGrid,
 	                                long                 *a_meshEle,
 								    const  int          &a_timeState);
 
-  void           create3DPointMesh( vtkUnstructuredGrid *a_uGrid,
+ virtual void           create3DPointMesh( vtkUnstructuredGrid *a_uGrid,
 	                                long                 *a_meshEle,
 								    const  int          &a_timeState);
 
-   void          create3DPointFaceMesh( vtkUnstructuredGrid *a_uGrid,
+ virtual  void          create3DPointFaceMesh( vtkUnstructuredGrid *a_uGrid,
 	                                    long                *a_meshEle,
 								        const  int          &a_timeState);
 
@@ -267,7 +267,7 @@ protected:
   void           load_bottom(const int & a_time);
 
 
-private:
+protected:
   bool         m_initialized;
   bool         m_mesh_is_static;
   std::string  m_data_file;

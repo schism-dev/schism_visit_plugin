@@ -52,6 +52,27 @@
 #include <InvalidVariableException.h>
 #include "FileFormatFavorFactory.h"
 
+#include <vtkCharArray.h>
+#include <vtkDoubleArray.h>
+#include <vtkFloatArray.h>
+#include <vtkIntArray.h>
+#include <vtkLongArray.h>
+#include <vtkShortArray.h>
+#include <vtkUnsignedCharArray.h>
+#include <vtkUnsignedIntArray.h>
+#include <vtkUnsignedShortArray.h>
+
+#include <vtkCellArray.h>
+#include <vtkCellData.h>
+#include <vtkCellType.h>
+#include <vtkFieldData.h>
+#include <vtkInformation.h>
+#include <vtkRectilinearGrid.h>
+#include <vtkStreamingDemandDrivenPipeline.h>
+#include <vtkStructuredGrid.h>
+#include <vtkUnstructuredGrid.h>
+#include <avtGhostData.h>
+#include <DebugStream.h>
 using     std::string;
 
 
@@ -67,7 +88,7 @@ avtMDSCHISMFileFormat::avtMDSCHISMFileFormat(const char *filename)
     : avtMTMDFileFormat(filename)
 {
     // INITIALIZE DATA MEMBERS
-	m_impl.reset(FileFormatFavorFactory::Instance()->CreateInstance("md_nc4"));
+	//m_impl.reset(FileFormatFavorFactory::Instance()->CreateInstance("md_nc4"));
 }
 
 
@@ -126,6 +147,41 @@ avtMDSCHISMFileFormat::FreeUpResources(void)
 void
 avtMDSCHISMFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int timeState)
 {
+	//
+	// CODE TO ADD A MESH
+	//
+	string meshname = "test_2d";
+	//
+	// AVT_RECTILINEAR_MESH, AVT_CURVILINEAR_MESH, AVT_UNSTRUCTURED_MESH,
+	// AVT_POINT_MESH, AVT_SURFACE_MESH, AVT_UNKNOWN_MESH
+	avtMeshType mt = AVT_UNSTRUCTURED_MESH;
+	//
+	int nblocks = 2;
+	int block_origin = 0;
+	int spatial_dimension = 2;
+	int topological_dimension = 2;
+	double *extents = NULL;
+	//
+	// Here's the call that tells the meta-data object that we have a mesh:
+	//
+	AddMeshToMetaData(md, meshname, mt, extents, nblocks, block_origin,
+		spatial_dimension, topological_dimension);
+	//
+
+	//
+	// CODE TO ADD A SCALAR VARIABLE
+	//
+	string mesh_for_this_var = meshname;
+	string varname = "elev";
+	//
+	// AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
+	avtCentering cent = AVT_NODECENT;
+	//
+	//
+	// Here's the call that tells the meta-data object that we have a var:
+	//
+	AddScalarVarToMetaData(md, varname, mesh_for_this_var, cent);
+	return;
     m_impl->PopulateDatabaseMetaData(md, this,timeState);
     // CODE TO ADD A MESH
     //
@@ -256,6 +312,145 @@ avtMDSCHISMFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int tim
 vtkDataSet *
 avtMDSCHISMFileFormat::GetMesh(int timestate, int domain, const char *meshname)
 {
+	vtkUnstructuredGrid *uGrid = vtkUnstructuredGrid::New();
+	vtkPoints *points = vtkPoints::New();
+	points->SetDataType(VTK_DOUBLE);
+	debug1 << "start creating mesh " << domain << "\n";
+	vtkUnsignedCharArray *ghost_zones = vtkUnsignedCharArray::New();
+	ghost_zones->SetName("avtGhostZones");
+	int ncells = 4;
+	ghost_zones->SetNumberOfTuples(ncells);
+	unsigned char *gzp = ghost_zones->GetPointer(0);
+	for (int i = 0; i < ncells; i++)
+		gzp[i] = 0;
+	unsigned char val = 0;
+	avtGhostData::AddGhostZoneType(val, DUPLICATED_ZONE_INTERNAL_TO_PROBLEM);
+	gzp[1] = val;
+	gzp[3] = val;
+
+	vtkUnsignedCharArray *ghost_nodes = vtkUnsignedCharArray::New();
+	ghost_zones->SetName("avtGhostNodes");
+	int npts = 9;
+	ghost_nodes->SetNumberOfTuples(npts);
+	unsigned char *gnp = ghost_nodes->GetPointer(0);
+	for (int i = 0; i < npts; i++)
+		gnp[i] = 0;
+	unsigned char val2 = 0;
+	avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
+	gzp[6] = val2;
+	gzp[7] = val2;
+	gzp[8] = val2;
+
+	if (domain == 0)
+	{
+		int numNodes = 9;
+		points->SetNumberOfPoints(numNodes);
+		double * pointPtr = (double *)points->GetVoidPointer(0);
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+			{
+
+				double x = 0.0 + i * 100;
+				double y = 0.0 + j * 65;
+				*pointPtr++ = x;
+				*pointPtr++ = y;
+				*pointPtr++ = 0.0;
+			}
+		uGrid->SetPoints(points);
+		points->Delete();
+		uGrid->Allocate(4);
+
+
+		debug1 << "start creating d1 cells\n";
+		vtkIdType verts1[4];
+		verts1[0] = 0;
+		verts1[1] = 1;
+		verts1[2] = 4;
+		verts1[3] = 3;
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
+		vtkIdType verts2[4];
+		verts2[0] = 1;
+		verts2[1] = 2;
+		verts2[2] = 5;
+		verts2[3] = 4;
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
+		vtkIdType verts3[4];
+		verts3[0] = 3;
+		verts3[1] = 4;
+		verts3[2] = 7;
+		verts3[3] = 6;
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
+		vtkIdType verts4[4];
+		verts4[0] = 4;
+		verts4[1] = 5;
+		verts4[2] = 8;
+		verts4[3] = 7;
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
+		debug1 << "inserted d1 cells\n";
+		uGrid->GetCellData()->AddArray(ghost_zones);
+		uGrid->GetCellData()->AddArray(ghost_nodes);
+		debug1 << "d1 ghost added\n";
+	}
+	else if (domain == 1)
+	{
+		int numNodes = 9;
+		points->SetNumberOfPoints(numNodes);
+		double * pointPtr = (double *)points->GetVoidPointer(0);
+		for (int i = 0; i < 3; i++)
+			for (int j = 0; j < 3; j++)
+			{
+
+				double x = 200.0 + i * 100;
+				double y = 0.0 + j * 65;
+				*pointPtr++ = x;
+				*pointPtr++ = y;
+				*pointPtr++ = 0.0;
+			}
+		uGrid->SetPoints(points);
+		points->Delete();
+		uGrid->Allocate(4);
+		debug1 << "start creating d2 cells\n";
+
+		vtkIdType verts1[4];
+		verts1[0] = 0;
+		verts1[1] = 1;
+		verts1[2] = 4;
+		verts1[3] = 3;
+
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
+		vtkIdType verts2[4];
+
+		verts2[0] = 1;
+		verts2[1] = 2;
+		verts2[2] = 5;
+		verts2[3] = 4;
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
+		vtkIdType verts3[4];
+
+		verts3[0] = 3;
+		verts3[1] = 4;
+		verts3[2] = 7;
+		verts3[3] = 6;
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
+		vtkIdType verts4[4];
+
+		verts4[0] = 4;
+		verts4[1] = 5;
+		verts4[2] = 8;
+		verts4[3] = 7;
+		uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
+		uGrid->GetCellData()->AddArray(ghost_zones);
+		uGrid->GetCellData()->AddArray(ghost_nodes);
+		debug1 << "d2 ghost added\n";
+	}
+	else
+	{
+
+	}
+
+
+
+	return uGrid;
     return m_impl->GetMesh(timestate,domain,this,meshname);
 }
 
@@ -284,6 +479,31 @@ avtMDSCHISMFileFormat::GetMesh(int timestate, int domain, const char *meshname)
 vtkDataArray *
 avtMDSCHISMFileFormat::GetVar(int timestate, int domain, const char *varname)
 {
+   int ntuples = 9; // this is the number of entries in the variable.
+	vtkDoubleArray *rv = vtkDoubleArray::New();
+	rv->SetNumberOfTuples(ntuples);
+	double * val_arr = new double[ntuples];
+	for (int i = 0; i < ntuples; i++)
+	{
+		double val = i * 0.5;
+		val_arr[i] = val;
+	}
+
+	if (domain == 0)
+	{
+		val_arr[2] = val_arr[0];
+		val_arr[5] = val_arr[3];
+		val_arr[8] = val_arr[6];
+
+	}
+
+	for (int i = 0; i < ntuples; i++)
+	{
+		rv->SetTuple1(i, val_arr[i]);
+	}
+
+	delete val_arr;
+	return rv;
    return m_impl->GetVar(timestate,domain,varname);
 
     //
@@ -334,6 +554,7 @@ avtMDSCHISMFileFormat::GetVar(int timestate, int domain, const char *varname)
 vtkDataArray *
 avtMDSCHISMFileFormat::GetVectorVar(int timestate, int domain,const char *varname)
 {
+	return NULL;
     return m_impl->GetVectorVar(timestate,domain,varname);
     //
     // If you have a file format where variables don't apply (for example a

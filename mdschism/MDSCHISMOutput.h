@@ -101,7 +101,7 @@ private:
 
 private:
 
-  MDSchismOutput*       m_schismfilePtr;
+  //MDSchismOutput*       m_schismfilePtr;
   NcVar*        m_ncVar[MAX_VAR_COMPONENT10];
   int           m_current_record;
  
@@ -166,6 +166,7 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
 	}
 	else if (num_dim==2)
 	{
+		
 		ncvar->get(buffer,count[0],count[1]);
 	}
 	else if (num_dim==3)

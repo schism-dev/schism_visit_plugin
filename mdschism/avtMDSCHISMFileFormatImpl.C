@@ -35,7 +35,6 @@
 #include <malloc.h>
 #include <BufferConnection.h>
 #ifdef PARALLEL
-#include <mpi.h>
 #include <avtParallel.h>
 #endif
 
@@ -171,6 +170,7 @@ avtMDSCHISMFileFormatImpl::FreeUpResources(void)
 //broadcast string map from rank 0 to all other ranks
 void  avtMDSCHISMFileFormatImpl::broadCastStringMap(std::map<std::string, std::string>& a_map, int myrank)
 {
+#ifdef PARALLEL
 	std::vector<std::string> key_list;
 	std::vector<std::string> val_list;
 	if (myrank == 0)
@@ -195,6 +195,7 @@ void  avtMDSCHISMFileFormatImpl::broadCastStringMap(std::map<std::string, std::s
 			val_it++;
 		}
 	}
+#endif
 }
 
 
@@ -4035,7 +4036,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			extra_one_domain = nproc * ndomain_per_thread + myrank;
 			all_domain_resides[num_domain_resides] = extra_one_domain;
 		}
-		for (int i = 0; i< num_domain_resides; i++)
+		for (int i = 0; i < num_domain_resides; i++)
 		{
 			int id = all_domain_resides[i];
 			std::stringstream ss;
@@ -4046,7 +4047,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			MDSchismOutput* a_data_file_ptr = NULL;
 			try
 			{
-			   a_data_file_ptr = new MDSchismOutput(domain_data_file, local_mesh_file);
+				a_data_file_ptr = new MDSchismOutput(domain_data_file, local_mesh_file);
 			}
 			catch (SCHISMFileException10 e)
 			{
@@ -4061,20 +4062,57 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			MDSCHISMMeshProvider * a_local_mesh_ptr = NULL;
 			try
 			{
-			    a_local_mesh_ptr=new MDSCHISMMeshProvider(domain_data_file, local_mesh_file);
-		    }
-		    catch (SCHISMFileException10 e)
-		    {
-			     EXCEPTION1(InvalidDBTypeException, e.what());
-		    }
-		    catch (...)
-		    {
-			    EXCEPTION1(InvalidDBTypeException, "no valid mesh exist");
-		    }
+				a_local_mesh_ptr = new MDSCHISMMeshProvider(domain_data_file, local_mesh_file);
+			}
+			catch (SCHISMFileException10 e)
+			{
+				EXCEPTION1(InvalidDBTypeException, e.what());
+			}
+			catch (...)
+			{
+				EXCEPTION1(InvalidDBTypeException, "no valid mesh exist");
+			}
 			m_external_mesh_providers[id] = a_local_mesh_ptr;
 		}
+#else
+		for (int id = 0; id < ndomain; id++)
+		{
 
+			std::stringstream ss;
+			ss << std::setw(4) << std::setfill('0') << id;
+			std::string domain_str = ss.str();
+			std::string domain_data_file = data_file_part1 + domain_str + "_" + data_file_part2;
+			std::string local_mesh_file = m_data_file_path + pt + "local_to_global_" + domain_str;
+			MDSchismOutput* a_data_file_ptr = NULL;
+			try
+			{
+				a_data_file_ptr = new MDSchismOutput(domain_data_file, local_mesh_file);
+			}
+			catch (SCHISMFileException10 e)
+			{
+				EXCEPTION1(InvalidDBTypeException, e.what());
+			}
+			catch (...)
+			{
+				EXCEPTION1(InvalidDBTypeException, "not valid schsim NC output");
+			}
+			m_data_files[id] = a_data_file_ptr;
 
+			MDSCHISMMeshProvider * a_local_mesh_ptr = NULL;
+			try
+			{
+				a_local_mesh_ptr = new MDSCHISMMeshProvider(domain_data_file, local_mesh_file);
+			}
+			catch (SCHISMFileException10 e)
+			{
+				EXCEPTION1(InvalidDBTypeException, e.what());
+			}
+			catch (...)
+			{
+				EXCEPTION1(InvalidDBTypeException, "no valid mesh exist");
+			}
+			m_external_mesh_providers[id] = a_local_mesh_ptr;
+	     }
 #endif
 
 

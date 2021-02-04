@@ -662,7 +662,7 @@ bool  MDSchismOutputVar::get(float *     a_buffer)
    //return true;
    return get_float_cache(a_buffer);
  }
-  return load_from_file<float>(a_buffer);
+ return load_from_file<float>(a_buffer);
 }
 
 bool  MDSchismOutputVar::get(double *     a_buffer) 

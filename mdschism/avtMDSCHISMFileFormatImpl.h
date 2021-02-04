@@ -3,6 +3,10 @@
 #include <vector>
 #include <map>
 #include <vtkUnstructuredGrid.h>
+// has to put mpi.h before any netcdf.h include to avoid redefining of mpi_comm,... such as.
+#ifdef PARALLEL
+#include <mpi.h>
+#endif
 //#include "SCHISMFile10.h"
 #include "MDSCHISMOutput.h"
 #include "MeshProvider10.h"

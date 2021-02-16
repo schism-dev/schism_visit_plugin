@@ -12,6 +12,8 @@
 #include <algorithm> 
 #include <cmath>
 
+
+
 MDSchismOutput::MDSchismOutput(const std::string a_outputFile,const std::string a_local_mesh_file):SCHISMFile10(a_outputFile),
 	                                                                                                 m_local_mesh_file(a_local_mesh_file),
  																									 m_face_bottom(NULL),
@@ -23,11 +25,13 @@ MDSchismOutput::MDSchismOutput(const std::string a_outputFile,const std::string 
                                                                                                      m_node_bottom_time_id(-1),
                                                                                                      m_edge_bottom_time_id(-1)
 {
+	//debug1 << "in nc file to create nc file "<<a_outputFile<<"\n";
 	m_outputNcFilePtr=new NcFile(a_outputFile.c_str(),NcFile::ReadOnly);
+	//debug1 << "in nc file done create nc file\n";
 	if (m_outputNcFilePtr->is_valid()==0)
 	{
 		m_is_valid=false;
-		throw SCHISMFileException10( a_outputFile+"is not a valid NC file\n");
+		throw SCHISMFileException10( a_outputFile+" is not a valid NC file\n");
 	}
 	else
 	{
@@ -60,8 +64,9 @@ MDSchismOutput::MDSchismOutput(const std::string a_outputFile,const std::string 
 	
 	
 	 
-
+	//debug1 << "in nc file to begin load dim var\n";
 	this->load_dim_var();
+	//debug1 << "in nc file to begin fill bottom var\n";
 	this->fill_bottom();
 	
 }
@@ -158,7 +163,9 @@ std::string MDSchismOutput::global_att_as_string(const std::string& a_att_name) 
 
 void   MDSchismOutput::fill_bottom()
 {
+
    ifstream*    localFileStream = new ifstream(m_local_mesh_file.c_str()); 
+   debug1 << "in nc file done create local mesh stream\n";
    if (!localFileStream->good())
    {
        throw SCHISMFileException10("not a valid file "+ m_local_mesh_file);
@@ -212,14 +219,14 @@ void   MDSchismOutput::fill_bottom()
     //std::getline(*localFileStream,lineTemp);
 	int year,month,day;
     double time,tzone;
-	(*localFileStream)>>year>>month>>day>>time>>tzone;
+	(*localFileStream) >> year >> month >> day >> time>> tzone;
     //std::getline(*localFileStream,lineTemp);
     //std::stringstream vStream(lineTemp);
     int number_layer;
 	int nrec, nspool,kz,ics;
 	double v2,h0,hs,hc,thetab,thetaf;
-    (*localFileStream)>>nrec>>v2>>nspool>>number_layer>>kz>>h0>>hs>>hc>>thetab>>thetaf>>ics;
-
+	(*localFileStream) >> nrec >> v2 >> nspool >> number_layer >> kz >> h0>>hs>>hc>>thetab>>thetaf>>ics;
+	
     std::getline(*localFileStream,lineTemp); //sigma stream
 	double zt,sigmat;
 	for(int i=1;i<kz;i++)
@@ -514,7 +521,7 @@ bool  MDSchismOutput::load_dim_var()
 		m_dimensions[idim]= wrapped_dim;
 	}
 	
-
+	
 	std::map<std::string, int>  var_name_added;
 
 	int num_var = m_outputNcFilePtr->num_vars();
@@ -527,6 +534,7 @@ bool  MDSchismOutput::load_dim_var()
 		schism_var->fill_ncVar(a_var);
 		schism_var->m_schismfilePtr = this;
 		int num_dim_var = a_var->num_dims();
+		
 		
 		// filled global dim id in ncfile
 		for(int i_dim_var=0;i_dim_var<num_dim_var;i_dim_var++)
@@ -542,7 +550,7 @@ bool  MDSchismOutput::load_dim_var()
 				}
 			}
 		}
-
+		
 		// fill att
 		int num_att_var = a_var->num_atts();
 		
@@ -584,7 +592,7 @@ bool  MDSchismOutput::load_dim_var()
 		}
 
 		
-
+		
 		int var_id            = m_total_num_vars;
         m_variables[var_id]   = schism_var;
 		var_name_added[var_name]=var_id;
@@ -662,7 +670,7 @@ bool  MDSchismOutputVar::get(float *     a_buffer)
    //return true;
    return get_float_cache(a_buffer);
  }
- return load_from_file<float>(a_buffer);
+  return load_from_file<float>(a_buffer);
 }
 
 bool  MDSchismOutputVar::get(double *     a_buffer) 
@@ -677,7 +685,7 @@ bool  MDSchismOutputVar::get(int *     a_buffer)
 {
 
  int dataSize = computeDataNumPerTIMEStep();
-
+ debug1 << "data size is " << dataSize<<"\n";
  if(m_data_cached)
  {
    //for(int idata=0;idata<dataSize;idata++)

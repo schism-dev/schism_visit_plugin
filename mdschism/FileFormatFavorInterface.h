@@ -13,7 +13,7 @@ class FileFormatFavorInterface
 public:
  virtual void            GetTimes(std::vector<double> & a_times){return;};
   virtual int            GetNTimesteps(const std::string& a_filename){return -1;};
-  virtual void           ActivateTimestep(const std::string& a_filename){return;};
+  //virtual void           ActivateTimestep(const std::string& a_filename){return;};
   virtual void           FreeUpResources(void){return;}; 
   
   virtual vtkDataSet    *GetMesh(int          a_timeState, 

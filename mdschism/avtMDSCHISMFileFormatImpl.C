@@ -7,22 +7,29 @@
 #include <time.h>
 #include <math.h>
 
+#include <vtkCharArray.h>
 #include <vtkDoubleArray.h>
 #include <vtkFloatArray.h>
-#include <vtkRectilinearGrid.h>
-#include <vtkRectilinearGrid.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkSmartPointer.h>
+#include <vtkIntArray.h>
+#include <vtkLongArray.h>
+#include <vtkShortArray.h>
+#include <vtkUnsignedCharArray.h>
+#include <vtkUnsignedIntArray.h>
+#include <vtkUnsignedShortArray.h>
+
 #include <vtkCellArray.h>
-#include <vtkPolyhedron.h>
-#include <vtkPlaneSource.h>
-#include <vtkMath.h>
-#include <vtkPoints.h>
-#include <vtkCellType.h> 
+#include <vtkCellData.h>
+#include <vtkCellType.h>
+#include <vtkFieldData.h>
+#include <vtkInformation.h>
+#include <vtkRectilinearGrid.h>
+#include <vtkStreamingDemandDrivenPipeline.h>
+#include <vtkStructuredGrid.h>
+#include <vtkUnstructuredGrid.h>
 
 #include <avtDatabaseMetaData.h>
 #include <avtVariableCache.h>
-
+#include <avtGhostData.h>
 #include <DBOptionsAttributes.h>
 #include <Expression.h>
 
@@ -122,6 +129,7 @@ int
 avtMDSCHISMFileFormatImpl::GetNTimesteps(const std::string& a_filename)
 {
 	Initialize(a_filename);
+	debug1 << "num time step is"<<m_num_time_step <<"\n";
 	return m_num_time_step;
 }
 
@@ -167,6 +175,23 @@ avtMDSCHISMFileFormatImpl::FreeUpResources(void)
 	debug1 << "finish free res \n";
 }
 
+
+void avtMDSCHISMFileFormatImpl::set_var_name_label_map(const std::map<std::string, std::string> a_map)
+{
+	m_var_name_label_map = a_map;
+}
+void avtMDSCHISMFileFormatImpl::set_var_mesh_map(const std::map<std::string, std::string> a_map)
+{
+	m_var_mesh_map = a_map;
+}
+void avtMDSCHISMFileFormatImpl::set_var_horizontal_center_map(const std::map<std::string, std::string> a_map)
+{
+	m_var_horizontal_center_map = a_map;
+}
+void avtMDSCHISMFileFormatImpl::set_var_vertical_center_map(const std::map<std::string, std::string> a_map)
+{
+	m_var_vertical_center_map = a_map;
+}
 //broadcast string map from rank 0 to all other ranks
 void  avtMDSCHISMFileFormatImpl::broadCastStringMap(std::map<std::string, std::string>& a_map, int myrank)
 {
@@ -203,7 +228,8 @@ void avtMDSCHISMFileFormatImpl::BroadcastGlobalInfo(avtDatabaseMetaData *metadat
 {
 #ifdef PARALLEL
 	int rank = PAR_Rank();
-
+	
+	//MPI_Comm_rank(VISIT_MPI_COMM, &rank);
 	//
 	// Broadcast Full DatabaseMetaData
 	//
@@ -213,28 +239,50 @@ void avtMDSCHISMFileFormatImpl::BroadcastGlobalInfo(avtDatabaseMetaData *metadat
 	{
 		metadata->SelectAll();
 		n = metadata->CalculateMessageSize(tmp);
+		debug1 <<" n is "<<n<<"\n";
+		
 	}
 	BroadcastInt(n);
+	debug1 << "after update n is " << n << "\n";
 	unsigned char *buff = new unsigned char[n];
-
+    int *buffint = new int[n];
+	debug1 << "mpi bcast \n";
 	if (rank == 0)
 	{
+		
 		metadata->SelectAll();
 		metadata->Write(tmp);
+		
 		for (int i = 0; i < n; i++)
 		{
 			tmp.Read(&buff[i]);
+			buffint[i] = buff[i];
+			//debug1 <<" "<<buff[i];
 		}
+		 //debug1 << "\n";
+		
 	}
-	MPI_Bcast(buff, n, MPI_UNSIGNED_CHAR, 0, VISIT_MPI_COMM);
+	debug1 << "mpi bcast1 \n";
+	BroadcastIntArray(buffint, n);
+	//MPI_Init(NULL, NULL);
+	//MPI_Bcast(buff, n, MPI_UNSIGNED_CHAR, 0, VISIT_MPI_COMM);
+	debug1 << "mpi bcast2 \n";
 	if (rank != 0)
 	{
+		for (int i = 0; i < n; i++)
+	   {
+			buff[i] = buffint[i];
+			//debug1 << " " << buff[i];
+		}
+		//debug1 << "\n";
 		tmp.Append(buff, n);
 		metadata->Read(tmp);
 	}
 	delete[] buff;
+	delete[] buffint;
 	broadCastStringMap(m_var_name_label_map, rank);
 	broadCastStringMap(m_var_mesh_map, rank);
+	//MPI_Finalize();
 #endif
 }
 
@@ -252,14 +300,150 @@ void avtMDSCHISMFileFormatImpl::BroadcastGlobalInfo(avtDatabaseMetaData *metadat
 // ****************************************************************************
 
 void
-avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaData, avtMDSCHISMFileFormat * a_avtFile, int a_timeState)
+avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaData, const std::string a_data_file, int a_timeState)
 {
-
+	//debug1 << "begin fill metadata";
 #ifdef PARALLEL
-	if (PAR_Rank() != 0)
-		return;
-#endif
+	if (PAR_Rank() == 0)
+	{
+		debug1 << "not root no meta filling job on rank"<<PAR_Rank()<<"\n";
+		
+		Initialize(a_data_file);
+		//
+		avtCentering  nodeCent = AVT_NODECENT;
+		avtCentering  zoneCent = AVT_ZONECENT;
+		string mesh_name = m_mesh_3d;
 
+		// AVT_RECTILINEAR_MESH, AVT_CURVILINEAR_MESH, AVT_UNSTRUCTURED_MESH,
+		// AVT_POINT_MESH, AVT_SURFACE_MESH, AVT_UNKNOWN_MESH
+		avtMeshType mt = AVT_UNSTRUCTURED_MESH;
+		//
+		int nblocks = m_number_domain;
+		//debug1 << "num of domain "<<m_number_domain<<"\n";
+		int block_origin = 0;
+		int cell_origin = 0;
+		int group_origin = 0;
+		int spatial_dimension = 3;
+		int topological_dimension = 3;
+		double *extents = NULL;
+		int * bounds = NULL;
+		//add node center 3d mesh
+		if (m_external_mesh_providers.begin()->second->provide3DMesh())
+		{
+			avtMeshMetaData *mmd = new avtMeshMetaData(bounds,extents, mesh_name,
+				nblocks, block_origin, cell_origin,group_origin,spatial_dimension,topological_dimension, mt);
+			a_metaData->Add(mmd);
+		}
+
+		//
+	   // add layered 2d mesh
+		mesh_name = m_layer_mesh;
+		topological_dimension = 2;
+
+		if (m_external_mesh_providers.begin()->second->provide3DMesh())
+		{
+			avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+				nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+			a_metaData->Add(mmd);
+		}
+
+		//
+		// add surface 2d mesh
+		//
+		mesh_name = m_mesh_2d;
+
+		spatial_dimension = 2;
+		topological_dimension = 2;
+
+		avtMeshMetaData *mmd1 = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		a_metaData->Add(mmd1);
+
+		//add 3d side center point mesh
+		mesh_name = m_side_center_point_3d_mesh;
+
+		spatial_dimension = 3;
+		topological_dimension = 0;
+
+		if (m_external_mesh_providers.begin()->second->provide3DMesh())
+		{
+			avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+				nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+			a_metaData->Add(mmd);
+		}
+
+		//add 3d  face center point mesh
+		mesh_name = m_face_center_point_3d_mesh;
+
+		spatial_dimension = 3;
+		topological_dimension = 0;
+
+		if (m_external_mesh_providers.begin()->second->provide3DMesh())
+		{
+			avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+				nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+			a_metaData->Add(mmd);
+		}
+
+		// add 2d side center point mesh
+		mesh_name = m_side_center_point_2d_mesh;
+
+		spatial_dimension = 2;
+		topological_dimension = 0;
+
+		avtMeshMetaData *mmd2 = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		a_metaData->Add(mmd2);
+
+		//
+		// add water surface and depth scalar
+		string mesh = m_mesh_2d;
+		avtScalarMetaData *smd1 = new avtScalarMetaData(m_node_depth_label,mesh, nodeCent);
+		a_metaData->Add(smd1);
+
+
+
+		// m_var_mesh_map[m_node_surface_label] = mesh;
+		m_var_mesh_map[m_node_depth_label] = mesh;
+
+		//add 3D node level label
+		string mesh3d = m_mesh_3d;
+		avtScalarMetaData *smd2 = new avtScalarMetaData(MeshConstants10::NODE_LEVEL, mesh3d, nodeCent);
+		a_metaData->Add(smd2);
+
+		//add 3D element level label
+		mesh3d = m_layer_mesh;
+		avtScalarMetaData *smd3 = new avtScalarMetaData(MeshConstants10::ELE_LEVEL, mesh3d, zoneCent);
+		a_metaData->Add(smd3);
+
+		//add 3D side level label
+		mesh3d = m_side_center_point_3d_mesh;
+		avtScalarMetaData *smd4 = new avtScalarMetaData(MeshConstants10::SIDE_LEVEL, mesh3d, nodeCent);
+		a_metaData->Add(smd4);
+
+		//add 3D layer lable (for prism center data)
+		mesh3d = m_mesh_3d;
+		avtScalarMetaData *smd5 = new avtScalarMetaData(MeshConstants10::LAYER, mesh3d, zoneCent);
+		a_metaData->Add(smd5);
+
+
+		//add node bottom label
+		mesh = m_mesh_2d;
+		//a_avtFile->addScalarVarToMetaData(a_metaData,  MeshConstants10::NODE_BOTTOM, mesh, nodeCent);
+		//a_avtFile->addScalarVarToMetaData(a_metaData,  MeshConstants10::FACE_BOTTOM, mesh, zoneCent);
+
+	   //a_avtFile->addScalarVarToMetaData(a_metaData,  MeshConstants10::EDGE_BOTTOM, mesh, nodeCent);
+
+
+		PopulateStateMetaData(a_metaData, a_timeState);
+		debug1 << "finish populate metadata \n";
+		
+	}
+	//Barrier();
+	BroadcastGlobalInfo(a_metaData);
+	debug1 << "finish populate and broadcast metadata \n";
+#else
+	Initialize(a_data_file);
 	//
 	avtCentering  nodeCent = AVT_NODECENT;
 	avtCentering  zoneCent = AVT_ZONECENT;
@@ -270,38 +454,32 @@ avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 	avtMeshType mt = AVT_UNSTRUCTURED_MESH;
 	//
 	int nblocks = m_number_domain;
+	//debug1 << "num of domain "<<m_number_domain<<"\n";
 	int block_origin = 0;
+	int cell_origin = 0;
+	int group_origin = 0;
 	int spatial_dimension = 3;
 	int topological_dimension = 3;
 	double *extents = NULL;
+	int * bounds = NULL;
 	//add node center 3d mesh
 	if (m_external_mesh_providers.begin()->second->provide3DMesh())
 	{
-		a_avtFile->addMeshToMetaData(a_metaData,
-			mesh_name,
-			mt,
-			extents,
-			nblocks,
-			block_origin,
-			spatial_dimension,
-			topological_dimension);
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		a_metaData->Add(mmd);
 	}
 
 	//
-   // add layered 2d mesh
+	// add layered 2d mesh
 	mesh_name = m_layer_mesh;
 	topological_dimension = 2;
 
 	if (m_external_mesh_providers.begin()->second->provide3DMesh())
 	{
-		a_avtFile->addMeshToMetaData(a_metaData,
-			mesh_name,
-			mt,
-			extents,
-			nblocks,
-			block_origin,
-			spatial_dimension,
-			topological_dimension);
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		a_metaData->Add(mmd);
 	}
 
 	//
@@ -312,31 +490,21 @@ avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 	spatial_dimension = 2;
 	topological_dimension = 2;
 
-	a_avtFile->addMeshToMetaData(a_metaData,
-		mesh_name,
-		mt,
-		extents,
-		nblocks,
-		block_origin,
-		spatial_dimension,
-		topological_dimension);
+	avtMeshMetaData *mmd1 = new avtMeshMetaData(bounds, extents, mesh_name,
+		nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+	a_metaData->Add(mmd1);
 
 	//add 3d side center point mesh
 	mesh_name = m_side_center_point_3d_mesh;
 
 	spatial_dimension = 3;
 	topological_dimension = 0;
-	
+
 	if (m_external_mesh_providers.begin()->second->provide3DMesh())
 	{
-		a_avtFile->addMeshToMetaData(a_metaData,
-			mesh_name,
-			mt,
-			extents,
-			nblocks,
-			block_origin,
-			spatial_dimension,
-			topological_dimension);
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		a_metaData->Add(mmd);
 	}
 
 	//add 3d  face center point mesh
@@ -347,14 +515,9 @@ avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 
 	if (m_external_mesh_providers.begin()->second->provide3DMesh())
 	{
-		a_avtFile->addMeshToMetaData(a_metaData,
-			mesh_name,
-			mt,
-			extents,
-			nblocks,
-			block_origin,
-			spatial_dimension,
-			topological_dimension);
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		a_metaData->Add(mmd);
 	}
 
 	// add 2d side center point mesh
@@ -363,19 +526,15 @@ avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 	spatial_dimension = 2;
 	topological_dimension = 0;
 
-	a_avtFile->addMeshToMetaData(a_metaData,
-		mesh_name,
-		mt,
-		extents,
-		nblocks,
-		block_origin,
-		spatial_dimension,
-		topological_dimension);
+	avtMeshMetaData *mmd2 = new avtMeshMetaData(bounds, extents, mesh_name,
+		nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+	a_metaData->Add(mmd2);
 
 	//
 	// add water surface and depth scalar
 	string mesh = m_mesh_2d;
-	a_avtFile->addScalarVarToMetaData(a_metaData, m_node_depth_label, mesh, nodeCent);
+	avtScalarMetaData *smd1 = new avtScalarMetaData(m_node_depth_label, mesh, nodeCent);
+	a_metaData->Add(smd1);
 
 
 
@@ -384,19 +543,23 @@ avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 
 	//add 3D node level label
 	string mesh3d = m_mesh_3d;
-	a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::NODE_LEVEL, mesh3d, nodeCent);
+	avtScalarMetaData *smd2 = new avtScalarMetaData(MeshConstants10::NODE_LEVEL, mesh3d, nodeCent);
+	a_metaData->Add(smd2);
 
 	//add 3D element level label
 	mesh3d = m_layer_mesh;
-	a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::ELE_LEVEL, mesh3d, zoneCent);
+	avtScalarMetaData *smd3 = new avtScalarMetaData(MeshConstants10::ELE_LEVEL, mesh3d, zoneCent);
+	a_metaData->Add(smd3);
 
 	//add 3D side level label
 	mesh3d = m_side_center_point_3d_mesh;
-	a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::SIDE_LEVEL, mesh3d, nodeCent);
+	avtScalarMetaData *smd4 = new avtScalarMetaData(MeshConstants10::SIDE_LEVEL, mesh3d, nodeCent);
+	a_metaData->Add(smd4);
 
 	//add 3D layer lable (for prism center data)
 	mesh3d = m_mesh_3d;
-	a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::LAYER, mesh3d, zoneCent);
+	avtScalarMetaData *smd5 = new avtScalarMetaData(MeshConstants10::LAYER, mesh3d, zoneCent);
+	a_metaData->Add(smd5);
 
 
 	//add node bottom label
@@ -404,17 +567,17 @@ avtMDSCHISMFileFormatImpl::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 	//a_avtFile->addScalarVarToMetaData(a_metaData,  MeshConstants10::NODE_BOTTOM, mesh, nodeCent);
 	//a_avtFile->addScalarVarToMetaData(a_metaData,  MeshConstants10::FACE_BOTTOM, mesh, zoneCent);
 
-   //a_avtFile->addScalarVarToMetaData(a_metaData,  MeshConstants10::EDGE_BOTTOM, mesh, nodeCent);
+	//a_avtFile->addScalarVarToMetaData(a_metaData,  MeshConstants10::EDGE_BOTTOM, mesh, nodeCent);
 
 
-	PopulateStateMetaData(a_metaData, a_avtFile, a_timeState);
+	PopulateStateMetaData(a_metaData, a_timeState);
 	debug1 << "finish populate metadata \n";
-	BroadcastGlobalInfo(a_metaData);
+#endif
+	
 }
 
 void    avtMDSCHISMFileFormatImpl::addFaceCenterData(avtDatabaseMetaData * a_metaData,
 	SCHISMVar10           * a_varPtr,
-	avtMDSCHISMFileFormat * a_avtFile,
 	const std::string   & a_varName,
 	const std::string   & a_varLabel,
 	const avtCentering  & a_center)
@@ -434,7 +597,9 @@ void    avtMDSCHISMFileFormatImpl::addFaceCenterData(avtDatabaseMetaData * a_met
 	// scalar data 2d mesh
 	if (a_varPtr->num_dims() <= 2)
 	{
-		a_avtFile->addScalarVarToMetaData(a_metaData, a_varLabel, mesh2d, faceCent);
+		avtScalarMetaData *smd = new avtScalarMetaData(a_varLabel, mesh2d, faceCent);
+		a_metaData->Add(smd);
+		
 		m_var_mesh_map[a_varLabel] = mesh2d;
 		m_var_dim[a_varName] = a_varPtr->num_dims();
 	}
@@ -454,28 +619,20 @@ void    avtMDSCHISMFileFormatImpl::addFaceCenterData(avtDatabaseMetaData * a_met
 			int ncomps = comDim->size();
 			int ucomps = (ncomps == 2 ? 3 : ncomps);
 
-			a_avtFile->addVectorVarToMetaData(a_metaData, a_varLabel, mesh3d, faceCent, ucomps);
+			avtVectorMetaData *vmd = new avtVectorMetaData(a_varLabel, mesh3d, faceCent, ucomps);
+			a_metaData->Add(vmd);
 			m_var_mesh_map[a_varLabel] = mesh3d;
 			m_var_dim[a_varName] = 3;
 
 			// also add bottom, surface and depth average state option
-			a_avtFile->addVectorVarToMetaData(a_metaData,
-				a_varLabel + m_surface_state_suffix,
-				m_mesh_2d,
-				faceCent,
-				ucomps);
+			avtVectorMetaData *vmd1 = new avtVectorMetaData(a_varLabel + m_surface_state_suffix, m_mesh_2d, faceCent, ucomps);
+			a_metaData->Add(vmd1);
 			//debug1<<"add  "<<label+m_surface_state_suffix<<" ";
-			a_avtFile->addVectorVarToMetaData(a_metaData,
-				a_varLabel + m_bottom_state_suffix,
-				m_mesh_2d,
-				faceCent,
-				ucomps);
+			avtVectorMetaData *vmd2 = new avtVectorMetaData(a_varLabel + m_bottom_state_suffix, m_mesh_2d, faceCent, ucomps);
+			a_metaData->Add(vmd2);
 			//debug1<<"add  "<<label+m_bottom_state_suffix<<" ";
-			a_avtFile->addVectorVarToMetaData(a_metaData,
-				a_varLabel + m_depth_average_suffix,
-				m_mesh_2d,
-				faceCent,
-				ucomps);
+			avtVectorMetaData *vmd3 = new avtVectorMetaData(a_varLabel + m_depth_average_suffix, m_mesh_2d, faceCent, ucomps);
+			a_metaData->Add(vmd3);
 			// debug1<<"add  "<< label+m_depth_average_suffix<<" ";
 			m_var_name_label_map[a_varLabel + m_surface_state_suffix] = a_varName;
 			m_var_name_label_map[a_varLabel + m_bottom_state_suffix] = a_varName;
@@ -486,24 +643,14 @@ void    avtMDSCHISMFileFormatImpl::addFaceCenterData(avtDatabaseMetaData * a_met
 		}
 		else //3d scalar
 		{
-			a_avtFile->addScalarVarToMetaData(a_metaData, a_varLabel, mesh3d, faceCent);
+			avtScalarMetaData *smd = new avtScalarMetaData(a_varLabel, mesh3d, faceCent);
+			a_metaData->Add(smd);
 			m_var_mesh_map[a_varLabel] = mesh3d;
 
 			// also add bottom, surface and depth average state option
-			a_avtFile->addScalarVarToMetaData(a_metaData,
-				a_varLabel + m_surface_state_suffix,
-				m_mesh_2d,
-				faceCent);
-			//debug1<<"add  "<<label+m_surface_state_suffix<<" ";
-			a_avtFile->addScalarVarToMetaData(a_metaData,
-				a_varLabel + m_bottom_state_suffix,
-				m_mesh_2d,
-				faceCent);
-			//debug1<<"add  "<<label+m_bottom_state_suffix<<" ";
-			a_avtFile->addScalarVarToMetaData(a_metaData,
-				a_varLabel + m_depth_average_suffix,
-				m_mesh_2d,
-				faceCent);
+			a_metaData->Add( new avtScalarMetaData(a_varLabel + m_surface_state_suffix,m_mesh_2d,faceCent));
+			a_metaData->Add(new avtScalarMetaData(a_varLabel + m_bottom_state_suffix, m_mesh_2d, faceCent));
+			a_metaData->Add(new avtScalarMetaData(a_varLabel + m_depth_average_suffix, m_mesh_2d, faceCent));
 			//debug1<<"add  "<< label+m_depth_average_suffix<<" ";
 			// all those surface, botootm and average are based on original data set
 			m_var_name_label_map[a_varLabel + m_surface_state_suffix] = a_varName;
@@ -527,7 +674,6 @@ void    avtMDSCHISMFileFormatImpl::addFaceCenterData(avtDatabaseMetaData * a_met
 }
 void    avtMDSCHISMFileFormatImpl::addNodeCenterData(avtDatabaseMetaData * a_metaData,
 	SCHISMVar10            * a_varPtr,
-	avtMDSCHISMFileFormat * a_avtFile,
 	const std::string   & a_varName,
 	const std::string   & a_varLabel,
 	const avtCentering  & a_center)
@@ -540,7 +686,7 @@ void    avtMDSCHISMFileFormatImpl::addNodeCenterData(avtDatabaseMetaData * a_met
 	//  scalar var on 2D
 	if (a_varPtr->num_dims() <= 2)
 	{
-		a_avtFile->addScalarVarToMetaData(a_metaData, label, m_mesh_2d, avtCenter);
+		a_metaData->Add(new avtScalarMetaData(label, m_mesh_2d, avtCenter));
 		m_var_mesh_map[label] = m_mesh_2d;
 		m_var_dim[varName] = a_varPtr->num_dims();
 		debug1 << "added 2d scalar:" << label;
@@ -551,7 +697,7 @@ void    avtMDSCHISMFileFormatImpl::addNodeCenterData(avtDatabaseMetaData * a_met
 		SCHISMDim10* comDim = a_varPtr->get_dim(3);
 		int ncomps = comDim->size();
 		int ucomps = (ncomps == 2 ? 3 : ncomps);
-		a_avtFile->addVectorVarToMetaData(a_metaData, label, m_mesh_2d, avtCenter, ucomps);
+		a_metaData->Add(new avtVectorMetaData(label, m_mesh_2d, avtCenter, ucomps));
 		m_var_mesh_map[label] = m_mesh_2d;
 		m_var_dim[varName] = 2;
 
@@ -567,25 +713,25 @@ void    avtMDSCHISMFileFormatImpl::addNodeCenterData(avtDatabaseMetaData * a_met
 		}
 
 		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, m_mesh_3d, avtCenter);
-		a_avtFile->addScalarVarToMetaData(a_metaData, label, m_mesh_3d, avtCenter);
+		a_metaData->Add(new avtScalarMetaData(label, m_mesh_3d, avtCenter));
 		m_var_mesh_map[label] = m_mesh_3d;
 		// also add bottom, surface and depth average state option
 		if (!(varName == MeshConstants10::ZCOORD))
 		{
-			a_avtFile->addScalarVarToMetaData(a_metaData,
+			a_metaData->Add(new avtScalarMetaData(
 				label + m_surface_state_suffix,
 				m_mesh_2d,
-				avtCenter);
+				avtCenter));
 			debug1 << "add  " << label + m_surface_state_suffix << " ";
-			a_avtFile->addScalarVarToMetaData(a_metaData,
+			a_metaData->Add(new avtScalarMetaData(
 				label + m_bottom_state_suffix,
 				m_mesh_2d,
-				avtCenter);
+				avtCenter));
 			debug1 << "add  " << label + m_bottom_state_suffix << " ";
-			a_avtFile->addScalarVarToMetaData(a_metaData,
+			a_metaData->Add(new avtScalarMetaData(
 				label + m_depth_average_suffix,
 				m_mesh_2d,
-				avtCenter);
+				avtCenter));
 			debug1 << "add  " << label + m_depth_average_suffix << " ";
 
 
@@ -614,28 +760,28 @@ void    avtMDSCHISMFileFormatImpl::addNodeCenterData(avtDatabaseMetaData * a_met
 		int ncomps = comDim->size();
 		int ucomps = (ncomps == 2 ? 3 : ncomps);
 
-		a_avtFile->addVectorVarToMetaData(a_metaData, label, m_mesh_3d, avtCenter, ucomps);
+		a_metaData->Add(new avtVectorMetaData(label, m_mesh_3d, avtCenter, ucomps));
 		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, m_mesh_3d, avtCenter);
 		m_var_mesh_map[label] = m_mesh_3d;
 
 		// also add bottom, surface and depth average state option
-		a_avtFile->addVectorVarToMetaData(a_metaData,
+		a_metaData->Add(new avtVectorMetaData(
 			label + m_surface_state_suffix,
 			m_mesh_2d,
 			avtCenter,
-			ucomps);
+			ucomps));
 		debug1 << "add  " << label + m_surface_state_suffix << " ";
-		a_avtFile->addVectorVarToMetaData(a_metaData,
+		a_metaData->Add(new avtVectorMetaData(
 			label + m_bottom_state_suffix,
 			m_mesh_2d,
 			avtCenter,
-			ucomps);
+			ucomps));
 		debug1 << "add  " << label + m_bottom_state_suffix << " ";
-		a_avtFile->addVectorVarToMetaData(a_metaData,
+		a_metaData->Add(new avtVectorMetaData(
 			label + m_depth_average_suffix,
 			m_mesh_2d,
 			avtCenter,
-			ucomps);
+			ucomps));
 		debug1 << "add  " << label + m_depth_average_suffix << " ";
 		m_var_name_label_map[label + m_surface_state_suffix] = varName;
 		m_var_name_label_map[label + m_bottom_state_suffix] = varName;
@@ -654,7 +800,6 @@ void    avtMDSCHISMFileFormatImpl::addNodeCenterData(avtDatabaseMetaData * a_met
 
 void    avtMDSCHISMFileFormatImpl::addSideCenterData(avtDatabaseMetaData * a_metaData,
 	SCHISMVar10           * a_varPtr,
-	avtMDSCHISMFileFormat * a_avtFile,
 	const std::string   & a_varName,
 	const std::string   & a_varLabel,
 	const avtCentering  & a_center)
@@ -677,7 +822,7 @@ void    avtMDSCHISMFileFormatImpl::addSideCenterData(avtDatabaseMetaData * a_met
 	//  scalar var on 2D
 	if (a_varPtr->num_dims() <= 2)
 	{
-		a_avtFile->addScalarVarToMetaData(a_metaData, label, mesh2d, avtCenter);
+		a_metaData->Add(new avtScalarMetaData(label, mesh2d, avtCenter));
 		m_var_mesh_map[label] = mesh2d;
 		m_var_dim[varName] = a_varPtr->num_dims();
 		debug1 << "added 2d scalar:" << label;
@@ -688,7 +833,7 @@ void    avtMDSCHISMFileFormatImpl::addSideCenterData(avtDatabaseMetaData * a_met
 		SCHISMDim10* comDim = a_varPtr->get_dim(3);
 		int ncomps = comDim->size();
 		int ucomps = (ncomps == 2 ? 3 : ncomps);
-		a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh2d, avtCenter, ucomps);
+		a_metaData->Add(new avtVectorMetaData(label, mesh2d, avtCenter, ucomps));
 		m_var_mesh_map[label] = mesh2d;
 		m_var_dim[varName] = 2;
 
@@ -704,23 +849,23 @@ void    avtMDSCHISMFileFormatImpl::addSideCenterData(avtDatabaseMetaData * a_met
 			EXCEPTION1(InvalidVariableException, msgStream.str());
 		}
 		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, mesh3d, avtCenter);
-		a_avtFile->addScalarVarToMetaData(a_metaData, label, mesh3d, avtCenter);
+		a_metaData->Add(new avtScalarMetaData(label, mesh3d, avtCenter));
 		m_var_mesh_map[label] = mesh3d;
 		// also add bottom, surface and depth average state option
-		a_avtFile->addScalarVarToMetaData(a_metaData,
+		a_metaData->Add(new avtScalarMetaData(
 			label + m_surface_state_suffix,
 			mesh2d,
-			avtCenter);
+			avtCenter));
 		debug1 << "add  " << label + m_surface_state_suffix << " ";
-		a_avtFile->addScalarVarToMetaData(a_metaData,
+		a_metaData->Add(new avtScalarMetaData(
 			label + m_bottom_state_suffix,
 			mesh2d,
-			avtCenter);
+			avtCenter));
 		debug1 << "add  " << label + m_bottom_state_suffix << " ";
-		a_avtFile->addScalarVarToMetaData(a_metaData,
+		a_metaData->Add(new avtScalarMetaData(
 			label + m_depth_average_suffix,
 			mesh2d,
-			avtCenter);
+			avtCenter));
 		debug1 << "add  " << label + m_depth_average_suffix << " ";
 		// all those surface, botootm and average are based on original data set
 		m_var_name_label_map[label + m_surface_state_suffix] = varName;
@@ -746,28 +891,28 @@ void    avtMDSCHISMFileFormatImpl::addSideCenterData(avtDatabaseMetaData * a_met
 		int ncomps = comDim->size();
 		int ucomps = (ncomps == 2 ? 3 : ncomps);
 
-		a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh3d, avtCenter, ucomps);
+		a_metaData->Add(new avtVectorMetaData(label, mesh3d, avtCenter, ucomps));
 		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, mesh3d, avtCenter);
 		m_var_mesh_map[label] = mesh3d;
 
 		// also add bottom, surface and depth average state option
-		a_avtFile->addVectorVarToMetaData(a_metaData,
+		a_metaData->Add(new avtVectorMetaData(
 			label + m_surface_state_suffix,
 			mesh2d,
 			avtCenter,
-			ucomps);
+			ucomps));
 		debug1 << "add  " << label + m_surface_state_suffix << " ";
-		a_avtFile->addVectorVarToMetaData(a_metaData,
+		a_metaData->Add(new avtVectorMetaData(
 			label + m_bottom_state_suffix,
 			mesh2d,
 			avtCenter,
-			ucomps);
+			ucomps));
 		debug1 << "add  " << label + m_bottom_state_suffix << " ";
-		a_avtFile->addVectorVarToMetaData(a_metaData,
+		a_metaData->Add(new avtVectorMetaData(
 			label + m_depth_average_suffix,
 			mesh2d,
 			avtCenter,
-			ucomps);
+			ucomps));
 		debug1 << "add  " << label + m_depth_average_suffix << " ";
 		m_var_name_label_map[label + m_surface_state_suffix] = varName;
 		m_var_name_label_map[label + m_bottom_state_suffix] = varName;
@@ -781,6 +926,15 @@ void    avtMDSCHISMFileFormatImpl::addSideCenterData(avtDatabaseMetaData * a_met
 	{
 	}
 
+}
+
+MDSchismOutput * avtMDSCHISMFileFormatImpl::get_a_data_file()
+{
+	return m_data_files.begin()->second;
+}
+MDSCHISMMeshProvider * avtMDSCHISMFileFormatImpl::get_a_mesh_provider()
+{
+	return m_external_mesh_providers.begin()->second;
 }
 
 // ****************************************************************************
@@ -797,36 +951,35 @@ void    avtMDSCHISMFileFormatImpl::addSideCenterData(avtDatabaseMetaData * a_met
 // ****************************************************************************
 
 void avtMDSCHISMFileFormatImpl::PopulateStateMetaData(avtDatabaseMetaData * a_metaData,
-	avtMDSCHISMFileFormat * a_avtFile,
 	int                   a_timeState)
 {
 	int numVar = m_data_files.begin()->second->num_vars();
-	debug1 << "get vars " << numVar << endl;
+	//debug1 << "get vars " << numVar << endl;
 	for (int iVar = 0; iVar < numVar; iVar++)
 	{
-
-		debug1 << iVar;
+		//debug1 << iVar;
 		SCHISMVar10*  varPtr = m_data_files.begin()->second->get_var(iVar);
-		debug1 << " " << varPtr->num_dims() << endl;
-
 		std::string varName = varPtr->name();
+		
 		if (m_data_files.begin()->second->none_data_var(varName))
 		{
-			debug1 << varName << "is skipped\n";
+			debug1 << varName << " is skipped\n";
 			continue;
 		}
-
+		debug1 << iVar << " " << varPtr->num_dims() << " " << varName << endl;
 		if (!(varPtr->is_defined_over_grid()))
 		{
+			debug1 << varName << " passed \n";
 			continue;
 		}
 
 		if (varPtr->is_SCHISM_mesh_parameter())
 		{
+			debug1 << varName << "passed 2\n";
 			continue;
 		}
 
-		debug1 << varName << endl;
+		//debug1 << varName<<"to be added" << endl;
 
 		std::string  location(NODE);
 		avtCentering avtCenter(AVT_NODECENT);
@@ -848,18 +1001,21 @@ void avtMDSCHISMFileFormatImpl::PopulateStateMetaData(avtDatabaseMetaData * a_me
 
 		m_var_horizontal_center_map[varName] = location;
 		m_var_vertical_center_map[varName] = vertical_center;
-
+		
 		if (location == FACE)
 		{
-			addFaceCenterData(a_metaData, varPtr, a_avtFile, varName, label, avtCenter);
+			//debug1 << " begin add face var meta\n";
+			addFaceCenterData(a_metaData, varPtr, varName, label, avtCenter);
 		}
 		else if (location == NODE)
 		{
-			addNodeCenterData(a_metaData, varPtr, a_avtFile, varName, label, avtCenter);
+			//debug1 << " begin add node var meta\n";
+			addNodeCenterData(a_metaData, varPtr, varName, label, avtCenter);
 		}
 		else if (location == SIDE)
 		{
-			addSideCenterData(a_metaData, varPtr, a_avtFile, varName, label, avtCenter);
+			//debug1 << " begin add side var meta\n";
+			addSideCenterData(a_metaData, varPtr, varName, label, avtCenter);
 		}
 		// omit unkown center data
 		else
@@ -886,12 +1042,36 @@ void   avtMDSCHISMFileFormatImpl::create2DUnstructuredMesh(vtkUnstructuredGrid *
 		msgStream << "Fail to retrieve faces nodes coord at step " << a_timeState;
 		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 	}
+	vtkUnsignedCharArray *ghost_zones = vtkUnsignedCharArray::New();
+	ghost_zones->SetName("avtGhostZones");
+	long ncells = m_num_mesh_faces[a_domainID];
+	ghost_zones->SetNumberOfTuples(ncells);
+	unsigned char *gzp = ghost_zones->GetPointer(0);
+	for (long i = 0; i < ncells; i++)
+		gzp[i] = 0;
+	unsigned char val = 1;
+	avtGhostData::AddGhostZoneType(val, DUPLICATED_ZONE_INTERNAL_TO_PROBLEM);
+	long ncell_not_ghost = m_external_mesh_providers[a_domainID]->m_number_element_no_ghost;
+	for (long i = ncell_not_ghost; i < ncells; i++)
+		gzp[i] = val;
 
+	vtkUnsignedCharArray *ghost_nodes = vtkUnsignedCharArray::New();
+	ghost_zones->SetName("avtGhostNodes");
+	long npts = m_num_mesh_nodes[a_domainID];
+	ghost_nodes->SetNumberOfTuples(npts);
+	unsigned char *gnp = ghost_nodes->GetPointer(0);
+	for (long i = 0; i < npts; i++)
+		gnp[i] = 0;
+	unsigned char val2 = 1;
+	avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
+	long nnode_not_ghost = m_external_mesh_providers[a_domainID]->m_number_node_no_ghost;
+	for (long i = nnode_not_ghost; i < npts; i++)
+		gnp[i] = val2;
 
 	a_uGrid->SetPoints(points);
 	points->Delete();
 	a_uGrid->Allocate(m_num_mesh_faces[a_domainID]);
-
+	
 	long *  nodePtrTemp = a_meshEle;
 	load_ele_dry_wet(a_timeState,a_domainID);
 	for (long iCell = 0; iCell < m_num_mesh_faces[a_domainID]; ++iCell)
@@ -933,7 +1113,11 @@ void   avtMDSCHISMFileFormatImpl::create2DUnstructuredMesh(vtkUnstructuredGrid *
 		//}
 
 	}
+	
 
+	a_uGrid->GetCellData()->AddArray(ghost_zones);
+	a_uGrid->GetCellData()->AddArray(ghost_nodes);
+	
 }
 
 
@@ -1308,14 +1492,15 @@ void   avtMDSCHISMFileFormatImpl::create3DPointFaceMesh(vtkUnstructuredGrid *a_u
 vtkDataSet *
 avtMDSCHISMFileFormatImpl::GetMesh(int a_timeState, int a_domainID, avtMDSCHISMFileFormat * a_avtFile, const char *mesh_name)
 {
+	debug1 << "begin get mesh\n";
 	int   nDims = 3;
 	long   numNodes = m_num_mesh_nodes[a_domainID];
 	long   numCells = m_num_mesh_faces[a_domainID];
 
 	time_t startTicks = clock();
 
-	int   domainID = 0;
-	int   timeState = 0;
+	int   domainID = a_domainID;
+	int   timeState = a_timeState;
 	std::string material("all");
 	std::string cacheMeshID(mesh_name);
 	cacheMeshID += m_data_file;
@@ -2189,8 +2374,6 @@ void avtMDSCHISMFileFormatImpl::load_ele_dry_wet(const int & a_time, const int& 
 	}
 	else
 	{
-
-
 		int * ele_dry_wet = NULL;
 		std::map<int, int*>::iterator it3;
 		it3 = m_ele_dry_wet.find(a_domain);
@@ -2202,10 +2385,10 @@ void avtMDSCHISMFileFormatImpl::load_ele_dry_wet(const int & a_time, const int& 
 		if (!ele_dry_wet)
 		{
 			ele_dry_wet = new int[num];
-				m_ele_dry_wet[a_domain] = ele_dry_wet;
+			m_ele_dry_wet[a_domain] = ele_dry_wet;
 		}
 
-
+		//debug1 << "done allocate for ele dry/wet for domain " << a_domain <<" "<<num<< "\n";
 		std::string SCHISMVarName = MeshConstants10::ELEM_DRYWET;
 		SCHISMVar10* SCHISMVarPtr = NULL;
 		MDSchismOutput * data_file_ptr = NULL;
@@ -2222,7 +2405,7 @@ void avtMDSCHISMFileFormatImpl::load_ele_dry_wet(const int & a_time, const int& 
 			EXCEPTION1(InvalidVariableException, ("invalid data file " + m_data_file).c_str());
 		}
 
-
+		//debug1 << "begin load ele dry/wet for domain " << a_domain << "\n";
 		try
 		{
 			SCHISMVarPtr = data_file_ptr->get_var(SCHISMVarName);
@@ -2231,16 +2414,26 @@ void avtMDSCHISMFileFormatImpl::load_ele_dry_wet(const int & a_time, const int& 
 		{
 			EXCEPTION1(InvalidVariableException, ("no " + SCHISMVarName + " in " + m_data_file).c_str());
 		}
-
+		//debug1 << "get var ele dry/wet for domain " << a_domain << "\n";
 		SCHISMVarPtr->set_cur(a_time);
-		if (!(SCHISMVarPtr->get(ele_dry_wet)))
+		
+		//original dry wet is defined as float, use a float buffer here
+		float * buffer = new float[num];
+
+		if (!(SCHISMVarPtr->get(buffer)))
 		{
 			stringstream msgStream(stringstream::out);
 			msgStream << "Fail to retrieve " << SCHISMVarName << " at step " << a_time << " domain " << a_domain;
 			EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 		}
+		for (int i = 0; i < num; i++)
+		{
+			ele_dry_wet[i] = int(buffer[i]);
+			
+		}
+		delete buffer;
 		long nominal_data_size_per_layer = 0;
-
+		//debug1 << "done load ele dry/wet for domain " << a_domain << "\n";
 		for (int i = 0; i < num; i++)
 		{
 			if (!(ele_dry_wet[i]))
@@ -2328,11 +2521,11 @@ void avtMDSCHISMFileFormatImpl::load_side_dry_wet(const int & a_time, const int&
 void   avtMDSCHISMFileFormatImpl::getMeshDimensions(const int& a_domainID, MeshProvider10 * a_meshProviderPtr)
 {
 
-	debug1 << "getting mesh node number\n";
+	//debug1 << "getting mesh node number\n";
 	long num_mesh_nodes = MeshConstants10::INVALID_NUM;
 	num_mesh_nodes = a_meshProviderPtr->numberOfNode();
 
-	debug1 << "number of node " << m_num_mesh_nodes[a_domainID] << "\n";
+	//debug1 << "number of node " << m_num_mesh_nodes[a_domainID] << "\n";
 
 	if (num_mesh_nodes < 0)  //to do: face centered data will get num faces
 	{
@@ -2349,7 +2542,7 @@ void   avtMDSCHISMFileFormatImpl::getMeshDimensions(const int& a_domainID, MeshP
 		EXCEPTION1(InvalidVariableException, ("no element found in " + a_meshProviderPtr->file()).c_str());
 	}
 	m_num_mesh_faces[a_domainID] = num_mesh_faces;
-	debug1 << "get face num" << num_mesh_faces << "\n";
+	//debug1 << "get face num" << num_mesh_faces << "\n";
 
 	long num_mesh_edges = MeshConstants10::INVALID_NUM;
 	num_mesh_edges = a_meshProviderPtr->numberOfSide();
@@ -2370,7 +2563,8 @@ void   avtMDSCHISMFileFormatImpl::getMeshDimensions(const int& a_domainID, MeshP
 	{
 		EXCEPTION1(InvalidVariableException, ("no layer found ,one required at least, in " + a_meshProviderPtr->file()).c_str());
 	}
-	debug1 << "get layers num" << m_num_layers << "\n";
+	//debug1 << "get layers num" << m_num_layers << "\n";
+	debug1 << "done load mesh dimension for mesh block " << a_domainID << "\n";
 }
 
 void    avtMDSCHISMFileFormatImpl::load_bottom(const int& a_time, const int & a_domain)
@@ -3934,10 +4128,10 @@ avtMDSCHISMFileFormatImpl::getSingleLayerVar(float    *          a_valBuff,
 //
 // ****************************************************************************
 
-void  avtMDSCHISMFileFormatImpl::ActivateTimestep(const std::string& a_filename)
-{
-	Initialize(a_filename);
-}
+//void  avtMDSCHISMFileFormatImpl::ActivateTimestep(const std::string& a_filename)
+//{
+//	Initialize(a_filename);
+//}
 int   avtMDSCHISMFileFormatImpl::load_per_proc_file(const std::string& a_path) const
 {
 
@@ -3964,6 +4158,11 @@ int   avtMDSCHISMFileFormatImpl::load_per_proc_file(const std::string& a_path) c
 	return nproc;
 
 }
+int avtMDSCHISMFileFormatImpl::num_domain()
+{
+
+	return m_number_domain;
+}
 // ****************************************************************************
 //  Method: avtMDSCHISMFileFormatImpl::Initialize
 //
@@ -3985,27 +4184,39 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 		// Open the file specified by the filename argument here using
 		// ncfile API. See if the file has the right things in
 		// it. If so, set okay to true.
-		debug1 << "file is going to be opened\n";
+		debug1 << "file is going to be opened "<<m_data_file<<"\n";
 		m_data_file = a_data_file;
+		
 		size_t found = m_data_file.find_last_of("/\\");
+		debug1 << "found is  " << found<< "\n";
+		size_t found1 = m_data_file.find_first_of("_");
 		size_t found2 = m_data_file.find_last_of("_");
+		
 		m_data_file_path = m_data_file.substr(0, found);
-		std::string data_file_part1 = m_data_file.substr(0, found2);
+		
+		//std::string data_file_part1 = m_data_file.substr(0, found1);
 		std::string data_file_part2 = m_data_file.substr(found2);
-
+		debug1 << "path:" << m_data_file_path << "\n";
+		debug1 << "part2:" << data_file_part2 << "\n";
+		debug1 << m_data_file_path + "\\" + "schout_" + "0000" + "_" + data_file_part2+"\n";
 		int nproc = 1;
 
 #ifdef PARALLEL
 		nproc = PAR_Size();
 #endif
 		int ndomain = load_per_proc_file(m_data_file_path);
-
+		/*std::string d1 = m_data_file_path + "\\schout_0000_5.nc";
+		std::string l1 = m_data_file_path +  "\\local_to_global_0000";
+		MDSchismOutput* a_data_file_ptr = NULL;
+	    debug1 << "creating file ptr " << 0 << "\n";
+	    a_data_file_ptr = new MDSchismOutput(d1, l1);*/
+		m_number_domain = ndomain;
 		int ndomain_per_thread = ndomain / nproc;
 
 		int left_domain = ndomain % nproc;
-
-	std:string pt = "\\";
-
+	
+	    std:string pt = "\\";
+		debug1 << "proc file be opened ndomain:" << ndomain << "\n";
 #ifdef _WIN32
 		pt = "\\";
 #else
@@ -4017,37 +4228,45 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 		int num_domain_resides = ndomain_per_thread;
 
 		int extra_one_domain = MeshConstants10::INVALID_NUM;
+		
 		if (myrank < left_domain)
 		{
 			num_domain_resides++;
 			//extra_one_domain = nproc * ndomain_per_thread + myrank;
 		}
 		int *all_domain_resides = new int[num_domain_resides];
-
+		
 		int start_domain = myrank * ndomain_per_thread;
 		int end_domain = (myrank + 1)*ndomain_per_thread;
-
+	
 		for (int i = 0; i < ndomain_per_thread; i++)
 		{
 			all_domain_resides[i] = start_domain + i;
 		}
+		
 		if (myrank < left_domain)
 		{
 			extra_one_domain = nproc * ndomain_per_thread + myrank;
 			all_domain_resides[num_domain_resides] = extra_one_domain;
 		}
+		debug1 << "mesh has been distributed num domain resides:"<<num_domain_resides<<"\n";
+
 		for (int i = 0; i < num_domain_resides; i++)
 		{
 			int id = all_domain_resides[i];
 			std::stringstream ss;
 			ss << std::setw(4) << std::setfill('0') << id;
 			std::string domain_str = ss.str();
-			std::string domain_data_file = data_file_part1 + domain_str + "_" + data_file_part2;
+			//std::string domain_data_file = data_file_part1 + domain_str + "_" + data_file_part2;
+			std::string domain_data_file = m_data_file_path+ pt +"schout_"+ domain_str + data_file_part2;
+			debug1 << "loading " << domain_data_file << "\n";
 			std::string local_mesh_file = m_data_file_path + pt + "local_to_global_" + domain_str;
 			MDSchismOutput* a_data_file_ptr = NULL;
 			try
 			{
+				debug1 << "creating file ptr "<<i << "\n";
 				a_data_file_ptr = new MDSchismOutput(domain_data_file, local_mesh_file);
+				debug1 << "created file ptr " << a_data_file_ptr << "\n";
 			}
 			catch (SCHISMFileException10 e)
 			{
@@ -4063,6 +4282,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			try
 			{
 				a_local_mesh_ptr = new MDSCHISMMeshProvider(domain_data_file, local_mesh_file);
+				debug1 << "created mesh ptr " << a_local_mesh_ptr << "\n";
 			}
 			catch (SCHISMFileException10 e)
 			{
@@ -4081,7 +4301,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			std::stringstream ss;
 			ss << std::setw(4) << std::setfill('0') << id;
 			std::string domain_str = ss.str();
-			std::string domain_data_file = data_file_part1 + domain_str + "_" + data_file_part2;
+			std::string domain_data_file = m_data_file_path + pt + "schout_" + domain_str  + data_file_part2;
 			std::string local_mesh_file = m_data_file_path + pt + "local_to_global_" + domain_str;
 			MDSchismOutput* a_data_file_ptr = NULL;
 			try
@@ -4124,7 +4344,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 		debug1 << "begin get dim\n";
 
 		getTime();
-		debug1 << "got time\n";
+		
 
 		debug1 << "getting dim";
 
@@ -4139,8 +4359,6 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 		debug1 << "got dimension\n";
 
 		debug1 << "loading coords";
-		
-
 
 		m_mesh_is_static = m_external_mesh_providers.begin()->second->mesh3d_is_static();
 
@@ -4150,7 +4368,9 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 		for (it = m_external_mesh_providers.begin(); it != m_external_mesh_providers.end(); it++)
 		{
 			this->load_ele_dry_wet(current_time,it->first);
+			//debug1 << "done load dry/wet for domain:" << it->first << "\n";
 			this->load_bottom(current_time,it->first);
+			debug1 << "done load bottom for domain:" << it->first << "\n";
 		}
 
 		m_initialized = true;
@@ -4174,7 +4394,9 @@ void avtMDSCHISMFileFormatImpl::PopulateVarMap()
 	{
 		SCHISMVar10*  varPtr = m_data_files.begin()->second->get_var(iVar);
 		std::string varName = varPtr->name();
+		
 		std::string  location = varPtr->get_horizontal_center();
+		//debug1 << "loading var name " << varName << "\n";
 		if ((varName == m_node_surface) || (varName == m_node_depth))
 		{
 			continue;
@@ -4202,6 +4424,7 @@ void avtMDSCHISMFileFormatImpl::PopulateVarMap()
 			continue;
 		}
 	}
+	//debug1 << "done loading all var name \n";
 }
 
 
@@ -4302,4 +4525,4 @@ bool  avtMDSCHISMFileFormatImpl::SCHISMVarIsVector(SCHISMVar10* a_varPtr) const
 	return false;
 }
 
-static Registrar registrar("combine10_nc4", &avtMDSCHISMFileFormatImpl::create);
+static Registrar registrar("md_nc4", &avtMDSCHISMFileFormatImpl::create);

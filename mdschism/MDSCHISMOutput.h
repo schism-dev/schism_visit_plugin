@@ -1,7 +1,7 @@
 #include "SCHISMFile10.h"
 #include "MeshConstants10.h"
 #include "netcdfcpp.h"
-
+#include <DebugStream.h>
 #ifndef _MDNETCDFSCHISMOUTPUT_H_
 #define _MDNETCDFSCHISMOUTPUT_H_
 
@@ -124,7 +124,7 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
   int num_dim = ncvar->num_dims();
   long * current = new long [num_dim];
   long * count   = new long [num_dim];
-
+  debug1 << " begin load dims in load from file\n";
   for(int idim =0; idim<num_dim;idim++)
   {
 	 // int dim_id = m_dimensions[idim];
@@ -153,20 +153,23 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
 	  }
   }
 
-
+  //debug1 << " done load dims in load from file\n";
   if (num_layer ==1) // not 3d data
   {
 
 	T * buffer = new T [buffer_size];
+	//debug1 << " buffer_size is "<<buffer_size<<"\n";
 	NcVar * ncvar = m_ncVar[0];
+	//debug1 << " ncvar is  " << ncvar << "\n";
 	ncvar->set_cur(current);
+	//debug1 << "var current is set "<<current[0]<<" "<<current[1]<<"\n";
+	//debug1 << "var count is set " << count[0] << " " << count[1] << "\n";
 	if (num_dim ==1)
 	{
 		ncvar->get(buffer,count[0]);
 	}
 	else if (num_dim==2)
 	{
-		
 		ncvar->get(buffer,count[0],count[1]);
 	}
 	else if (num_dim==3)
@@ -186,7 +189,7 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
 		a_buffer[id]=buffer[id];
 	}
 	delete buffer;
-	
+	//debug1 << " done read from file 2d \n";
 	return true;
   }
 

@@ -39,7 +39,7 @@ class avtMDSCHISMFileFormatImpl : public FileFormatFavorInterface
 
    void           GetTimes(std::vector<double> & a_times);
    int            GetNTimesteps(const std::string& a_filename);
-   void           ActivateTimestep(const std::string& a_filename);
+   //void           ActivateTimestep(const std::string& a_filename);
    const char    *GetType(void)   { return "MDUGrid"; };
    void           FreeUpResources(void); 
   
@@ -59,10 +59,22 @@ class avtMDSCHISMFileFormatImpl : public FileFormatFavorInterface
 
 
    void   PopulateDatabaseMetaData(avtDatabaseMetaData * a_metaData, 
-	                               avtMDSCHISMFileFormat * a_avtFile,
+	                               const std::string     a_datafile,
                                    int                   a_timeState);
 								   
     void  BroadcastGlobalInfo(avtDatabaseMetaData *metadata);
+
+	//both return just first data file and mesh provider
+	MDSchismOutput * get_a_data_file();
+	MDSCHISMMeshProvider * get_a_mesh_provider();
+	int num_domain();
+	bool           SCHISMVarIs3D(SCHISMVar10*  a_varPtr) const;
+	bool           SCHISMVarIsVector(SCHISMVar10* a_varPtr) const;
+	void set_var_name_label_map(const std::map<std::string, std::string> a_map);
+	void set_var_mesh_map(const std::map<std::string, std::string> a_map);
+	void set_var_horizontal_center_map(const std::map<std::string, std::string> a_map);
+	void set_var_vertical_center_map(const std::map<std::string, std::string> a_map);
+	
 protected:
 
   void           Initialize(std::string a_data_file);
@@ -70,26 +82,22 @@ protected:
 //private:
 
   void           PopulateStateMetaData(avtDatabaseMetaData * a_metaData, 
-	                                   avtMDSCHISMFileFormat * a_avtFile,
                                        int                   a_timeState);
 
   void           addFaceCenterData(avtDatabaseMetaData * a_metaData,
 	                               SCHISMVar10            * a_varPtr,
-								   avtMDSCHISMFileFormat * a_avtFile,
 								   const std::string   & a_varName,
 								   const std::string   & a_varLabel,
 								   const avtCentering  & a_center);
 
   void           addNodeCenterData(avtDatabaseMetaData * a_metaData,
 	                               SCHISMVar10            * a_varPtr,
-								   avtMDSCHISMFileFormat * a_avtFile,
 								   const std::string   & a_varName,
 								   const std::string   & a_varLabel,
 								   const avtCentering  & a_center);
 
   void           addSideCenterData(avtDatabaseMetaData * a_metaData,
 	                               SCHISMVar10            * a_varPtr,
-								   avtMDSCHISMFileFormat * a_avtFile,
 								   const std::string   & a_varName,
 								   const std::string   & a_varLabel,
 								    const avtCentering  & a_center);
@@ -156,14 +164,14 @@ protected:
 	                                    const int    a_domainID,
                                         const char * a_meshName);
   
-  void           retrieve1DArray(float             * a_valBuff,
-	                             SCHISMFile10         * a_selfeFilePtr,
-                                 const std::string & a_varToken,
-                                 const int     & a_numVar) const;
-  void           retrieve1DArray(int           * a_valBuff,
-	                             SCHISMFile10     * a_selfeFilePtr,
-                                 const std::string & a_varToken,
-                                 const int     & a_numVar) const;
+ // void           retrieve1DArray(float             * a_valBuff,
+//	                             SCHISMFile10         * a_selfeFilePtr,
+  //                               const std::string & a_varToken,
+   //                              const int     & a_numVar) const;
+  //void           retrieve1DArray(int           * a_valBuff,
+	                             //SCHISMFile10     * a_selfeFilePtr,
+                                 //const std::string & a_varToken,
+                                 //const int     & a_numVar) const;
 
   void            loadAndCacheZ(const int& a_timeState,float * a_cache);
   void            loadAndCacheZSide(const int& a_timeState,float * a_cache);
@@ -194,8 +202,7 @@ protected:
                                     ) ;
 
 
-  bool           SCHISMVarIs3D(SCHISMVar10*  a_varPtr ) const;
-  bool           SCHISMVarIsVector(SCHISMVar10* a_varPtr) const;
+
   
  
 

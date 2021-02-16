@@ -356,6 +356,10 @@ bool MDSCHISMMeshProvider::loadMesh()
 
 	long t1,t2;
     (*localFileStream)>>t1>>t2;
+	
+	m_number_node_no_ghost=t1;
+    m_number_element_no_ghost=t2;
+
 	//read in x,y,dp, kpb00
 	m_dp=new double [m_number_node];
 	m_nodex     = new double [m_number_node];

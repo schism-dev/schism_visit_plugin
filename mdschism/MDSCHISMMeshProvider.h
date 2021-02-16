@@ -119,6 +119,10 @@ public :
    bool  update_bottom_layer(const int & a_timeStep);
 
    virtual bool mesh3d_is_static() const;
+public:
+	long         m_number_side_no_ghost;
+	long         m_number_node_no_ghost;
+	long         m_number_element_no_ghost;
 
 private:
 
@@ -163,9 +167,7 @@ protected:
    long      *  m_local_ele_id_to_global_id;
    long      *  m_local_side_id_to_global_id;
    double    *  m_dp;
-   long         m_number_side_no_ghost;
-   long         m_number_node_no_ghost;
-   long         m_number_element_no_ghost;
+
    
 };
 

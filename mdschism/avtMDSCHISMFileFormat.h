@@ -46,6 +46,7 @@
 #include <avtMTMDFileFormat.h>
 #include "FileFormatFavorInterface.h"
 #include <vector>
+#include <avtMDSCHISMFileFormatImpl.h>
 
 
 // ****************************************************************************
@@ -79,7 +80,7 @@ class avtMDSCHISMFileFormat : public avtMTMDFileFormat
     // Otherwise, VisIt will make up some reasonable ones for you.
     //
     // virtual void        GetCycles(std::vector<int> &);
-    // virtual void        GetTimes(std::vector<double> &);
+     virtual void        GetTimes(std::vector<double> &);
     //
 
     virtual int            GetNTimesteps(void);
@@ -91,26 +92,7 @@ class avtMDSCHISMFileFormat : public avtMTMDFileFormat
     virtual vtkDataArray  *GetVar(int, int, const char *);
     virtual vtkDataArray  *GetVectorVar(int, int, const char *);
 
-	//expose private AddMesh,scalar var and vector var,  of avtMTSDFileFormat
-	void addMeshToMetaData(avtDatabaseMetaData * a_metaData,
-		const std::string & a_mesh_name,
-		const avtMeshType & a_mt,
-		double           *  a_extents,
-		const int        &  a_nblocks,
-		const int        &  a_block_origin,
-		const int        &  a_spatial_dimension,
-		const int        &  a_topological_dimension);
 
-	void  addScalarVarToMetaData(avtDatabaseMetaData * a_metaData,
-		const std::string & a_label,
-		const std::string & a_mesh,
-		const avtCentering& a_center);
-
-	void  addVectorVarToMetaData(avtDatabaseMetaData * a_metaData,
-		const std::string &  a_varLabel,
-		const std::string &  a_mesh,
-		const avtCentering&  a_center,
-		const int &          a_comps);
 
 	avtVariableCache * get_cache();
 
@@ -118,10 +100,69 @@ class avtMDSCHISMFileFormat : public avtMTMDFileFormat
     // DATA MEMBERS
 
     virtual void           PopulateDatabaseMetaData(avtDatabaseMetaData *, int);
+	void           PopulateStateMetaData(avtDatabaseMetaData * a_metaData,
+		int                   a_timeState);
+
+	void           addFaceCenterData(avtDatabaseMetaData * a_metaData,
+		SCHISMVar10            * a_varPtr,
+		const std::string   & a_varName,
+		const std::string   & a_varLabel,
+		const avtCentering  & a_center);
+
+	void           addNodeCenterData(avtDatabaseMetaData * a_metaData,
+		SCHISMVar10            * a_varPtr,
+		const std::string   & a_varName,
+		const std::string   & a_varLabel,
+		const avtCentering  & a_center);
+
+	void           addSideCenterData(avtDatabaseMetaData * a_metaData,
+		SCHISMVar10            * a_varPtr,
+		const std::string   & a_varName,
+		const std::string   & a_varLabel,
+		const avtCentering  & a_center);
 	
   private:
 
-	std::unique_ptr<FileFormatFavorInterface> m_impl;
+	//std::unique_ptr<FileFormatFavorInterface> m_impl;
+	  avtMDSCHISMFileFormatImpl * m_impl;
+	  //both just first data file and mesh provider from impl
+	  MDSchismOutput * m_data;
+	  MDSCHISMMeshProvider * m_mesh;
+
+	  std::string  m_mesh_3d;
+	  std::string  m_layer_mesh;
+	  std::string  m_mesh_2d;
+	  std::string  m_mesh_2d_no_wet_dry;
+	  std::string  m_side_center_point_3d_mesh;
+	  std::string  m_side_center_point_2d_mesh;
+	  // vertical side-faces center points, 3d flux data uses it
+	  std::string  m_face_center_point_3d_mesh;
+	  std::string  m_node_surface;
+	  std::string  m_node_depth;
+	  std::string  m_surface_state_suffix;
+	  std::string  m_bottom_state_suffix;
+	  std::string  m_depth_average_suffix;
+	  std::string  m_node_depth_label;
+	  std::string  m_node_surface_label;
+
+	  //map convert var label into netcdf varname token
+	  std::map<std::string, std::string>  m_var_name_label_map;
+
+
+	  //map convert var label into netcdf varname token
+	  std::map<std::string, std::string>  m_var_vertical_center_map;
+
+
+	  //map convert var label into netcdf varname token
+	  std::map<std::string, std::string>  m_var_horizontal_center_map;
+
+
+	  // maping var label to its mesh name
+	  std::map<std::string, std::string> m_var_mesh_map;
+
+	  // caching SCHISM var (not visit labeled var)  dim 3D/2D only
+	  std::map<std::string, int> m_var_dim;
+public:
 	std::string m_data_file;
 };
 

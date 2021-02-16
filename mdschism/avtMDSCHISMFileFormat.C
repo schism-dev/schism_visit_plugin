@@ -41,6 +41,7 @@
 // ************************************************************************* //
 
 #include <avtMDSCHISMFileFormat.h>
+
 #include <string>
 #include <vtkFloatArray.h>
 #include <vtkRectilinearGrid.h>
@@ -73,8 +74,13 @@
 #include <vtkUnstructuredGrid.h>
 #include <avtGhostData.h>
 #include <DebugStream.h>
+#ifdef PARALLEL
+#include <avtParallel.h>
+#endif
 using     std::string;
-
+const std::string NODE = MeshConstants10::NODE;
+const std::string FACE = MeshConstants10::ELEM;
+const std::string SIDE = MeshConstants10::EDGE;
 
 // ****************************************************************************
 //  Method: avtMDSCHISMFileFormat constructor
@@ -85,10 +91,26 @@ using     std::string;
 // ****************************************************************************
 
 avtMDSCHISMFileFormat::avtMDSCHISMFileFormat(const char *filename)
-    : avtMTMDFileFormat(filename)
+    : avtMTMDFileFormat(filename),
+	  m_data_file(filename),
+	m_mesh_3d("3D_Mesh"),
+	m_layer_mesh("Layer_Mesh"),
+	m_mesh_2d("2D_Mesh"),
+	m_mesh_2d_no_wet_dry("2D_Mesh_no_wet_dry"),
+	m_side_center_point_3d_mesh("side_center_3D"),
+	m_side_center_point_2d_mesh("side_center_2D"),
+	m_face_center_point_3d_mesh("face_center_3D"),
+	m_surface_state_suffix("_surface"),
+	m_bottom_state_suffix("_near_bottom"),
+	m_depth_average_suffix("_depth_average"),
+	m_node_depth_label(MeshConstants10::NODE_DEPTH),
+	m_node_depth(MeshConstants10::NODE_DEPTH)
 {
     // INITIALIZE DATA MEMBERS
+	m_impl = new avtMDSCHISMFileFormatImpl();
 	//m_impl.reset(FileFormatFavorFactory::Instance()->CreateInstance("md_nc4"));
+	//
+	//debug1 << "impl reset to mdnc4 "<<m_impl<<"\n";
 }
 
 
@@ -106,9 +128,15 @@ avtMDSCHISMFileFormat::avtMDSCHISMFileFormat(const char *filename)
 int
 avtMDSCHISMFileFormat::GetNTimesteps(void)
 {
+	
     return m_impl->GetNTimesteps(m_data_file);
 }
+void avtMDSCHISMFileFormat::GetTimes(std::vector<double> &a_time)
+{
+	
+	m_impl->GetTimes(a_time);
 
+}
 
 // ****************************************************************************
 //  Method: avtMDSCHISMFileFormat::FreeUpResources
@@ -127,7 +155,7 @@ avtMDSCHISMFileFormat::GetNTimesteps(void)
 void
 avtMDSCHISMFileFormat::FreeUpResources(void)
 {
-	 m_impl->FreeUpResources();
+	 //m_impl->FreeUpResources();
 }
 
 
@@ -147,145 +175,602 @@ avtMDSCHISMFileFormat::FreeUpResources(void)
 void
 avtMDSCHISMFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int timeState)
 {
+
+	
 	//
-	// CODE TO ADD A MESH
-	//
-	string meshname = "test_2d";
-	//
+	m_var_name_label_map[m_node_depth_label] = m_node_depth;
+	int nblocks = m_impl->num_domain();
+	MDSchismOutput * file_ptr = m_impl->get_a_data_file();
+	MDSCHISMMeshProvider * mesh_ptr = m_impl->get_a_mesh_provider();
+
+	m_data = file_ptr;
+	m_mesh = mesh_ptr;
+	////debug1 << "num of domain "<<m_number_domain<<"\n";
+	//int block_origin = 0;
+	//int cell_origin = 0;
+	//int group_origin = 0;
+	//int spatial_dimension = 3;
+	//int topological_dimension = 3;
+	//double *extents = NULL;
+	//int * bounds = NULL;
+	//string mesh_name = "2D_Mesh";
+	//avtMeshMetaData *mmd1 = new avtMeshMetaData(bounds, extents, mesh_name,
+	//	nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+	//md->Add(mmd1);
+
+
+	//string mesh = mesh_name;
+	//avtScalarMetaData *smd1 = new avtScalarMetaData("depth", mesh, AVT_NODECENT);
+	//md->Add(smd1);
+	//debug1 << "done impl md populate\n";
+
+	avtCentering  nodeCent = AVT_NODECENT;
+	avtCentering  zoneCent = AVT_ZONECENT;
+	string mesh_name = m_mesh_3d;
+
 	// AVT_RECTILINEAR_MESH, AVT_CURVILINEAR_MESH, AVT_UNSTRUCTURED_MESH,
 	// AVT_POINT_MESH, AVT_SURFACE_MESH, AVT_UNKNOWN_MESH
 	avtMeshType mt = AVT_UNSTRUCTURED_MESH;
-	//
-	int nblocks = 2;
+
 	int block_origin = 0;
-	int spatial_dimension = 2;
-	int topological_dimension = 2;
+	int cell_origin = 0;
+	int group_origin = 0;
+	int spatial_dimension = 3;
+	int topological_dimension = 3;
 	double *extents = NULL;
-	//
-	// Here's the call that tells the meta-data object that we have a mesh:
-	//
-	AddMeshToMetaData(md, meshname, mt, extents, nblocks, block_origin,
-		spatial_dimension, topological_dimension);
-	//
+	int * bounds = NULL;
+	//add node center 3d mesh
+	if (m_mesh->provide3DMesh())
+	{
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+	    md->Add(mmd);
+	}
 
 	//
-	// CODE TO ADD A SCALAR VARIABLE
-	//
-	string mesh_for_this_var = meshname;
-	string varname = "elev";
-	//
-	// AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
-	avtCentering cent = AVT_NODECENT;
-	//
-	//
-	// Here's the call that tells the meta-data object that we have a var:
-	//
-	AddScalarVarToMetaData(md, varname, mesh_for_this_var, cent);
-	return;
-    m_impl->PopulateDatabaseMetaData(md, this,timeState);
-    // CODE TO ADD A MESH
-    //
-    // string meshname = ...
-    //
-    // AVT_RECTILINEAR_MESH, AVT_CURVILINEAR_MESH, AVT_UNSTRUCTURED_MESH,
-    // AVT_POINT_MESH, AVT_SURFACE_MESH, AVT_UNKNOWN_MESH
-    // avtMeshType mt = AVT_RECTILINEAR_MESH;
-    //
-    // int nblocks = YOU_MUST_DECIDE;
-    // int block_origin = 0;
-    // int spatial_dimension = 2;
-    // int topological_dimension = 2;
-    // double *extents = NULL;
-    //
-    // Here's the call that tells the meta-data object that we have a mesh:
-    //
-    // AddMeshToMetaData(md, meshname, mt, extents, nblocks, block_origin,
-    //                   spatial_dimension, topological_dimension);
-    //
+   // add layered 2d mesh
+	mesh_name = m_layer_mesh;
+	topological_dimension = 2;
 
-    //
-    // CODE TO ADD A SCALAR VARIABLE
-    //
-    // string mesh_for_this_var = meshname; // ??? -- could be multiple meshes
-    // string varname = ...
-    //
-    // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
-    // avtCentering cent = AVT_NODECENT;
-    //
-    //
-    // Here's the call that tells the meta-data object that we have a var:
-    //
-    // AddScalarVarToMetaData(md, varname, mesh_for_this_var, cent);
-    //
+	if (m_mesh->provide3DMesh())
+	{
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		md->Add(mmd);
+	}
 
-    //
-    // CODE TO ADD A VECTOR VARIABLE
-    //
-    // string mesh_for_this_var = meshname; // ??? -- could be multiple meshes
-    // string varname = ...
-    // int vector_dim = 2;
-    //
-    // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
-    // avtCentering cent = AVT_NODECENT;
-    //
-    //
-    // Here's the call that tells the meta-data object that we have a var:
-    //
-    // AddVectorVarToMetaData(md, varname, mesh_for_this_var, cent,vector_dim);
-    //
+	//
+	// add surface 2d mesh
+	//
+	mesh_name = m_mesh_2d;
 
-    //
-    // CODE TO ADD A TENSOR VARIABLE
-    //
-    // string mesh_for_this_var = meshname; // ??? -- could be multiple meshes
-    // string varname = ...
-    // int tensor_dim = 9;
-    //
-    // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
-    // avtCentering cent = AVT_NODECENT;
-    //
-    //
-    // Here's the call that tells the meta-data object that we have a var:
-    //
-    // AddTensorVarToMetaData(md, varname, mesh_for_this_var, cent,tensor_dim);
-    //
+	spatial_dimension = 2;
+	topological_dimension = 2;
 
-    //
-    // CODE TO ADD A MATERIAL
-    //
-    // string mesh_for_mat = meshname; // ??? -- could be multiple meshes
-    // string matname = ...
-    // int nmats = ...;
-    // vector<string> mnames;
-    // for (int i = 0 ; i < nmats ; i++)
-    // {
-    //     char str[32];
-    //     sprintf(str, "mat%d", i);
-    //     -- or -- 
-    //     strcpy(str, "Aluminum");
-    //     mnames.push_back(str);
-    // }
-    // 
-    // Here's the call that tells the meta-data object that we have a mat:
-    //
-    // AddMaterialToMetaData(md, matname, mesh_for_mat, nmats, mnames);
-    //
-    //
-    // Here's the way to add expressions:
-    //Expression momentum_expr;
-    //momentum_expr.SetName("momentum");
-    //momentum_expr.SetDefinition("{u, v}");
-    //momentum_expr.SetType(Expression::VectorMeshVar);
-    //md->AddExpression(&momentum_expr);
-    //Expression KineticEnergy_expr;
-    //KineticEnergy_expr.SetName("KineticEnergy");
-    //KineticEnergy_expr.SetDefinition("0.5*(momentum*momentum)/(rho*rho)");
-    //KineticEnergy_expr.SetType(Expression::ScalarMeshVar);
-    //md->AddExpression(&KineticEnergy_expr);
-    //
+	avtMeshMetaData *mmd1 = new avtMeshMetaData(bounds, extents, mesh_name,
+		nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+	md->Add(mmd1);
+
+	//add 3d side center point mesh
+	mesh_name = m_side_center_point_3d_mesh;
+
+	spatial_dimension = 3;
+	topological_dimension = 0;
+
+	if (m_mesh->provide3DMesh())
+	{
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		md->Add(mmd);
+	}
+
+	//add 3d  face center point mesh
+	mesh_name = m_face_center_point_3d_mesh;
+
+	spatial_dimension = 3;
+	topological_dimension = 0;
+
+	if (m_mesh->provide3DMesh())
+	{
+		avtMeshMetaData *mmd = new avtMeshMetaData(bounds, extents, mesh_name,
+			nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+		md->Add(mmd);
+	}
+
+	// add 2d side center point mesh
+	mesh_name = m_side_center_point_2d_mesh;
+
+	spatial_dimension = 2;
+	topological_dimension = 0;
+
+	avtMeshMetaData *mmd2 = new avtMeshMetaData(bounds, extents, mesh_name,
+		nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
+	md->Add(mmd2);
+
+	//
+	// add water surface and depth scalar
+	string mesh = m_mesh_2d;
+	avtScalarMetaData *smd1 = new avtScalarMetaData(m_node_depth_label, mesh, nodeCent);
+	md->Add(smd1);
+
+
+
+	// m_var_mesh_map[m_node_surface_label] = mesh;
+	m_var_mesh_map[m_node_depth_label] = mesh;
+
+	//add 3D node level label
+	string mesh3d = m_mesh_3d;
+	avtScalarMetaData *smd2 = new avtScalarMetaData(MeshConstants10::NODE_LEVEL, mesh3d, nodeCent);
+	md->Add(smd2);
+
+	//add 3D element level label
+	mesh3d = m_layer_mesh;
+	avtScalarMetaData *smd3 = new avtScalarMetaData(MeshConstants10::ELE_LEVEL, mesh3d, zoneCent);
+	md->Add(smd3);
+
+	//add 3D side level label
+	mesh3d = m_side_center_point_3d_mesh;
+	avtScalarMetaData *smd4 = new avtScalarMetaData(MeshConstants10::SIDE_LEVEL, mesh3d, nodeCent);
+	md->Add(smd4);
+
+	//add 3D layer lable (for prism center data)
+	mesh3d = m_mesh_3d;
+	avtScalarMetaData *smd5 = new avtScalarMetaData(MeshConstants10::LAYER, mesh3d, zoneCent);
+	md->Add(smd5);
+
 	
+	PopulateStateMetaData(md, timeState);
+	m_impl->set_var_horizontal_center_map(m_var_horizontal_center_map);
+	m_impl->set_var_mesh_map(m_var_mesh_map);
+	m_impl->set_var_name_label_map(m_var_name_label_map);
+	m_impl->set_var_vertical_center_map(m_var_vertical_center_map);
+	return;
+	//avtDatabaseMetaData a_md;
+    //m_impl->PopulateDatabaseMetaData(&a_md, m_data_file,timeState);
+	//*md = a_md;
+	//debug1 << "done impl md populate\n";
 }
 
+
+// ****************************************************************************
+//  Method: avtMDSCHISMFileFormatImpl::PopulateStateMetaData
+//
+//  Purpose:
+//      Scan the data file and find out all the state variables, 
+//      store the name, mesh, and centering information into
+//      the input metadata set.
+//
+//  Programmer: qshu
+//  Creation:   Wed Aug 30 08:11:04 PDT 2012
+//
+// ****************************************************************************
+
+void avtMDSCHISMFileFormat::PopulateStateMetaData(avtDatabaseMetaData * a_metaData,
+	int                   a_timeState)
+{
+	int numVar = m_data->num_vars();
+	//debug1 << "get vars " << numVar << endl;
+	for (int iVar = 0; iVar < numVar; iVar++)
+	{
+		//debug1 << iVar;
+		SCHISMVar10*  varPtr = m_data->get_var(iVar);
+		std::string varName = varPtr->name();
+
+		if (m_data->none_data_var(varName))
+		{
+			debug1 << varName << " is skipped\n";
+			continue;
+		}
+		debug1 << iVar << " " << varPtr->num_dims() << " " << varName << endl;
+		if (!(varPtr->is_defined_over_grid()))
+		{
+			debug1 << varName << " passed \n";
+			continue;
+		}
+
+		if (varPtr->is_SCHISM_mesh_parameter())
+		{
+			debug1 << varName << "passed 2\n";
+			continue;
+		}
+
+		//debug1 << varName<<"to be added" << endl;
+
+		std::string  location(NODE);
+		avtCentering avtCenter(AVT_NODECENT);
+
+
+		if ((varName == m_node_surface) || (varName == m_node_depth))
+		{
+			continue;
+		}
+		std::string  label;
+		label = varName;
+		// this dic make it easy to find out data set for a visit plot variable
+		m_var_name_label_map[label] = varName;
+
+		// handle different for face and node center data
+		location = varPtr->get_horizontal_center();
+
+		std::string vertical_center = varPtr->get_vertical_center();
+
+		m_var_horizontal_center_map[varName] = location;
+		m_var_vertical_center_map[varName] = vertical_center;
+
+		if (location == FACE)
+		{
+			//debug1 << " begin add face var meta\n";
+			addFaceCenterData(a_metaData, varPtr, varName, label, avtCenter);
+		}
+		else if (location == NODE)
+		{
+			//debug1 << " begin add node var meta\n";
+			addNodeCenterData(a_metaData, varPtr, varName, label, avtCenter);
+		}
+		else if (location == SIDE)
+		{
+			//debug1 << " begin add side var meta\n";
+			addSideCenterData(a_metaData, varPtr, varName, label, avtCenter);
+		}
+		// omit unkown center data
+		else
+		{
+			continue;
+		}
+	}
+}
+
+void    avtMDSCHISMFileFormat::addFaceCenterData(avtDatabaseMetaData * a_metaData,
+	SCHISMVar10           * a_varPtr,
+	const std::string   & a_varName,
+	const std::string   & a_varLabel,
+	const avtCentering  & a_center)
+
+{
+	// only add face centered  var now 
+	string mesh2d = m_mesh_2d;
+	string mesh3d = m_mesh_3d;
+	std::string level_center = a_varPtr->get_vertical_center();
+
+	if (level_center == MeshConstants10::FULL_LAYER)
+	{
+		mesh3d = m_layer_mesh;
+	}
+
+	avtCentering  faceCent(AVT_ZONECENT);
+	// scalar data 2d mesh
+	if (a_varPtr->num_dims() <= 2)
+	{
+		avtScalarMetaData *smd = new avtScalarMetaData(a_varLabel, mesh2d, faceCent);
+		a_metaData->Add(smd);
+
+		m_var_mesh_map[a_varLabel] = mesh2d;
+		m_var_dim[a_varName] = a_varPtr->num_dims();
+	}
+	// vector data
+	else if (m_impl->SCHISMVarIs3D(a_varPtr))
+	{
+		if (!(m_mesh->provide3DMesh()))
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << "3D variable " << a_varLabel << " is not supported by a 2D meshprovider\n";
+			EXCEPTION1(InvalidVariableException, msgStream.str());
+		}
+		if (m_impl->SCHISMVarIsVector(a_varPtr)) // 3d vector
+		{
+			// last dim is vector component         
+			SCHISMDim10* comDim = a_varPtr->get_dim(3);
+			int ncomps = comDim->size();
+			int ucomps = (ncomps == 2 ? 3 : ncomps);
+
+			avtVectorMetaData *vmd = new avtVectorMetaData(a_varLabel, mesh3d, faceCent, ucomps);
+			a_metaData->Add(vmd);
+			m_var_mesh_map[a_varLabel] = mesh3d;
+			m_var_dim[a_varName] = 3;
+
+			// also add bottom, surface and depth average state option
+			avtVectorMetaData *vmd1 = new avtVectorMetaData(a_varLabel + m_surface_state_suffix, m_mesh_2d, faceCent, ucomps);
+			a_metaData->Add(vmd1);
+			//debug1<<"add  "<<label+m_surface_state_suffix<<" ";
+			avtVectorMetaData *vmd2 = new avtVectorMetaData(a_varLabel + m_bottom_state_suffix, m_mesh_2d, faceCent, ucomps);
+			a_metaData->Add(vmd2);
+			//debug1<<"add  "<<label+m_bottom_state_suffix<<" ";
+			avtVectorMetaData *vmd3 = new avtVectorMetaData(a_varLabel + m_depth_average_suffix, m_mesh_2d, faceCent, ucomps);
+			a_metaData->Add(vmd3);
+			// debug1<<"add  "<< label+m_depth_average_suffix<<" ";
+			m_var_name_label_map[a_varLabel + m_surface_state_suffix] = a_varName;
+			m_var_name_label_map[a_varLabel + m_bottom_state_suffix] = a_varName;
+			m_var_name_label_map[a_varLabel + m_depth_average_suffix] = a_varName;
+			m_var_mesh_map[a_varLabel + m_surface_state_suffix] = m_mesh_2d;
+			m_var_mesh_map[a_varLabel + m_bottom_state_suffix] = m_mesh_2d;
+			m_var_mesh_map[a_varLabel + m_depth_average_suffix] = m_mesh_2d;
+		}
+		else //3d scalar
+		{
+			avtScalarMetaData *smd = new avtScalarMetaData(a_varLabel, mesh3d, faceCent);
+			a_metaData->Add(smd);
+			m_var_mesh_map[a_varLabel] = mesh3d;
+
+			// also add bottom, surface and depth average state option
+			a_metaData->Add(new avtScalarMetaData(a_varLabel + m_surface_state_suffix, m_mesh_2d, faceCent));
+			a_metaData->Add(new avtScalarMetaData(a_varLabel + m_bottom_state_suffix, m_mesh_2d, faceCent));
+			a_metaData->Add(new avtScalarMetaData(a_varLabel + m_depth_average_suffix, m_mesh_2d, faceCent));
+			//debug1<<"add  "<< label+m_depth_average_suffix<<" ";
+			// all those surface, botootm and average are based on original data set
+			m_var_name_label_map[a_varLabel + m_surface_state_suffix] = a_varName;
+			m_var_name_label_map[a_varLabel + m_bottom_state_suffix] = a_varName;
+			m_var_name_label_map[a_varLabel + m_depth_average_suffix] = a_varName;
+
+			m_var_mesh_map[a_varLabel + m_surface_state_suffix] = m_mesh_2d;
+			m_var_mesh_map[a_varLabel + m_bottom_state_suffix] = m_mesh_2d;
+			m_var_mesh_map[a_varLabel + m_depth_average_suffix] = m_mesh_2d;
+			m_var_dim[a_varName] = 3;
+
+		}
+		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, mesh3d, faceCent);
+	}
+	else
+	{
+
+	}
+
+
+}
+void    avtMDSCHISMFileFormat::addNodeCenterData(avtDatabaseMetaData * a_metaData,
+	                                             SCHISMVar10            * a_varPtr,
+	                                             const std::string   & a_varName,
+	                                             const std::string   & a_varLabel,
+	                                             const avtCentering  & a_center)
+{
+
+	std::string varName(a_varName);
+	std::string label(a_varLabel);
+	avtCentering avtCenter(a_center);
+
+	//  scalar var on 2D
+	if (a_varPtr->num_dims() <= 2)
+	{
+		a_metaData->Add(new avtScalarMetaData(label, m_mesh_2d, avtCenter));
+		m_var_mesh_map[label] = m_mesh_2d;
+		m_var_dim[varName] = a_varPtr->num_dims();
+		debug1 << "added 2d scalar:" << label;
+	}
+	//  vector var on 2D
+	else if ((a_varPtr->num_dims() == 3) && (!m_impl->SCHISMVarIs3D(a_varPtr)))
+	{
+		SCHISMDim10* comDim = a_varPtr->get_dim(3);
+		int ncomps = comDim->size();
+		int ucomps = (ncomps == 2 ? 3 : ncomps);
+		a_metaData->Add(new avtVectorMetaData(label, m_mesh_2d, avtCenter, ucomps));
+		m_var_mesh_map[label] = m_mesh_2d;
+		m_var_dim[varName] = 2;
+
+	}
+	//  scalar var having layer dim
+	else if ((a_varPtr->num_dims() == 3) && (m_impl->SCHISMVarIs3D(a_varPtr)))
+	{
+		if (!(m_mesh->provide3DMesh()))
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << "3D variable " << a_varLabel << " is not supported by a 2D meshprovider\n";
+			EXCEPTION1(InvalidVariableException, msgStream.str());
+		}
+
+		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, m_mesh_3d, avtCenter);
+		a_metaData->Add(new avtScalarMetaData(label, m_mesh_3d, avtCenter));
+		m_var_mesh_map[label] = m_mesh_3d;
+		// also add bottom, surface and depth average state option
+		if (!(varName == MeshConstants10::ZCOORD))
+		{
+			a_metaData->Add(new avtScalarMetaData(
+				label + m_surface_state_suffix,
+				m_mesh_2d,
+				avtCenter));
+			debug1 << "add  " << label + m_surface_state_suffix << " ";
+			a_metaData->Add(new avtScalarMetaData(
+				label + m_bottom_state_suffix,
+				m_mesh_2d,
+				avtCenter));
+			debug1 << "add  " << label + m_bottom_state_suffix << " ";
+			a_metaData->Add(new avtScalarMetaData(
+				label + m_depth_average_suffix,
+				m_mesh_2d,
+				avtCenter));
+			debug1 << "add  " << label + m_depth_average_suffix << " ";
+
+
+			// all those surface, botootm and average are based on original data set
+			m_var_name_label_map[label + m_surface_state_suffix] = varName;
+			m_var_name_label_map[label + m_bottom_state_suffix] = varName;
+			m_var_name_label_map[label + m_depth_average_suffix] = varName;
+
+			m_var_mesh_map[label + m_surface_state_suffix] = m_mesh_2d;
+			m_var_mesh_map[label + m_bottom_state_suffix] = m_mesh_2d;
+			m_var_mesh_map[label + m_depth_average_suffix] = m_mesh_2d;
+		}
+		m_var_dim[varName] = 3;
+
+	}
+	else if ((a_varPtr->num_dims() == 4) && (m_impl->SCHISMVarIs3D(a_varPtr)))
+	{
+		if (!(m_mesh->provide3DMesh()))
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << "3D variable " << a_varLabel << " is not supported by a 2D meshprovider\n";
+			EXCEPTION1(InvalidVariableException, msgStream.str());
+		}
+		// last dim is vector component         
+		SCHISMDim10* comDim = a_varPtr->get_dim(3);
+		int ncomps = comDim->size();
+		int ucomps = (ncomps == 2 ? 3 : ncomps);
+
+		a_metaData->Add(new avtVectorMetaData(label, m_mesh_3d, avtCenter, ucomps));
+		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, m_mesh_3d, avtCenter);
+		m_var_mesh_map[label] = m_mesh_3d;
+
+		// also add bottom, surface and depth average state option
+		a_metaData->Add(new avtVectorMetaData(
+			label + m_surface_state_suffix,
+			m_mesh_2d,
+			avtCenter,
+			ucomps));
+		debug1 << "add  " << label + m_surface_state_suffix << " ";
+		a_metaData->Add(new avtVectorMetaData(
+			label + m_bottom_state_suffix,
+			m_mesh_2d,
+			avtCenter,
+			ucomps));
+		debug1 << "add  " << label + m_bottom_state_suffix << " ";
+		a_metaData->Add(new avtVectorMetaData(
+			label + m_depth_average_suffix,
+			m_mesh_2d,
+			avtCenter,
+			ucomps));
+		debug1 << "add  " << label + m_depth_average_suffix << " ";
+		m_var_name_label_map[label + m_surface_state_suffix] = varName;
+		m_var_name_label_map[label + m_bottom_state_suffix] = varName;
+		m_var_name_label_map[label + m_depth_average_suffix] = varName;
+		m_var_mesh_map[label + m_surface_state_suffix] = m_mesh_2d;
+		m_var_mesh_map[label + m_bottom_state_suffix] = m_mesh_2d;
+		m_var_mesh_map[label + m_depth_average_suffix] = m_mesh_2d;
+		m_var_dim[varName] = 3;
+
+	}
+	else
+	{
+
+	}
+}
+
+void    avtMDSCHISMFileFormat::addSideCenterData(avtDatabaseMetaData * a_metaData,
+	SCHISMVar10           * a_varPtr,
+	const std::string   & a_varName,
+	const std::string   & a_varLabel,
+	const avtCentering  & a_center)
+{
+	// only add centered  var now 
+	string mesh2d = m_side_center_point_2d_mesh;
+	string mesh3d = m_side_center_point_3d_mesh;
+	std::string level_center = a_varPtr->get_vertical_center();
+
+	if (level_center == MeshConstants10::HALF_LAYER)
+	{
+		mesh3d = m_face_center_point_3d_mesh;
+	}
+
+	avtCentering  nodeCent(AVT_NODECENT);
+	std::string varName(a_varName);
+	std::string label(a_varLabel);
+	avtCentering avtCenter(a_center);
+
+	//  scalar var on 2D
+	if (a_varPtr->num_dims() <= 2)
+	{
+		a_metaData->Add(new avtScalarMetaData(label, mesh2d, avtCenter));
+		m_var_mesh_map[label] = mesh2d;
+		m_var_dim[varName] = a_varPtr->num_dims();
+		debug1 << "added 2d scalar:" << label;
+	}
+	//  vector var on 2D
+	else if ((a_varPtr->num_dims() == 3) && (!m_impl->SCHISMVarIs3D(a_varPtr)))
+	{
+		SCHISMDim10* comDim = a_varPtr->get_dim(3);
+		int ncomps = comDim->size();
+		int ucomps = (ncomps == 2 ? 3 : ncomps);
+		a_metaData->Add(new avtVectorMetaData(label, mesh2d, avtCenter, ucomps));
+		m_var_mesh_map[label] = mesh2d;
+		m_var_dim[varName] = 2;
+
+	}
+	//  scalar var having layer dim
+	else if ((a_varPtr->num_dims() == 3) && (m_impl->SCHISMVarIs3D(a_varPtr)))
+	{
+
+		if (!(m_mesh->provide3DMesh()))
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << "3D variable " << a_varLabel << " is not supported by a 2D meshprovider\n";
+			EXCEPTION1(InvalidVariableException, msgStream.str());
+		}
+		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, mesh3d, avtCenter);
+		a_metaData->Add(new avtScalarMetaData(label, mesh3d, avtCenter));
+		m_var_mesh_map[label] = mesh3d;
+		// also add bottom, surface and depth average state option
+		a_metaData->Add(new avtScalarMetaData(
+			label + m_surface_state_suffix,
+			mesh2d,
+			avtCenter));
+		debug1 << "add  " << label + m_surface_state_suffix << " ";
+		a_metaData->Add(new avtScalarMetaData(
+			label + m_bottom_state_suffix,
+			mesh2d,
+			avtCenter));
+		debug1 << "add  " << label + m_bottom_state_suffix << " ";
+		a_metaData->Add(new avtScalarMetaData(
+			label + m_depth_average_suffix,
+			mesh2d,
+			avtCenter));
+		debug1 << "add  " << label + m_depth_average_suffix << " ";
+		// all those surface, botootm and average are based on original data set
+		m_var_name_label_map[label + m_surface_state_suffix] = varName;
+		m_var_name_label_map[label + m_bottom_state_suffix] = varName;
+		m_var_name_label_map[label + m_depth_average_suffix] = varName;
+
+		m_var_mesh_map[label + m_surface_state_suffix] = mesh2d;
+		m_var_mesh_map[label + m_bottom_state_suffix] = mesh2d;
+		m_var_mesh_map[label + m_depth_average_suffix] = mesh2d;
+		m_var_dim[varName] = 3;
+
+	}
+	else if ((a_varPtr->num_dims() == 4) && (m_impl->SCHISMVarIs3D(a_varPtr)))
+	{
+		if (!(m_mesh->provide3DMesh()))
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << "3D variable " << a_varLabel << " is not supported by a 2D meshprovider\n";
+			EXCEPTION1(InvalidVariableException, msgStream.str());
+		}
+		// last dim is vector component         
+		SCHISMDim10* comDim = a_varPtr->get_dim(3);
+		int ncomps = comDim->size();
+		int ucomps = (ncomps == 2 ? 3 : ncomps);
+
+		a_metaData->Add(new avtVectorMetaData(label, mesh3d, avtCenter, ucomps));
+		//AddScalarVarToMetaData(a_metaData,  MeshConstants10::LEVEL, mesh3d, avtCenter);
+		m_var_mesh_map[label] = mesh3d;
+
+		// also add bottom, surface and depth average state option
+		a_metaData->Add(new avtVectorMetaData(
+			label + m_surface_state_suffix,
+			mesh2d,
+			avtCenter,
+			ucomps));
+		debug1 << "add  " << label + m_surface_state_suffix << " ";
+		a_metaData->Add(new avtVectorMetaData(
+			label + m_bottom_state_suffix,
+			mesh2d,
+			avtCenter,
+			ucomps));
+		debug1 << "add  " << label + m_bottom_state_suffix << " ";
+		a_metaData->Add(new avtVectorMetaData(
+			label + m_depth_average_suffix,
+			mesh2d,
+			avtCenter,
+			ucomps));
+		debug1 << "add  " << label + m_depth_average_suffix << " ";
+		m_var_name_label_map[label + m_surface_state_suffix] = varName;
+		m_var_name_label_map[label + m_bottom_state_suffix] = varName;
+		m_var_name_label_map[label + m_depth_average_suffix] = varName;
+		m_var_mesh_map[label + m_surface_state_suffix] = mesh2d;
+		m_var_mesh_map[label + m_bottom_state_suffix] = mesh2d;
+		m_var_mesh_map[label + m_depth_average_suffix] = mesh2d;
+		m_var_dim[varName] = 3;
+	}
+	else
+	{
+	}
+
+}
 
 // ****************************************************************************
 //  Method: avtMDSCHISMFileFormat::GetMesh
@@ -310,148 +795,151 @@ avtMDSCHISMFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int tim
 // ****************************************************************************
 
 vtkDataSet *
-avtMDSCHISMFileFormat::GetMesh(int timestate, int domain, const char *meshname)
+avtMDSCHISMFileFormat::GetMesh(int timestate, int domainid, const char *meshname)
 {
-	vtkUnstructuredGrid *uGrid = vtkUnstructuredGrid::New();
-	vtkPoints *points = vtkPoints::New();
-	points->SetDataType(VTK_DOUBLE);
-	debug1 << "start creating mesh " << domain << "\n";
-	vtkUnsignedCharArray *ghost_zones = vtkUnsignedCharArray::New();
-	ghost_zones->SetName("avtGhostZones");
-	int ncells = 4;
-	ghost_zones->SetNumberOfTuples(ncells);
-	unsigned char *gzp = ghost_zones->GetPointer(0);
-	for (int i = 0; i < ncells; i++)
-		gzp[i] = 0;
-	unsigned char val = 0;
-	avtGhostData::AddGhostZoneType(val, DUPLICATED_ZONE_INTERNAL_TO_PROBLEM);
-	gzp[1] = val;
-	gzp[3] = val;
+	//int domain = domainid % 2;
+	//debug1 << "geting mesh " << domain << " " << meshname << "\n";
+	//vtkUnstructuredGrid *uGrid = vtkUnstructuredGrid::New();
+	//vtkPoints *points = vtkPoints::New();
+	//points->SetDataType(VTK_DOUBLE);
+	//debug1 << "start creating mesh " << domain << "\n";
+	//vtkUnsignedCharArray *ghost_zones = vtkUnsignedCharArray::New();
+	//ghost_zones->SetName("avtGhostZones");
+	//int ncells = 4;
+	//ghost_zones->SetNumberOfTuples(ncells);
+	//unsigned char *gzp = ghost_zones->GetPointer(0);
+	//for (int i = 0; i < ncells; i++)
+	//	gzp[i] = 0;
+	//unsigned char val = 0;
+	//avtGhostData::AddGhostZoneType(val, DUPLICATED_ZONE_INTERNAL_TO_PROBLEM);
+	//gzp[1] = val;
+	//gzp[3] = val;
 
-	vtkUnsignedCharArray *ghost_nodes = vtkUnsignedCharArray::New();
-	ghost_zones->SetName("avtGhostNodes");
-	int npts = 9;
-	ghost_nodes->SetNumberOfTuples(npts);
-	unsigned char *gnp = ghost_nodes->GetPointer(0);
-	for (int i = 0; i < npts; i++)
-		gnp[i] = 0;
-	unsigned char val2 = 0;
-	avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
-	gzp[6] = val2;
-	gzp[7] = val2;
-	gzp[8] = val2;
+	//vtkUnsignedCharArray *ghost_nodes = vtkUnsignedCharArray::New();
+	//ghost_zones->SetName("avtGhostNodes");
+	//int npts = 9;
+	//ghost_nodes->SetNumberOfTuples(npts);
+	//unsigned char *gnp = ghost_nodes->GetPointer(0);
+	//for (int i = 0; i < npts; i++)
+	//	gnp[i] = 0;
+	//unsigned char val2 = 0;
+	//avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
+	//gzp[6] = val2;
+	//gzp[7] = val2;
+	//gzp[8] = val2;
 
-	if (domain == 0)
-	{
-		int numNodes = 9;
-		points->SetNumberOfPoints(numNodes);
-		double * pointPtr = (double *)points->GetVoidPointer(0);
-		for (int i = 0; i < 3; i++)
-			for (int j = 0; j < 3; j++)
-			{
+	//if (domain == 0)
+	//{
+	//	int numNodes = 9;
+	//	points->SetNumberOfPoints(numNodes);
+	//	double * pointPtr = (double *)points->GetVoidPointer(0);
+	//	for (int i = 0; i < 3; i++)
+	//		for (int j = 0; j < 3; j++)
+	//		{
 
-				double x = 0.0 + i * 100;
-				double y = 0.0 + j * 65;
-				*pointPtr++ = x;
-				*pointPtr++ = y;
-				*pointPtr++ = 0.0;
-			}
-		uGrid->SetPoints(points);
-		points->Delete();
-		uGrid->Allocate(4);
-
-
-		debug1 << "start creating d1 cells\n";
-		vtkIdType verts1[4];
-		verts1[0] = 0;
-		verts1[1] = 1;
-		verts1[2] = 4;
-		verts1[3] = 3;
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
-		vtkIdType verts2[4];
-		verts2[0] = 1;
-		verts2[1] = 2;
-		verts2[2] = 5;
-		verts2[3] = 4;
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
-		vtkIdType verts3[4];
-		verts3[0] = 3;
-		verts3[1] = 4;
-		verts3[2] = 7;
-		verts3[3] = 6;
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
-		vtkIdType verts4[4];
-		verts4[0] = 4;
-		verts4[1] = 5;
-		verts4[2] = 8;
-		verts4[3] = 7;
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
-		debug1 << "inserted d1 cells\n";
-		uGrid->GetCellData()->AddArray(ghost_zones);
-		uGrid->GetCellData()->AddArray(ghost_nodes);
-		debug1 << "d1 ghost added\n";
-	}
-	else if (domain == 1)
-	{
-		int numNodes = 9;
-		points->SetNumberOfPoints(numNodes);
-		double * pointPtr = (double *)points->GetVoidPointer(0);
-		for (int i = 0; i < 3; i++)
-			for (int j = 0; j < 3; j++)
-			{
-
-				double x = 200.0 + i * 100;
-				double y = 0.0 + j * 65;
-				*pointPtr++ = x;
-				*pointPtr++ = y;
-				*pointPtr++ = 0.0;
-			}
-		uGrid->SetPoints(points);
-		points->Delete();
-		uGrid->Allocate(4);
-		debug1 << "start creating d2 cells\n";
-
-		vtkIdType verts1[4];
-		verts1[0] = 0;
-		verts1[1] = 1;
-		verts1[2] = 4;
-		verts1[3] = 3;
-
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
-		vtkIdType verts2[4];
-
-		verts2[0] = 1;
-		verts2[1] = 2;
-		verts2[2] = 5;
-		verts2[3] = 4;
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
-		vtkIdType verts3[4];
-
-		verts3[0] = 3;
-		verts3[1] = 4;
-		verts3[2] = 7;
-		verts3[3] = 6;
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
-		vtkIdType verts4[4];
-
-		verts4[0] = 4;
-		verts4[1] = 5;
-		verts4[2] = 8;
-		verts4[3] = 7;
-		uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
-		uGrid->GetCellData()->AddArray(ghost_zones);
-		uGrid->GetCellData()->AddArray(ghost_nodes);
-		debug1 << "d2 ghost added\n";
-	}
-	else
-	{
-
-	}
+	//			double x = 0.0 + i * 100;
+	//			double y = 0.0 + j * 65;
+	//			*pointPtr++ = x;
+	//			*pointPtr++ = y;
+	//			*pointPtr++ = 0.0;
+	//		}
+	//	uGrid->SetPoints(points);
+	//	points->Delete();
+	//	uGrid->Allocate(4);
 
 
+	//	debug1 << "start creating d1 cells\n";
+	//	vtkIdType verts1[4];
+	//	verts1[0] = 0;
+	//	verts1[1] = 1;
+	//	verts1[2] = 4;
+	//	verts1[3] = 3;
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
+	//	vtkIdType verts2[4];
+	//	verts2[0] = 1;
+	//	verts2[1] = 2;
+	//	verts2[2] = 5;
+	//	verts2[3] = 4;
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
+	//	vtkIdType verts3[4];
+	//	verts3[0] = 3;
+	//	verts3[1] = 4;
+	//	verts3[2] = 7;
+	//	verts3[3] = 6;
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
+	//	vtkIdType verts4[4];
+	//	verts4[0] = 4;
+	//	verts4[1] = 5;
+	//	verts4[2] = 8;
+	//	verts4[3] = 7;
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
+	//	debug1 << "inserted d1 cells\n";
+	//	uGrid->GetCellData()->AddArray(ghost_zones);
+	//	uGrid->GetCellData()->AddArray(ghost_nodes);
+	//	debug1 << "d1 ghost added\n";
+	//}
+	//else if (domain == 1)
+	//{
+	//	int numNodes = 9;
+	//	points->SetNumberOfPoints(numNodes);
+	//	double * pointPtr = (double *)points->GetVoidPointer(0);
+	//	for (int i = 0; i < 3; i++)
+	//		for (int j = 0; j < 3; j++)
+	//		{
 
-	return uGrid;
-    return m_impl->GetMesh(timestate,domain,this,meshname);
+	//			double x = 200.0 + i * 100;
+	//			double y = 0.0 + j * 65;
+	//			*pointPtr++ = x;
+	//			*pointPtr++ = y;
+	//			*pointPtr++ = 0.0;
+	//		}
+	//	uGrid->SetPoints(points);
+	//	points->Delete();
+	//	uGrid->Allocate(4);
+	//	debug1 << "start creating d2 cells\n";
+
+	//	vtkIdType verts1[4];
+	//	verts1[0] = 0;
+	//	verts1[1] = 1;
+	//	verts1[2] = 4;
+	//	verts1[3] = 3;
+
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
+	//	vtkIdType verts2[4];
+
+	//	verts2[0] = 1;
+	//	verts2[1] = 2;
+	//	verts2[2] = 5;
+	//	verts2[3] = 4;
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
+	//	vtkIdType verts3[4];
+
+	//	verts3[0] = 3;
+	//	verts3[1] = 4;
+	//	verts3[2] = 7;
+	//	verts3[3] = 6;
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
+	//	vtkIdType verts4[4];
+
+	//	verts4[0] = 4;
+	//	verts4[1] = 5;
+	//	verts4[2] = 8;
+	//	verts4[3] = 7;
+	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
+	//	uGrid->GetCellData()->AddArray(ghost_zones);
+	//	uGrid->GetCellData()->AddArray(ghost_nodes);
+	//	debug1 << "d2 ghost added\n";
+	//}
+	//else
+	//{
+
+	//}
+	//return uGrid;
+#ifdef PARALLEL
+    int myrank = PAR_Rank();
+	debug1 << "rank " << myrank << " getting mesh " << domainid << "\n";
+#endif
+    return m_impl->GetMesh(timestate,domainid,this,meshname);
 }
 
 
@@ -479,54 +967,34 @@ avtMDSCHISMFileFormat::GetMesh(int timestate, int domain, const char *meshname)
 vtkDataArray *
 avtMDSCHISMFileFormat::GetVar(int timestate, int domain, const char *varname)
 {
-   int ntuples = 9; // this is the number of entries in the variable.
-	vtkDoubleArray *rv = vtkDoubleArray::New();
-	rv->SetNumberOfTuples(ntuples);
-	double * val_arr = new double[ntuples];
-	for (int i = 0; i < ntuples; i++)
-	{
-		double val = i * 0.5;
-		val_arr[i] = val;
-	}
+ //  int ntuples = 9; // this is the number of entries in the variable.
+	//vtkDoubleArray *rv = vtkDoubleArray::New();
+	//rv->SetNumberOfTuples(ntuples);
+	//double * val_arr = new double[ntuples];
+	//for (int i = 0; i < ntuples; i++)
+	//{
+	//	double val = i * 0.5;
+	//	val_arr[i] = val;
+	//}
 
-	if (domain == 0)
-	{
-		val_arr[2] = val_arr[0];
-		val_arr[5] = val_arr[3];
-		val_arr[8] = val_arr[6];
+	//if (domain == 0)
+	//{
+	//	val_arr[2] = val_arr[0];
+	//	val_arr[5] = val_arr[3];
+	//	val_arr[8] = val_arr[6];
 
-	}
+	//}
 
-	for (int i = 0; i < ntuples; i++)
-	{
-		rv->SetTuple1(i, val_arr[i]);
-	}
+	//for (int i = 0; i < ntuples; i++)
+	//{
+	//	rv->SetTuple1(i, val_arr[i]);
+	//}
 
-	delete val_arr;
-	return rv;
+	//delete val_arr;
+	//return rv;
    return m_impl->GetVar(timestate,domain,varname);
 
-    //
-    // If you have a file format where variables don't apply (for example a
-    // strictly polygonal format like the STL (Stereo Lithography) format,
-    // then uncomment the code below.
-    //
-    // EXCEPTION1(InvalidVariableException, varname);
-    //
-
-    //
-    // If you do have a scalar variable, here is some code that may be helpful.
-    //
-    // int ntuples = XXX; // this is the number of entries in the variable.
-    // vtkFloatArray *rv = vtkFloatArray::New();
-    // rv->SetNumberOfTuples(ntuples);
-    // for (int i = 0 ; i < ntuples ; i++)
-    // {
-    //      rv->SetTuple1(i, VAL);  // you must determine value for ith entry.
-    // }
-    //
-    // return rv;
-    //
+   
 }
 
 
@@ -555,7 +1023,7 @@ vtkDataArray *
 avtMDSCHISMFileFormat::GetVectorVar(int timestate, int domain,const char *varname)
 {
 	return NULL;
-    return m_impl->GetVectorVar(timestate,domain,varname);
+    //return m_impl->GetVectorVar(timestate,domain,varname);
     //
     // If you have a file format where variables don't apply (for example a
     // strictly polygonal format like the STL (Stereo Lithography) format,
@@ -589,44 +1057,6 @@ avtMDSCHISMFileFormat::GetVectorVar(int timestate, int domain,const char *varnam
     //
 }
 
-void avtMDSCHISMFileFormat::addMeshToMetaData(avtDatabaseMetaData * a_metaData,
-	const std::string & a_mesh_name,
-	const avtMeshType & a_mt,
-	double           *  a_extents,
-	const int        &  a_nblocks,
-	const int        &  a_block_origin,
-	const int        &  a_spatial_dimension,
-	const int        &  a_topological_dimension)
-{
-	AddMeshToMetaData(a_metaData,
-		a_mesh_name,
-		a_mt,
-		a_extents,
-		a_nblocks,
-		a_block_origin,
-		a_spatial_dimension,
-		a_topological_dimension);
-
-}
-
-
-void   avtMDSCHISMFileFormat::addScalarVarToMetaData(avtDatabaseMetaData * a_metaData,
-	const std::string & a_label,
-	const std::string & a_mesh,
-	const avtCentering& a_center)
-{
-	AddScalarVarToMetaData(a_metaData, a_label, a_mesh, a_center);
-}
-
-void   avtMDSCHISMFileFormat::addVectorVarToMetaData(avtDatabaseMetaData * a_metaData,
-	const std::string &  a_varLabel,
-	const std::string &  a_mesh,
-	const avtCentering&  a_center,
-	const int &          a_comps)
-{
-
-	AddVectorVarToMetaData(a_metaData, a_varLabel, a_mesh, a_center, a_comps);
-}
 
 avtVariableCache * avtMDSCHISMFileFormat::get_cache()
 {

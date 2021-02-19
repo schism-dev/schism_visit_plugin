@@ -26,6 +26,8 @@ const std::string      EDGE_NODE("SCHISM_hgrid_edge_nodes");
 const std::string      NODE_BOTTOM("node_bottom_index");
 const std::string      FACE_BOTTOM("element_bottom_index");
 const std::string      EDGE_BOTTOM("edge_bottom_index");
+const std::string      NODE_GLOBAL_ID("node_global_id");
+const std::string      ELE_GLOBAL_ID("ele_global_id");
 const std::string      EDGE_DRYWET("wetdry_side");
 const std::string      ELEM_DRYWET("wetdry_elem");
 const std::string      NODE_DRYWET("wetdry_node");

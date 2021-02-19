@@ -261,6 +261,9 @@ protected:
   void           broadCastStringMap(std::map<std::string, std::string>& m_map,int myrank);
   int            load_per_proc_file(const std::string& a_path) const;
 
+  vtkDataArray*   get_ele_global_id(const int& a_domain);
+  vtkDataArray*   get_node_global_id(const int& a_domain);
+
 private:
   bool         m_initialized;
   bool         m_mesh_is_static;

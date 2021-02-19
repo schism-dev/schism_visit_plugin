@@ -185,24 +185,7 @@ avtMDSCHISMFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int tim
 
 	m_data = file_ptr;
 	m_mesh = mesh_ptr;
-	////debug1 << "num of domain "<<m_number_domain<<"\n";
-	//int block_origin = 0;
-	//int cell_origin = 0;
-	//int group_origin = 0;
-	//int spatial_dimension = 3;
-	//int topological_dimension = 3;
-	//double *extents = NULL;
-	//int * bounds = NULL;
-	//string mesh_name = "2D_Mesh";
-	//avtMeshMetaData *mmd1 = new avtMeshMetaData(bounds, extents, mesh_name,
-	//	nblocks, block_origin, cell_origin, group_origin, spatial_dimension, topological_dimension, mt);
-	//md->Add(mmd1);
 
-
-	//string mesh = mesh_name;
-	//avtScalarMetaData *smd1 = new avtScalarMetaData("depth", mesh, AVT_NODECENT);
-	//md->Add(smd1);
-	//debug1 << "done impl md populate\n";
 
 	avtCentering  nodeCent = AVT_NODECENT;
 	avtCentering  zoneCent = AVT_ZONECENT;
@@ -292,11 +275,16 @@ avtMDSCHISMFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md, int tim
 	string mesh = m_mesh_2d;
 	avtScalarMetaData *smd1 = new avtScalarMetaData(m_node_depth_label, mesh, nodeCent);
 	md->Add(smd1);
-
-
-
 	// m_var_mesh_map[m_node_surface_label] = mesh;
 	m_var_mesh_map[m_node_depth_label] = mesh;
+
+	avtScalarMetaData *smd_node_id = new avtScalarMetaData(MeshConstants10::NODE_GLOBAL_ID, mesh, nodeCent);
+	md->Add(smd_node_id);
+	m_var_mesh_map[MeshConstants10::NODE_GLOBAL_ID] = mesh;
+
+	avtScalarMetaData *smd_ele_id = new avtScalarMetaData(MeshConstants10::ELE_GLOBAL_ID, mesh, zoneCent);
+	md->Add(smd_ele_id);
+	m_var_mesh_map[MeshConstants10::ELE_GLOBAL_ID] = mesh;
 
 	//add 3D node level label
 	string mesh3d = m_mesh_3d;
@@ -797,144 +785,7 @@ void    avtMDSCHISMFileFormat::addSideCenterData(avtDatabaseMetaData * a_metaDat
 vtkDataSet *
 avtMDSCHISMFileFormat::GetMesh(int timestate, int domainid, const char *meshname)
 {
-	//int domain = domainid % 2;
-	//debug1 << "geting mesh " << domain << " " << meshname << "\n";
-	//vtkUnstructuredGrid *uGrid = vtkUnstructuredGrid::New();
-	//vtkPoints *points = vtkPoints::New();
-	//points->SetDataType(VTK_DOUBLE);
-	//debug1 << "start creating mesh " << domain << "\n";
-	//vtkUnsignedCharArray *ghost_zones = vtkUnsignedCharArray::New();
-	//ghost_zones->SetName("avtGhostZones");
-	//int ncells = 4;
-	//ghost_zones->SetNumberOfTuples(ncells);
-	//unsigned char *gzp = ghost_zones->GetPointer(0);
-	//for (int i = 0; i < ncells; i++)
-	//	gzp[i] = 0;
-	//unsigned char val = 0;
-	//avtGhostData::AddGhostZoneType(val, DUPLICATED_ZONE_INTERNAL_TO_PROBLEM);
-	//gzp[1] = val;
-	//gzp[3] = val;
 
-	//vtkUnsignedCharArray *ghost_nodes = vtkUnsignedCharArray::New();
-	//ghost_zones->SetName("avtGhostNodes");
-	//int npts = 9;
-	//ghost_nodes->SetNumberOfTuples(npts);
-	//unsigned char *gnp = ghost_nodes->GetPointer(0);
-	//for (int i = 0; i < npts; i++)
-	//	gnp[i] = 0;
-	//unsigned char val2 = 0;
-	//avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
-	//gzp[6] = val2;
-	//gzp[7] = val2;
-	//gzp[8] = val2;
-
-	//if (domain == 0)
-	//{
-	//	int numNodes = 9;
-	//	points->SetNumberOfPoints(numNodes);
-	//	double * pointPtr = (double *)points->GetVoidPointer(0);
-	//	for (int i = 0; i < 3; i++)
-	//		for (int j = 0; j < 3; j++)
-	//		{
-
-	//			double x = 0.0 + i * 100;
-	//			double y = 0.0 + j * 65;
-	//			*pointPtr++ = x;
-	//			*pointPtr++ = y;
-	//			*pointPtr++ = 0.0;
-	//		}
-	//	uGrid->SetPoints(points);
-	//	points->Delete();
-	//	uGrid->Allocate(4);
-
-
-	//	debug1 << "start creating d1 cells\n";
-	//	vtkIdType verts1[4];
-	//	verts1[0] = 0;
-	//	verts1[1] = 1;
-	//	verts1[2] = 4;
-	//	verts1[3] = 3;
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
-	//	vtkIdType verts2[4];
-	//	verts2[0] = 1;
-	//	verts2[1] = 2;
-	//	verts2[2] = 5;
-	//	verts2[3] = 4;
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
-	//	vtkIdType verts3[4];
-	//	verts3[0] = 3;
-	//	verts3[1] = 4;
-	//	verts3[2] = 7;
-	//	verts3[3] = 6;
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
-	//	vtkIdType verts4[4];
-	//	verts4[0] = 4;
-	//	verts4[1] = 5;
-	//	verts4[2] = 8;
-	//	verts4[3] = 7;
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
-	//	debug1 << "inserted d1 cells\n";
-	//	uGrid->GetCellData()->AddArray(ghost_zones);
-	//	uGrid->GetCellData()->AddArray(ghost_nodes);
-	//	debug1 << "d1 ghost added\n";
-	//}
-	//else if (domain == 1)
-	//{
-	//	int numNodes = 9;
-	//	points->SetNumberOfPoints(numNodes);
-	//	double * pointPtr = (double *)points->GetVoidPointer(0);
-	//	for (int i = 0; i < 3; i++)
-	//		for (int j = 0; j < 3; j++)
-	//		{
-
-	//			double x = 200.0 + i * 100;
-	//			double y = 0.0 + j * 65;
-	//			*pointPtr++ = x;
-	//			*pointPtr++ = y;
-	//			*pointPtr++ = 0.0;
-	//		}
-	//	uGrid->SetPoints(points);
-	//	points->Delete();
-	//	uGrid->Allocate(4);
-	//	debug1 << "start creating d2 cells\n";
-
-	//	vtkIdType verts1[4];
-	//	verts1[0] = 0;
-	//	verts1[1] = 1;
-	//	verts1[2] = 4;
-	//	verts1[3] = 3;
-
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts1);
-	//	vtkIdType verts2[4];
-
-	//	verts2[0] = 1;
-	//	verts2[1] = 2;
-	//	verts2[2] = 5;
-	//	verts2[3] = 4;
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts2);
-	//	vtkIdType verts3[4];
-
-	//	verts3[0] = 3;
-	//	verts3[1] = 4;
-	//	verts3[2] = 7;
-	//	verts3[3] = 6;
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts3);
-	//	vtkIdType verts4[4];
-
-	//	verts4[0] = 4;
-	//	verts4[1] = 5;
-	//	verts4[2] = 8;
-	//	verts4[3] = 7;
-	//	uGrid->InsertNextCell(VTK_QUAD, 4, verts4);
-	//	uGrid->GetCellData()->AddArray(ghost_zones);
-	//	uGrid->GetCellData()->AddArray(ghost_nodes);
-	//	debug1 << "d2 ghost added\n";
-	//}
-	//else
-	//{
-
-	//}
-	//return uGrid;
 #ifdef PARALLEL
     int myrank = PAR_Rank();
 	debug1 << "rank " << myrank << " getting mesh " << domainid << "\n";
@@ -967,31 +818,7 @@ avtMDSCHISMFileFormat::GetMesh(int timestate, int domainid, const char *meshname
 vtkDataArray *
 avtMDSCHISMFileFormat::GetVar(int timestate, int domain, const char *varname)
 {
- //  int ntuples = 9; // this is the number of entries in the variable.
-	//vtkDoubleArray *rv = vtkDoubleArray::New();
-	//rv->SetNumberOfTuples(ntuples);
-	//double * val_arr = new double[ntuples];
-	//for (int i = 0; i < ntuples; i++)
-	//{
-	//	double val = i * 0.5;
-	//	val_arr[i] = val;
-	//}
 
-	//if (domain == 0)
-	//{
-	//	val_arr[2] = val_arr[0];
-	//	val_arr[5] = val_arr[3];
-	//	val_arr[8] = val_arr[6];
-
-	//}
-
-	//for (int i = 0; i < ntuples; i++)
-	//{
-	//	rv->SetTuple1(i, val_arr[i]);
-	//}
-
-	//delete val_arr;
-	//return rv;
    return m_impl->GetVar(timestate,domain,varname);
 
    
@@ -1022,39 +849,8 @@ avtMDSCHISMFileFormat::GetVar(int timestate, int domain, const char *varname)
 vtkDataArray *
 avtMDSCHISMFileFormat::GetVectorVar(int timestate, int domain,const char *varname)
 {
-	return NULL;
-    //return m_impl->GetVectorVar(timestate,domain,varname);
-    //
-    // If you have a file format where variables don't apply (for example a
-    // strictly polygonal format like the STL (Stereo Lithography) format,
-    // then uncomment the code below.
-    //
-    // EXCEPTION1(InvalidVariableException, varname);
-    //
 
-    //
-    // If you do have a vector variable, here is some code that may be helpful.
-    //
-    // int ncomps = YYY;  // This is the rank of the vector - typically 2 or 3.
-    // int ntuples = XXX; // this is the number of entries in the variable.
-    // vtkFloatArray *rv = vtkFloatArray::New();
-    // int ucomps = (ncomps == 2 ? 3 : ncomps);
-    // rv->SetNumberOfComponents(ucomps);
-    // rv->SetNumberOfTuples(ntuples);
-    // float *one_entry = new float[ucomps];
-    // for (int i = 0 ; i < ntuples ; i++)
-    // {
-    //      int j;
-    //      for (j = 0 ; j < ncomps ; j++)
-    //           one_entry[j] = ...
-    //      for (j = ncomps ; j < ucomps ; j++)
-    //           one_entry[j] = 0.;
-    //      rv->SetTuple(i, one_entry); 
-    // }
-    //
-    // delete [] one_entry;
-    // return rv;
-    //
+    return m_impl->GetVectorVar(timestate,domain,varname);
 }
 
 

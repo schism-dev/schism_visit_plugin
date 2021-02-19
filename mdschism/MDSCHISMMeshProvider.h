@@ -115,6 +115,8 @@ public :
 
    void  fill_node_dry_wet(int* &a_node_dry_wet,int* a_ele_dry_wet);
    void  fill_side_dry_wet(int* &a_side_dry_wet,int* a_ele_dry_wet);
+   void  fill_node_global_id(long * a_buff);
+   void  fill_ele_global_id(long * a_buff);
 
    bool  update_bottom_layer(const int & a_timeStep);
 

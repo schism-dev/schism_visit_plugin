@@ -1289,6 +1289,22 @@ bool MDSCHISMMeshProvider::zcoords3D(double * a_zCachePtr,const int & a_timeStep
 	 return true;
 }
 
+void  MDSCHISMMeshProvider::fill_node_global_id(long * a_buff)
+{
+	for (long iNode = 0; iNode < m_number_node; iNode++)
+	{
+		a_buff[iNode] = m_local_node_id_to_global_id[iNode];
+	}
+}
+void  MDSCHISMMeshProvider::fill_ele_global_id(long * a_buff)
+{
+	for (long iEle = 0; iEle < m_number_element; iEle++)
+	{
+		a_buff[iEle] = m_local_ele_id_to_global_id[iEle];
+	}
+}
+
+
 bool MDSCHISMMeshProvider::zcoords3D(float * a_zCachePtr,const int & a_timeStep) const
 {
 	

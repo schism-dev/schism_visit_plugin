@@ -2851,9 +2851,6 @@ vtkDataArray*   avtMDSCHISMFileFormatImpl::getLevel(const string& a_level_name, 
 	return rv;
 }
 
-
-
-
 vtkDataArray*   avtMDSCHISMFileFormatImpl::getBottom(const string& a_bottom_name, const int& a_domain)
 {
 	int * kbp00;
@@ -2903,6 +2900,61 @@ vtkDataArray*   avtMDSCHISMFileFormatImpl::getBottom(const string& a_bottom_name
 
 	}
 
+
+	return rv;
+}
+
+vtkDataArray*   avtMDSCHISMFileFormatImpl::get_node_global_id( const int& a_domain)
+{
+	
+	std::string data_center(MeshConstants10::NODE);
+	long nominal_num_data_per_layer = 0;
+	nominal_num_data_per_layer = m_num_mesh_nodes[a_domain];
+
+
+	long ntuples = nominal_num_data_per_layer;
+	vtkIntArray *rv = vtkIntArray::New();
+	rv->SetNumberOfTuples(ntuples);
+	long idata = 0;
+	long * buff = new long[nominal_num_data_per_layer];
+	m_external_mesh_providers[a_domain]->fill_node_global_id(buff);
+
+	for (long iNode = 0; iNode < nominal_num_data_per_layer; iNode++)
+	{
+
+		rv->SetTuple1(idata, buff[iNode]);
+		idata++;
+
+	}
+
+
+	return rv;
+}
+
+
+vtkDataArray*   avtMDSCHISMFileFormatImpl::get_ele_global_id(const int& a_domain)
+{
+	
+	std::string data_center(MeshConstants10::ELEM);
+
+	long nominal_num_data_per_layer = 0;
+	
+    data_center = MeshConstants10::ELEM;
+    nominal_num_data_per_layer = m_num_mesh_faces[a_domain];
+
+	long ntuples = nominal_num_data_per_layer;
+	vtkIntArray *rv = vtkIntArray::New();
+	rv->SetNumberOfTuples(ntuples);
+	long idata = 0;
+	long * buff = new long[nominal_num_data_per_layer];
+	m_external_mesh_providers[a_domain]->fill_ele_global_id(buff);
+	for (long iEle = 0; iEle < nominal_num_data_per_layer; iEle++)
+	{
+		rv->SetTuple1(idata,buff[iEle]);
+		idata++;
+
+	}
+	delete buff;
 
 	return rv;
 }
@@ -2962,6 +3014,14 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 	else  if (!strcmp(a_varName, (MeshConstants10::EDGE_BOTTOM).c_str()))
 	{
 		return getBottom(MeshConstants10::EDGE_BOTTOM, a_domainID);
+	}
+	else  if (!strcmp(a_varName, (MeshConstants10::NODE_GLOBAL_ID).c_str()))
+	{
+		return get_node_global_id(a_domainID);
+	}
+	else  if (!strcmp(a_varName, (MeshConstants10::ELE_GLOBAL_ID).c_str()))
+	{
+		return get_ele_global_id(a_domainID);
 	}
 
 

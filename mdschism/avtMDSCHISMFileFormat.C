@@ -155,7 +155,7 @@ void avtMDSCHISMFileFormat::GetTimes(std::vector<double> &a_time)
 void
 avtMDSCHISMFileFormat::FreeUpResources(void)
 {
-	 //m_impl->FreeUpResources();
+	 m_impl->FreeUpResources();
 }
 
 

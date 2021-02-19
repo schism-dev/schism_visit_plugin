@@ -164,14 +164,77 @@ avtMDSCHISMFileFormatImpl::FreeUpResources(void)
 	{
 		delete m_node_y_ptr;
 	}
-
 	
 
 	if (m_kbp_data)
 	{
 		delete m_kbp_data;
 	}
-	
+
+	std::map<int, int*>::iterator it;
+	for (it = m_kbp_node.begin(); it != m_kbp_node.end(); it++)
+	{
+		if (it->second)
+		{
+			delete it->second;
+		}
+	}
+	for (it = m_kbp_ele.begin(); it != m_kbp_ele.end(); it++)
+	{
+		if (it->second)
+		{
+			delete it->second;
+		}
+	}
+	for (it = m_kbp_side.begin(); it != m_kbp_side.end(); it++)
+	{
+		if (it->second)
+		{
+			delete it->second;
+		}
+	}
+
+	for (it = m_node_dry_wet.begin(); it != m_node_dry_wet.end(); it++)
+	{
+		if (it->second)
+		{
+			delete it->second;
+		}
+	}
+
+	for (it = m_ele_dry_wet.begin(); it != m_ele_dry_wet.end(); it++)
+	{
+		if (it->second)
+		{
+			delete it->second;
+		}
+	}
+
+	for (it = m_side_dry_wet.begin(); it != m_side_dry_wet.end(); it++)
+	{
+		if (it->second)
+		{
+			delete it->second;
+		}
+	}
+
+	std::map<int, MDSchismOutput*>::iterator it1;
+	for (it1 = m_data_files.begin(); it1 != m_data_files.end(); it1++)
+	{
+		if (it1->second)
+		{
+			delete it1->second;
+		}
+	}
+
+	std::map<int, MDSCHISMMeshProvider*>::iterator it2;
+	for (it2 = m_external_mesh_providers.begin(); it2 != m_external_mesh_providers.end(); it2++)
+	{
+		if (it2->second)
+		{
+			delete it2->second;
+		}
+	}
 	debug1 << "finish free res \n";
 }
 

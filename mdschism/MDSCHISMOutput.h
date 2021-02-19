@@ -28,7 +28,7 @@ protected:
 private:
 
   bool              load_dim_var();
-  bool              cache_face_nodes(SCHISMVar10 * mesh_node_var);
+  //bool              cache_face_nodes(SCHISMVar10 * mesh_node_var);
   void              fill_bottom(); //fill ele node side bottoms
   
 

@@ -11,7 +11,7 @@
 using std::ios;
 using std::ifstream;
 
-MDSCHISMMeshProvider::MDSCHISMMeshProvider(const std::string & a_ncfile,const std::string& a_local_file):MeshProvider10(a_ncfile),
+MDSCHISMMeshProvider::MDSCHISMMeshProvider(const std::string & a_ncfile, SCHISMFile10 * a_nc_ptr,const std::string& a_local_file):MeshProvider10(a_ncfile),
 	                                                                          m_kbp00(NULL),
 																			  m_layerSCoords(NULL),
                                                                               m_kbs(NULL),
@@ -29,7 +29,8 @@ MDSCHISMMeshProvider::MDSCHISMMeshProvider(const std::string & a_ncfile,const st
 {
     
   
-  m_dataFilePtr=new MDSchismOutput(a_ncfile,a_local_file);
+  //m_dataFilePtr=new MDSchismOutput(a_ncfile,a_local_file);
+	m_dataFilePtr = a_nc_ptr;
   m_local_global_file=a_local_file;
 
   if (!(m_dataFilePtr->is_valid()))
@@ -122,6 +123,12 @@ MDSCHISMMeshProvider::~MDSCHISMMeshProvider()
    }
 }
 
+bool MDSCHISMMeshProvider::set_data_file(SCHISMFile10* a_file)
+{
+	m_dataFilePtr = a_file;
+	return true;
+
+}
 bool MDSCHISMMeshProvider::fillKbp00(int * a_cache,const int & a_timeStep) const
  {
 
@@ -465,7 +472,6 @@ bool MDSCHISMMeshProvider::fillPointCoord2D(double * a_pointCoord,const int & a_
             *a_pointCoord++    = y;
             // must put a dummy z value as visit manaul example does
             *a_pointCoord++    = MeshConstants10::DUMMY_ELEVATION;
-           
           }
       
 	}
@@ -1184,18 +1190,23 @@ bool MDSCHISMMeshProvider::fillPointCoord3D(double * a_pointCoord,const int & a_
 
 bool  MDSCHISMMeshProvider::fillMeshElement(long * a_elementCache) const
 {
-	if (!m_mesh_loaded)
-	{
-		return false;
-	}
-	else
-	{
+	//if (!m_mesh_loaded)
+	//{
+	//	loadMesh();
+	//}
+	debug1 << "in fill mesh " << m_number_element << "\n";
        for(long i=0;i<(MeshConstants10::MAX_NUM_NODE_PER_CELL+1)*m_number_element;i++)
 	   {
 		   a_elementCache[i]=m_faceNodesPtr[i];
+		  
 	   }
-    }
+     
    return true;
+}
+
+bool  MDSCHISMMeshProvider::mesh_loaded() const
+{
+	return m_mesh_loaded;
 }
 
  // updates z coords at a timestep
@@ -1811,84 +1822,84 @@ bool MDSCHISMMeshProvider::zEleCenter3D(double * a_zCachePtr,const int & a_timeS
 					// degenerated ele node
 					if(z_displace_node<0)
 					{
-						z_displace_node=0;
+z_displace_node = 0;
 					}
-					float z = zPtr[node_z_start+z_displace_node];
-					z_sum+=z;
-		        }
-                *a_zCachePtr++     = z_sum/numNode;
-				
+					float z = zPtr[node_z_start + z_displace_node];
+					z_sum += z;
+				}
+				*a_zCachePtr++ = z_sum / numNode;
+
 			}
 		 }
-    }
+	}
 
 	delete zPtr;
 	delete node_z_start_index;
-    delete meshElementNodes;
+	delete meshElementNodes;
 	delete kbp00;
 	delete kbe;
 	return true;
 }
-bool MDSCHISMMeshProvider::zEleCenter3D(float * a_zCachePtr,const int & a_timeStep) const
+bool MDSCHISMMeshProvider::zEleCenter3D(float * a_zCachePtr, const int & a_timeStep) const
 {
-	float*           zPtr = new float [m_number_layer*m_number_node];
-    float*           zPtrTemp = zPtr;
-	zcoords3D2(zPtr,a_timeStep);
-	int * kbp00 = new int [m_number_node];
-	fillKbp00(kbp00,a_timeStep);
-	int * kbe = new int [m_number_element];
-	fillKbe(kbe,a_timeStep);
-	long * node_z_start_index  = new long [m_number_node];
+	float*           zPtr = new float[m_number_layer*m_number_node];
+	float*           zPtrTemp = zPtr;
+	zcoords3D2(zPtr, a_timeStep);
+	int * kbp00 = new int[m_number_node];
+	fillKbp00(kbp00, a_timeStep);
+	int * kbe = new int[m_number_element];
+	fillKbe(kbe, a_timeStep);
+	long * node_z_start_index = new long[m_number_node];
 	long valid_var_size = 0;
 
-    for(long iNode=0;iNode<m_number_node;iNode++)
-    {
-	node_z_start_index[iNode]=valid_var_size;
-	valid_var_size+=m_number_layer-std::max(1,kbp00[iNode])+1;
-    }
+	for (long iNode = 0; iNode < m_number_node; iNode++)
+	{
+		node_z_start_index[iNode] = valid_var_size;
+		valid_var_size += m_number_layer - std::max(1, kbp00[iNode]) + 1;
+	}
 
 	int max_node_in_cell = MeshConstants10::MAX_NUM_NODE_PER_CELL;
-	long * meshElementNodes = new long [(MeshConstants10::MAX_NUM_NODE_PER_CELL+1)*m_number_element];
+	long * meshElementNodes = new long[(MeshConstants10::MAX_NUM_NODE_PER_CELL + 1)*m_number_element];
 	fillMeshElement(meshElementNodes);
-    
-	
-	for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
-    {
-		
-	  for(long iEle=0;iEle <m_number_element; iEle++)
-       {
-		    
-			if (iLayer>=(std::max(1,kbe[iEle])-1))
+
+
+	for (int iLayer = 0; iLayer < m_number_layer; iLayer++)
+	{
+
+		for (long iEle = 0; iEle < m_number_element; iEle++)
+		{
+
+			if (iLayer >= (std::max(1, kbe[iEle]) - 1))
 			{
-			    int numNode = meshElementNodes[iEle*(max_node_in_cell+1)];
+				int numNode = meshElementNodes[iEle*(max_node_in_cell + 1)];
 				float z_sum = 0.0;
-				
-                for (int iNode=0;iNode<numNode;iNode++)
-		        {  
-					long node=meshElementNodes[iEle*(max_node_in_cell+1)+1+iNode]-1;
-					int kbp= kbp00[node];
-				
+
+				for (int iNode = 0; iNode < numNode; iNode++)
+				{
+					long node = meshElementNodes[iEle*(max_node_in_cell + 1) + 1 + iNode] - 1;
+					int kbp = kbp00[node];
+
 					long node_z_start = node_z_start_index[node];
 
-					int z_displace_node = iLayer-std::max(1,kbp)+1;
+					int z_displace_node = iLayer - std::max(1, kbp) + 1;
 
 					// degenerated ele node
-					if(z_displace_node<0)
+					if (z_displace_node < 0)
 					{
-						z_displace_node=0;
+						z_displace_node = 0;
 					}
-					float z = zPtr[node_z_start+z_displace_node];
-					z_sum+=z;
-		        }
-                *a_zCachePtr++     = z_sum/numNode;
-				
+					float z = zPtr[node_z_start + z_displace_node];
+					z_sum += z;
+				}
+				*a_zCachePtr++ = z_sum / numNode;
+
 			}
-		 }
-    }
+		}
+	}
 
 	delete zPtr;
 	delete node_z_start_index;
-    delete meshElementNodes;
+	delete meshElementNodes;
 	delete kbp00;
 	delete kbe;
 	return true;
@@ -1897,11 +1908,11 @@ bool MDSCHISMMeshProvider::zEleCenter3D(float * a_zCachePtr,const int & a_timeSt
 
 bool MDSCHISMMeshProvider::slayers(double * a_cache) const
 {
-	if  (m_mesh_loaded)
+	if (m_mesh_loaded)
 	{
-		for(int i=0;i<m_number_layer;i++)
+		for (int i = 0; i < m_number_layer; i++)
 		{
-			a_cache[i]= m_layerSCoords[i];
+			a_cache[i] = m_layerSCoords[i];
 		}
 		return true;
 	}
@@ -1910,7 +1921,11 @@ bool MDSCHISMMeshProvider::slayers(double * a_cache) const
 
 bool MDSCHISMMeshProvider::depth(double * a_cache) const
 {
-	return false;
+	for(long inode = 0; inode < m_number_node; inode++)
+	{
+		a_cache[inode] = m_dp[inode];
+    }
+	return true;
 }
 
 

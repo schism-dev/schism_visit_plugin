@@ -81,6 +81,7 @@ class avtMDSCHISMFileFormat : public avtMTMDFileFormat
     //
     // virtual void        GetCycles(std::vector<int> &);
      virtual void        GetTimes(std::vector<double> &);
+	 virtual void                ActivateTimestep(void);
     //
 
     virtual int            GetNTimesteps(void);

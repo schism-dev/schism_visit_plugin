@@ -159,6 +159,13 @@ avtMDSCHISMFileFormat::FreeUpResources(void)
 }
 
 
+void
+avtMDSCHISMFileFormat::ActivateTimestep(void)
+{
+	m_impl->ActivateTimestep(m_data_file);
+}
+
+
 // ****************************************************************************
 //  Method: avtMDSCHISMFileFormat::PopulateDatabaseMetaData
 //

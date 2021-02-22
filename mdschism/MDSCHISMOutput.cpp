@@ -165,7 +165,7 @@ void   MDSchismOutput::fill_bottom()
 {
 
    ifstream*    localFileStream = new ifstream(m_local_mesh_file.c_str()); 
-   debug1 << "in nc file done create local mesh stream\n";
+   //debug1 << "in nc file done create local mesh stream\n";
    if (!localFileStream->good())
    {
        throw SCHISMFileException10("not a valid file "+ m_local_mesh_file);

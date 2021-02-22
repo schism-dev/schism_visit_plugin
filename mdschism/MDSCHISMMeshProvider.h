@@ -8,7 +8,7 @@ class MDSCHISMMeshProvider: public MeshProvider10
 {
 public :
 
-   MDSCHISMMeshProvider(const std::string & a_ncfile,const std::string & a_local_gloabl_file);
+   MDSCHISMMeshProvider(const std::string & a_ncfile,SCHISMFile10 * a_nc_ptr,const std::string & a_local_gloabl_file);
    
     virtual ~MDSCHISMMeshProvider();
 
@@ -121,11 +121,13 @@ public :
    bool  update_bottom_layer(const int & a_timeStep);
 
    virtual bool mesh3d_is_static() const;
+   bool mesh_loaded() const;
+   bool set_data_file(SCHISMFile10* a_file);
 public:
 	long         m_number_side_no_ghost;
 	long         m_number_node_no_ghost;
 	long         m_number_element_no_ghost;
-
+	
 private:
 
    double  convertStoZ(const double    & a_sigma,

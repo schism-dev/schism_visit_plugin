@@ -19,7 +19,7 @@ class avtMDSCHISMFileFormatImpl : public FileFormatFavorInterface
 {
   public:
                     avtMDSCHISMFileFormatImpl();
-  virtual           ~avtMDSCHISMFileFormatImpl() {;};
+  virtual           ~avtMDSCHISMFileFormatImpl();
 
   static           FileFormatFavorInterface * create();
   //
@@ -39,7 +39,7 @@ class avtMDSCHISMFileFormatImpl : public FileFormatFavorInterface
 
    void           GetTimes(std::vector<double> & a_times);
    int            GetNTimesteps(const std::string& a_filename);
-   //void           ActivateTimestep(const std::string& a_filename);
+   void           ActivateTimestep(const std::string& a_filename);
    const char    *GetType(void)   { return "MDUGrid"; };
    void           FreeUpResources(void); 
   
@@ -263,6 +263,7 @@ protected:
 
   vtkDataArray*   get_ele_global_id(const int& a_domain);
   vtkDataArray*   get_node_global_id(const int& a_domain);
+  vtkDataArray*   get_node_depth(const int& a_domain);
 
 private:
   bool         m_initialized;

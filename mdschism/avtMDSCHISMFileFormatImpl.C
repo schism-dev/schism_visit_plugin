@@ -105,7 +105,7 @@ avtMDSCHISMFileFormatImpl::avtMDSCHISMFileFormatImpl() :
 	m_center_map[FACE] = AVT_ZONECENT;
 	m_center_map[UNKOWN] = AVT_UNKNOWN_CENT;
 	m_var_name_label_map[m_node_depth_label] = m_node_depth;
-
+	
 }
 
 FileFormatFavorInterface * avtMDSCHISMFileFormatImpl::create()
@@ -129,11 +129,82 @@ int
 avtMDSCHISMFileFormatImpl::GetNTimesteps(const std::string& a_filename)
 {
 	Initialize(a_filename);
-	debug1 << "num time step is"<<m_num_time_step <<"\n";
+	//debug1 << "num time step is"<<m_num_time_step <<"\n";
 	return m_num_time_step;
 }
 
+void  avtMDSCHISMFileFormatImpl::ActivateTimestep(const std::string& a_filename)
+{
+	Initialize(a_filename);
+}
 
+avtMDSCHISMFileFormatImpl::~avtMDSCHISMFileFormatImpl() 
+{ 
+	std::map<int, int*>::iterator it;
+		for (it = m_kbp_node.begin(); it != m_kbp_node.end(); it++)
+		{
+			if (it->second)
+			{
+				delete it->second;
+			}
+		}
+		for (it = m_kbp_ele.begin(); it != m_kbp_ele.end(); it++)
+		{
+			if (it->second)
+			{
+				delete it->second;
+			}
+		}
+		for (it = m_kbp_side.begin(); it != m_kbp_side.end(); it++)
+		{
+			if (it->second)
+			{
+				delete it->second;
+			}
+		}
+
+		for (it = m_node_dry_wet.begin(); it != m_node_dry_wet.end(); it++)
+		{
+			if (it->second)
+			{
+				delete it->second;
+			}
+		}
+
+		for (it = m_ele_dry_wet.begin(); it != m_ele_dry_wet.end(); it++)
+		{
+			if (it->second)
+			{
+				delete it->second;
+			}
+		}
+
+		for (it = m_side_dry_wet.begin(); it != m_side_dry_wet.end(); it++)
+		{
+			if (it->second)
+			{
+				delete it->second;
+			}
+		}
+
+		std::map<int, MDSchismOutput*>::iterator it1;
+		for (it1 = m_data_files.begin(); it1 != m_data_files.end(); it1++)
+		{
+			if (it1->second)
+			{
+				delete it1->second;
+			}
+		}
+
+		std::map<int, MDSCHISMMeshProvider*>::iterator it2;
+		for (it2 = m_external_mesh_providers.begin(); it2 != m_external_mesh_providers.end(); it2++)
+		{
+			if (it2->second)
+			{
+				delete it2->second;
+			}
+		}
+}
 // ****************************************************************************
 //  Method: avtMDSCHISMFileFormatImpl::FreeUpResources
 //
@@ -171,7 +242,7 @@ avtMDSCHISMFileFormatImpl::FreeUpResources(void)
 		delete m_kbp_data;
 	}
 
-	std::map<int, int*>::iterator it;
+	/*std::map<int, int*>::iterator it;
 	for (it = m_kbp_node.begin(); it != m_kbp_node.end(); it++)
 	{
 		if (it->second)
@@ -234,7 +305,7 @@ avtMDSCHISMFileFormatImpl::FreeUpResources(void)
 		{
 			delete it2->second;
 		}
-	}
+	}*/
 	debug1 << "finish free res \n";
 }
 
@@ -1096,8 +1167,12 @@ void   avtMDSCHISMFileFormatImpl::create2DUnstructuredMesh(vtkUnstructuredGrid *
 {
 	long   numNodes = m_num_mesh_nodes[a_domainID];
 	vtkPoints *points = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
 	points->SetNumberOfPoints(numNodes);
-	float * pointPtr = (float *)points->GetVoidPointer(0);
+
+	points->SetNumberOfPoints(numNodes);
+	double * pointPtr = (double *)points->GetVoidPointer(0);
 
 	if (!m_external_mesh_providers[a_domainID]->fillPointCoord2D(pointPtr, a_timeState))
 	{
@@ -1191,8 +1266,10 @@ void   avtMDSCHISMFileFormatImpl::create2DUnstructuredMeshNoDryWet(vtkUnstructur
 {
 	long   numNodes = m_num_mesh_nodes[a_domainID];
 	vtkPoints *points = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
 	points->SetNumberOfPoints(numNodes);
-	float * pointPtr = (float *)points->GetVoidPointer(0);
+	double * pointPtr = (double *)points->GetVoidPointer(0);
 
 	if (!m_external_mesh_providers[a_domainID]->fillPointCoord2D(pointPtr, a_timeState))
 	{
@@ -1257,8 +1334,10 @@ void   avtMDSCHISMFileFormatImpl::createLayerMesh(vtkUnstructuredGrid *a_uGrid,
 	const  int          &a_timeState)
 {
 	vtkPoints *points = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
 	points->SetNumberOfPoints(m_total_valid_3D_point[a_domainID]);
-	float * pointPtr = (float *)points->GetVoidPointer(0);
+	double * pointPtr = (double *)points->GetVoidPointer(0);
 	//debug only
 
 	if (!m_external_mesh_providers[a_domainID]->fillPointCoord3D(pointPtr, a_timeState))
@@ -1345,9 +1424,11 @@ void   avtMDSCHISMFileFormatImpl::create3DUnstructuredMesh(vtkUnstructuredGrid *
 	const  int          &a_timeState)
 {
 	vtkPoints *points = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
 	points->SetNumberOfPoints(m_total_valid_3D_point[a_domainID]);
-	debug1 << "total valid 3d pts: " << m_total_valid_3D_point[a_domainID] << "\n";
-	float * pointPtr = (float *)points->GetVoidPointer(0);
+	//debug1 << "total valid 3d pts: " << m_total_valid_3D_point[a_domainID] << "\n";
+	double * pointPtr = (double *)points->GetVoidPointer(0);
 
 	if (!m_external_mesh_providers[a_domainID]->fillPointCoord3D(pointPtr, a_timeState))
 	{
@@ -1451,8 +1532,10 @@ void    avtMDSCHISMFileFormatImpl::create2DPointMesh(vtkUnstructuredGrid *a_uGri
 {
 	long   numNodes = m_num_mesh_edges[a_domainID];
 	vtkPoints *points = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
 	points->SetNumberOfPoints(numNodes);
-	float * pointPtr = (float *)points->GetVoidPointer(0);
+	double * pointPtr = (double *)points->GetVoidPointer(0);
 
 	if (!m_external_mesh_providers[a_domainID]->fillSideCenterCoord2D(pointPtr, a_timeState))
 	{
@@ -1481,8 +1564,10 @@ void   avtMDSCHISMFileFormatImpl::create3DPointMesh(vtkUnstructuredGrid *a_uGrid
 {
 	long   numNodes = m_total_valid_3D_side[a_domainID];
 	vtkPoints *points = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
 	points->SetNumberOfPoints(numNodes);
-	float * pointPtr = (float *)points->GetVoidPointer(0);
+	double * pointPtr = (double *)points->GetVoidPointer(0);
 
 	if (!m_external_mesh_providers[a_domainID]->fillSideCenterCoord3D(pointPtr, a_timeState))
 	{
@@ -1511,8 +1596,10 @@ void   avtMDSCHISMFileFormatImpl::create3DPointFaceMesh(vtkUnstructuredGrid *a_u
 {
 	int   numNodes = m_total_valid_3D_side[a_domainID] - (m_external_mesh_providers[a_domainID]->numberOfSide());
 	vtkPoints *points = vtkPoints::New();
+	points->SetDataTypeToDouble();
+	points->GetData()->SetNumberOfComponents(3);
 	points->SetNumberOfPoints(numNodes);
-	float * pointPtr = (float *)points->GetVoidPointer(0);
+	double * pointPtr = (double *)points->GetVoidPointer(0);
 
 	if (!m_external_mesh_providers[a_domainID]->fillSideFaceCenterCoord3D(pointPtr, a_timeState))
 	{
@@ -1595,15 +1682,16 @@ avtMDSCHISMFileFormatImpl::GetMesh(int a_timeState, int a_domainID, avtMDSCHISMF
 	// get face nodes
 	int    numNodesPerFace = NODESPERELE;
 	long *  faceNodesPtr = new long[m_num_mesh_faces[a_domainID]*(numNodesPerFace + 1)];
-
+	
+	//m_external_mesh_providers[a_domainID]->fillMeshElement(faceNodesPtr);
 	if (!m_external_mesh_providers[a_domainID]->fillMeshElement(faceNodesPtr))
 	{
 		stringstream msgStream(stringstream::out);
-		msgStream << "Fail to retrieve faces nodes at step " << a_timeState;
+		msgStream << "Fail to retrieve domain faces nodes at step " << a_timeState;
 		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 	}
 
-	debug1 << "get face nodes\n";
+	//debug1 << "get face nodes"<<faceNodesPtr[500]<<" "<<faceNodesPtr[501]<<" "<<faceNodesPtr[502]<<"\n";
 
 	if (!m_mesh_is_static)
 	{
@@ -3021,7 +3109,32 @@ vtkDataArray*   avtMDSCHISMFileFormatImpl::get_ele_global_id(const int& a_domain
 
 	return rv;
 }
+vtkDataArray*   avtMDSCHISMFileFormatImpl::get_node_depth(const int& a_domain)
+{
 
+	std::string data_center(MeshConstants10::NODE);
+	long nominal_num_data_per_layer = 0;
+	nominal_num_data_per_layer = m_num_mesh_nodes[a_domain];
+
+
+	long ntuples = nominal_num_data_per_layer;
+	vtkDoubleArray *rv = vtkDoubleArray::New();
+	rv->SetNumberOfTuples(ntuples);
+	long idata = 0;
+	double * buff = new double[nominal_num_data_per_layer];
+	m_external_mesh_providers[a_domain]->depth(buff);
+
+	for (long iNode = 0; iNode < nominal_num_data_per_layer; iNode++)
+	{
+
+		rv->SetTuple1(idata, buff[iNode]);
+		idata++;
+
+	}
+
+
+	return rv;
+}
 // ****************************************************************************
 //  Method: avtMDSCHISMFileFormatImpl::GetVar
 //
@@ -3085,6 +3198,10 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 	else  if (!strcmp(a_varName, (MeshConstants10::ELE_GLOBAL_ID).c_str()))
 	{
 		return get_ele_global_id(a_domainID);
+	}
+	else  if (!strcmp(a_varName, (MeshConstants10::NODE_DEPTH).c_str()))
+	{
+		return get_node_depth(a_domainID);
 	}
 
 
@@ -4404,7 +4521,8 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			MDSCHISMMeshProvider * a_local_mesh_ptr = NULL;
 			try
 			{
-				a_local_mesh_ptr = new MDSCHISMMeshProvider(domain_data_file, local_mesh_file);
+				a_local_mesh_ptr = new MDSCHISMMeshProvider(domain_data_file, a_data_file_ptr, local_mesh_file);
+				//a_local_mesh_ptr->set_data_file(a_data_file_ptr);
 				debug1 << "created mesh ptr " << a_local_mesh_ptr << "\n";
 			}
 			catch (SCHISMFileException10 e)
@@ -4444,7 +4562,8 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			MDSCHISMMeshProvider * a_local_mesh_ptr = NULL;
 			try
 			{
-				a_local_mesh_ptr = new MDSCHISMMeshProvider(domain_data_file, local_mesh_file);
+				a_local_mesh_ptr = new MDSCHISMMeshProvider(domain_data_file, a_data_file_ptr, local_mesh_file);
+				//a_local_mesh_ptr->set_data_file(a_data_file_ptr);
 			}
 			catch (SCHISMFileException10 e)
 			{

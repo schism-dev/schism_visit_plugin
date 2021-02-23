@@ -4453,7 +4453,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 		m_number_domain = ndomain;
 		int ndomain_per_thread = ndomain / nproc;
 
-		int left_domain = ndomain % nproc;
+		int oneExtraUntil= ndomain % nproc;
 	
 	    std:string pt = "\\";
 		debug1 << "proc file be opened ndomain:" << ndomain << "\n";
@@ -4465,30 +4465,30 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 
 #ifdef PARALLEL
 		int myrank = PAR_Rank();
-		int num_domain_resides = ndomain_per_thread;
 
-		int extra_one_domain = MeshConstants10::INVALID_NUM;
-		
-		if (myrank < left_domain)
-		{
-			num_domain_resides++;
-			//extra_one_domain = nproc * ndomain_per_thread + myrank;
-		}
+		int num_domain_resides = ndomain_per_thread + (myrank < oneExtraUntil ? 1 : 0);
 		int *all_domain_resides = new int[num_domain_resides];
 		
-		int start_domain = myrank * ndomain_per_thread;
-		int end_domain = (myrank + 1)*ndomain_per_thread;
+		int start_domain = 0;
+		
 	
 		for (int i = 0; i < ndomain_per_thread; i++)
 		{
 			all_domain_resides[i] = start_domain + i;
 		}
 		
-		if (myrank < left_domain)
+		for (int i = 0; i < nproc; i++)
 		{
-			extra_one_domain = nproc * ndomain_per_thread + myrank;
-			all_domain_resides[num_domain_resides] = extra_one_domain;
+			if (i == myrank)
+			{
+				for (int j = 0; j < num_domain_resides; j++)
+				{
+					all_domain_resides[j]=j + start_domain;
+				}
+			}
+			start_domain += ndomain_per_thread + (i < oneExtraUntil ? 1 : 0);
 		}
+
 		debug1 << "mesh has been distributed num domain resides:"<<num_domain_resides<<"\n";
 
 		for (int i = 0; i < num_domain_resides; i++)

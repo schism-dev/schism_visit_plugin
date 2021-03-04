@@ -162,7 +162,8 @@ avtMDSCHISMFileFormat::FreeUpResources(void)
 void
 avtMDSCHISMFileFormat::ActivateTimestep(void)
 {
-	m_impl->ActivateTimestep(m_data_file);
+	return;
+	//m_impl->ActivateTimestep(m_data_file);
 }
 
 
@@ -861,9 +862,9 @@ avtMDSCHISMFileFormat::GetVectorVar(int timestate, int domain,const char *varnam
 }
 
 
-avtVariableCache * avtMDSCHISMFileFormat::get_cache()
-{
-	return this->cache;
-}
+//avtVariableCache * avtMDSCHISMFileFormat::get_cache()
+//{
+//	return this->cache;
+//}
 
 

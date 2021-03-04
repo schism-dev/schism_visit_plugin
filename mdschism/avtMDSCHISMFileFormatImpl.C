@@ -98,7 +98,7 @@ avtMDSCHISMFileFormatImpl::avtMDSCHISMFileFormatImpl() :
 	m_bottom_state_suffix("_near_bottom"),
 	m_depth_average_suffix("_depth_average"),
 	m_dry_surface(MeshConstants10::DRY_SURFACE),
-	m_dry_wet_flag(1)
+	m_dry_wet_flag(0)
 {
 	// AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
 	m_center_map[NODE] = AVT_NODECENT;
@@ -133,13 +133,33 @@ avtMDSCHISMFileFormatImpl::GetNTimesteps(const std::string& a_filename)
 	return m_num_time_step;
 }
 
-void  avtMDSCHISMFileFormatImpl::ActivateTimestep(const std::string& a_filename)
-{
-	Initialize(a_filename);
-}
+//void  avtMDSCHISMFileFormatImpl::ActivateTimestep(const std::string& a_filename)
+//{
+	//Initialize(a_filename);
+//}
 
 avtMDSCHISMFileFormatImpl::~avtMDSCHISMFileFormatImpl() 
 { 
+	if (m_time_ptr)
+	{
+		delete m_time_ptr;
+	}
+
+	if (m_node_x_ptr)
+	{
+		delete m_node_x_ptr;
+	}
+	if (m_node_y_ptr)
+	{
+		delete m_node_y_ptr;
+	}
+
+
+	if (m_kbp_data)
+	{
+		delete m_kbp_data;
+	}
+
 	std::map<int, int*>::iterator it;
 		for (it = m_kbp_node.begin(); it != m_kbp_node.end(); it++)
 		{
@@ -222,91 +242,7 @@ avtMDSCHISMFileFormatImpl::~avtMDSCHISMFileFormatImpl()
 void
 avtMDSCHISMFileFormatImpl::FreeUpResources(void)
 {
-	if (m_time_ptr)
-	{
-		delete m_time_ptr;
-	}
-
-	if (m_node_x_ptr)
-	{
-		delete m_node_x_ptr;
-	}
-	if (m_node_y_ptr)
-	{
-		delete m_node_y_ptr;
-	}
-	
-
-	if (m_kbp_data)
-	{
-		delete m_kbp_data;
-	}
-
-	/*std::map<int, int*>::iterator it;
-	for (it = m_kbp_node.begin(); it != m_kbp_node.end(); it++)
-	{
-		if (it->second)
-		{
-			delete it->second;
-		}
-	}
-	for (it = m_kbp_ele.begin(); it != m_kbp_ele.end(); it++)
-	{
-		if (it->second)
-		{
-			delete it->second;
-		}
-	}
-	for (it = m_kbp_side.begin(); it != m_kbp_side.end(); it++)
-	{
-		if (it->second)
-		{
-			delete it->second;
-		}
-	}
-
-	for (it = m_node_dry_wet.begin(); it != m_node_dry_wet.end(); it++)
-	{
-		if (it->second)
-		{
-			delete it->second;
-		}
-	}
-
-	for (it = m_ele_dry_wet.begin(); it != m_ele_dry_wet.end(); it++)
-	{
-		if (it->second)
-		{
-			delete it->second;
-		}
-	}
-
-	for (it = m_side_dry_wet.begin(); it != m_side_dry_wet.end(); it++)
-	{
-		if (it->second)
-		{
-			delete it->second;
-		}
-	}
-
-	std::map<int, MDSchismOutput*>::iterator it1;
-	for (it1 = m_data_files.begin(); it1 != m_data_files.end(); it1++)
-	{
-		if (it1->second)
-		{
-			delete it1->second;
-		}
-	}
-
-	std::map<int, MDSCHISMMeshProvider*>::iterator it2;
-	for (it2 = m_external_mesh_providers.begin(); it2 != m_external_mesh_providers.end(); it2++)
-	{
-		if (it2->second)
-		{
-			delete it2->second;
-		}
-	}*/
-	debug1 << "finish free res \n";
+	return;
 }
 
 
@@ -1654,29 +1590,30 @@ avtMDSCHISMFileFormatImpl::GetMesh(int a_timeState, int a_domainID, avtMDSCHISMF
 	std::string material("all");
 	std::string cacheMeshID(mesh_name);
 	cacheMeshID += m_data_file;
+	cacheMeshID += std::to_string(domainID);
 	debug1 << " try to find " << cacheMeshID << " in cache\n";
-	vtkObject * cachedMesh = NULL;
-	cachedMesh = (a_avtFile->get_cache())->GetVTKObject(cacheMeshID.c_str(),
-		avtVariableCache::DATASET_NAME,
-		a_timeState,
-		domainID,
-		material.c_str());
+	//vtkObject * cachedMesh = NULL;
+	//cachedMesh = (a_avtFile->get_cache())->GetVTKObject(cacheMeshID.c_str(),
+	//	avtVariableCache::DATASET_NAME,
+	//	a_timeState,
+	//	domainID,
+	//	material.c_str());
 
 
 
-	if ((cachedMesh != NULL) && (m_mesh_is_static))
-	{
-		vtkUnstructuredGrid *uGrid = (vtkUnstructuredGrid *)cachedMesh;
-		uGrid->Register(NULL);
-		debug1 << "get " << mesh_name << " from cache" << endl;
-		time_t endTicks = clock();
-		debug1 << "time used in building mesh :" << endTicks - startTicks << endl;
-		updateMeshZCoordinates(uGrid->GetPoints(),
-			a_timeState,
-			a_domainID,
-			mesh_name);
-		return uGrid;
-	}
+	//if ((cachedMesh != NULL) && (m_mesh_is_static))
+	//{
+	//	vtkUnstructuredGrid *uGrid = (vtkUnstructuredGrid *)cachedMesh;
+	//	uGrid->Register(NULL);
+	//	debug1 << "get " << mesh_name << " from cache" << endl;
+	//	time_t endTicks = clock();
+	//	debug1 << "time used in building mesh :" << endTicks - startTicks << endl;
+	//	updateMeshZCoordinates(uGrid->GetPoints(),
+	//		a_timeState,
+	//		a_domainID,
+	//		mesh_name);
+	//	return uGrid;
+	//}
 	debug1 << mesh_name << " not in cache/or not static. Load from data." << endl;
 
 	// get face nodes
@@ -1699,16 +1636,16 @@ avtMDSCHISMFileFormatImpl::GetMesh(int a_timeState, int a_domainID, avtMDSCHISMF
 		{
 			this->load_bottom(a_timeState,a_domainID);
 		}
-		else if (cachedMesh != NULL)
-		{
-			vtkUnstructuredGrid *uGrid = (vtkUnstructuredGrid *)cachedMesh;
-			uGrid->Register(NULL);
-			updateMeshZCoordinates(uGrid->GetPoints(),
-				a_timeState,
-				a_domainID,
-				mesh_name);
-			return uGrid;
-		}
+		//else if (cachedMesh != NULL)
+		//{
+		//	vtkUnstructuredGrid *uGrid = (vtkUnstructuredGrid *)cachedMesh;
+		//	uGrid->Register(NULL);
+		//	updateMeshZCoordinates(uGrid->GetPoints(),
+		//		a_timeState,
+		//		a_domainID,
+		//		mesh_name);
+		//	return uGrid;
+		//}
 	}
 
 
@@ -1772,12 +1709,12 @@ avtMDSCHISMFileFormatImpl::GetMesh(int a_timeState, int a_domainID, avtMDSCHISMF
 		EXCEPTION1(InvalidVariableException, mesh_name);
 	}
 
-	(a_avtFile->get_cache())->CacheVTKObject(cacheMeshID.c_str(),
+	/*(a_avtFile->get_cache())->CacheVTKObject(cacheMeshID.c_str(),
 		avtVariableCache::DATASET_NAME,
 		a_timeState,
 		domainID,
 		material.c_str(),
-		uGrid);
+		uGrid);*/
 
 	time_t endTicks = clock();
 	debug1 << "time used in building mesh :" << endTicks - startTicks << endl;

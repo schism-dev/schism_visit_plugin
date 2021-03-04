@@ -95,7 +95,7 @@ class avtMDSCHISMFileFormat : public avtMTMDFileFormat
 
 
 
-	avtVariableCache * get_cache();
+	//avtVariableCache * get_cache();
 
   protected:
     // DATA MEMBERS

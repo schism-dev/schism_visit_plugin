@@ -624,7 +624,6 @@ bool  SCHISMFile10::none_data_var(const std::string a_varName) const
 	{
 		return false;
 	}
-
 }
 std::string  SCHISMFile10::file() const
 {
@@ -741,6 +740,10 @@ void   SCHISMFile10::get_face_bottom(int* a_face_bottom,const int& a_time)
 	return;
 }
 
+void   SCHISMFile10::get_prism_bottom(int* a_face_bottom, const int& a_time)
+{
+	return;
+}
 void   SCHISMFile10::get_edge_bottom(int* a_ele_bottom,const int& a_time)
 {
 	return;

@@ -238,6 +238,7 @@ public:
   virtual void              get_node_bottom(int* a_node_bottom,const int& a_time);
   virtual void              get_face_bottom(int* a_face_bottom,const int& a_time);
   virtual void              get_edge_bottom(int* a_ele_bottom,const int& a_time);
+  virtual void              get_prism_bottom(int* a_ele_bottom, const int& a_time);
   virtual int       global_att_as_int(const std::string& a_att_name) const;
   virtual std::string global_att_as_string(const std::string& a_att_name) const;
 private:

@@ -19,6 +19,7 @@ MDSchismOutput::MDSchismOutput(const std::string a_outputFile,const std::string 
  																									 m_face_bottom(NULL),
                                                                                                      m_node_bottom(NULL),
                                                                                                      m_edge_bottom(NULL),
+	                                                                                                 m_prism_bottom(NULL),
 																									 m_face_nodes(NULL),
 																									 m_side_nodes(NULL),
                                                                                                      m_face_bottom_time_id(-1),
@@ -105,6 +106,10 @@ MDSchismOutput::~MDSchismOutput()
 		delete m_edge_bottom;
 	}
  
+	if (m_prism_bottom)
+	{
+		delete m_edge_bottom;
+	}
     if(m_side_nodes)
 	{
 		delete m_side_nodes;
@@ -341,6 +346,19 @@ void   MDSchismOutput::get_face_bottom(int* a_face_bottom,const int& a_time)
 	   a_face_bottom[i]=m_face_bottom[i];
    }
 }
+
+void   MDSchismOutput::get_prism_bottom(int* a_prism_bottom, const int& a_time)
+{
+	NcDim * dimFacePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_FACES.c_str());
+	long numMeshFaces = 0;
+	numMeshFaces = dimFacePtr->size();
+
+	for (long i = 0; i < numMeshFaces; i++)
+	{
+		a_prism_bottom[i] = m_prism_bottom[i];
+	}
+}
+
 void  MDSchismOutput::get_edge_bottom(int* a_edge_bottom,const int& a_time)
 {
    NcDim * dimEdgePtr      = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_EDGES.c_str());
@@ -491,6 +509,38 @@ void   MDSchismOutput::update_ele_bottom(const int& a_time,int* a_node_bottom)
  
 }
 
+void   MDSchismOutput::set_prism_bottom(const int& a_time, int* a_prism_bottom)
+{
+	update_prism_bottom(a_time, a_prism_bottom);
+}
+
+void   MDSchismOutput::update_prism_bottom(const int& a_time, int* a_prism_bottom)
+{
+
+	NcDim * dimFacePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_FACES.c_str());
+	long numMeshFaces = 0;
+	numMeshFaces = dimFacePtr->size();
+	NcDim * dimNodePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_NODES.c_str());
+	long numMeshNodes = 0;
+	numMeshNodes = dimNodePtr->size();
+
+
+	if (!(m_prism_bottom))
+	{
+		m_prism_bottom = new int[numMeshFaces];
+	}
+
+	for (long iface = 0; iface < numMeshFaces; iface++)
+	{
+		
+		m_prism_bottom[iface] = a_prism_bottom[iface];
+
+	}
+	m_prism_bottom_time_id = a_time;
+
+}
+
+
 
 bool  MDSchismOutput::load_dim_var()
 {
@@ -580,13 +630,43 @@ bool  MDSchismOutput::load_dim_var()
 
 			std::string nc_att_name(att_var->name());
 
-			if ((!(nc_att_name.compare(MeshConstants10::CENTER)))||(!(nc_att_name.compare(MeshConstants10::LOCATION))))
+			//if ((!(nc_att_name.compare(MeshConstants10::CENTER)))||(!(nc_att_name.compare(MeshConstants10::LOCATION))))
+			//{
+			//	schism_var->set_horizontal_center((att_var->as_string(0)));
+			//}
+			//else if (!(nc_att_name.compare(MeshConstants10::LAYER_CENTER)))
+			//{
+			//	schism_var->set_vertical_center(att_var->as_string(0));
+			//}
+
+			if (!(nc_att_name.compare(MeshConstants10::I23D)))
 			{
-				schism_var->set_horizontal_center((att_var->as_string(0)));
-			}
-			else if (!(nc_att_name.compare(MeshConstants10::LAYER_CENTER)))
-			{
-				schism_var->set_vertical_center(att_var->as_string(0));
+				int i23d = att_var->as_int(0);
+				if (i23d <= 3)
+				{
+					schism_var->set_horizontal_center(MeshConstants10::NODE);
+				}
+				else if (i23d <= 6)
+				{
+					schism_var->set_horizontal_center(MeshConstants10::ELEM);
+				}
+				else if (i23d <= 9)
+				{
+					schism_var->set_horizontal_center(MeshConstants10::EDGE);
+				}
+				else
+				{
+					throw SCHISMVarException10("i23d is not a valid\n");
+				}
+
+				if (!(i23d % 3))
+				{
+					schism_var->set_vertical_center(MeshConstants10::HALF_LAYER);
+				}
+				else
+				{
+					schism_var->set_vertical_center(MeshConstants10::FULL_LAYER);
+				}
 			}
 		
 		}
@@ -652,7 +732,14 @@ void  MDSchismOutputVar::fill_ncVar(NcVar * a_nc_var)
    }
    else 
    {
-	    m_schismfilePtr->get_face_bottom(a_kbp00,m_current_record);
+	   if (m_vertical_center == MeshConstants10::HALF_LAYER)
+	   {
+		   m_schismfilePtr->get_prism_bottom(a_kbp00, m_current_record);
+	   }
+	   else
+	   {
+		   m_schismfilePtr->get_face_bottom(a_kbp00, m_current_record);
+	   }
    }
  }
 
@@ -685,7 +772,7 @@ bool  MDSchismOutputVar::get(int *     a_buffer)
 {
 
  int dataSize = computeDataNumPerTIMEStep();
- debug1 << "data size is " << dataSize<<"\n";
+ //debug1 << "data size is " << dataSize<<"\n";
  if(m_data_cached)
  {
    //for(int idata=0;idata<dataSize;idata++)

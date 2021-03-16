@@ -1,7 +1,7 @@
 #include "SCHISMFile10.h"
 #include "MeshConstants10.h"
 #include "netcdfcpp.h"
-#include <DebugStream.h>
+//#include <DebugStream.h>
 #ifndef _MDNETCDFSCHISMOUTPUT_H_
 #define _MDNETCDFSCHISMOUTPUT_H_
 
@@ -19,6 +19,8 @@ public:
   void              get_node_bottom(int* a_node_bottom,const int& a_time);
   void              get_face_bottom(int* a_face_bottom,const int& a_time);
   void              get_edge_bottom(int* a_ele_bottom,const int& a_time);
+  void              get_prism_bottom(int* a_prism_bottom, const int& a_time);
+  void              set_prism_bottom(const int& a_time, int* a_prism_bottom);
   bool              update_bottom_index(const int& a_time);
   int              global_att_as_int(const std::string& a_att_name) const;
   std::string       global_att_as_string(const std::string& a_att_name) const;
@@ -37,7 +39,7 @@ private:
   bool              update_node_bottom(const int& a_time);
   void              update_edge_bottom(const int& a_time, int* a_node_bottom);
   void              update_ele_bottom(const int& a_time,int* a_node_bottom);
-
+  void              update_prism_bottom(const int& a_time, int* a_prism_bottom);
 
 
   NcFile*           m_outputNcFilePtr;
@@ -49,9 +51,11 @@ private:
   int*             m_face_bottom;
   int*             m_node_bottom;
   int*             m_edge_bottom;
+  int*             m_prism_bottom;
   int              m_face_bottom_time_id;
   int              m_node_bottom_time_id;
   int              m_edge_bottom_time_id;
+  int              m_prism_bottom_time_id;
   long *           m_face_nodes;
   long *           m_side_nodes;
 };
@@ -124,7 +128,7 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
   int num_dim = ncvar->num_dims();
   long * current = new long [num_dim];
   long * count   = new long [num_dim];
-  debug1 << " begin load dims in load from file\n";
+  //debug1 << " begin load dims in load from file\n";
   for(int idim =0; idim<num_dim;idim++)
   {
 	 // int dim_id = m_dimensions[idim];
@@ -153,7 +157,7 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
 	  }
   }
 
-  //debug1 << " done load dims in load from file\n";
+  //debug1 << " done load dims in load from file "<<buffer_size<<" "<<node_num<<" "<<num_layer<<"\n";
   if (num_layer ==1) // not 3d data
   {
 
@@ -197,7 +201,7 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
   int * bottom_layer = new int [node_num];
 
   fill_current_bottom(bottom_layer);
-
+  
   long * start_loc = new long [node_num];
 
   for(long inode=0;inode<node_num;inode++)
@@ -253,9 +257,9 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
 		ncvar->get(buffer,count);
 	}
 	
-
+	//debug1 << "done read ncvar data\n";
 	int a_node_record_length_in_nc_buffer = buffer_size/node_num;
-
+	long total_valid_data_len = 0;
 	for(long inode=0;inode<node_num;inode++)
 	{
 	  long a_node_valid_data_start= start_loc[inode];
@@ -278,8 +282,10 @@ bool  MDSchismOutputVar::load_from_file(T * a_buffer)
 		  a_buffer[valid_data_index] = buffer[nc_buffer_id];
 		  nc_buffer_id++;
 	  }
+	  //debug1 << "done read valid ncvar data "<<inode<<" " << valid_record_start_in_nc_buffer<<"\n";
+	  total_valid_data_len += a_node_valid_record_len;
 	}
-	
+	//debug1 << "done read valid ncvar data " <<total_valid_data_len<<"\n";
 	delete buffer;
   
 

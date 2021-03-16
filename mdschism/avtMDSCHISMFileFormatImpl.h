@@ -39,7 +39,7 @@ class avtMDSCHISMFileFormatImpl : public FileFormatFavorInterface
 
    void           GetTimes(std::vector<double> & a_times);
    int            GetNTimesteps(const std::string& a_filename);
-   void           ActivateTimestep(const std::string& a_filename);
+   //void           ActivateTimestep(const std::string& a_filename);
    const char    *GetType(void)   { return "MDUGrid"; };
    void           FreeUpResources(void); 
   
@@ -259,8 +259,8 @@ protected:
   void           load_bottom(const int & a_time,const int & a_domainID);
   //broadcast string map from rank 0 to all other ranks
   void           broadCastStringMap(std::map<std::string, std::string>& m_map,int myrank);
-  int            load_per_proc_file(const std::string& a_path) const;
-
+  int            load_per_proc_file(const std::string& a_path,int & num_node,int & num_side,int & num_ele) const;
+  void           count_node_side_num_domain(const std::string& a_path, const int& num_proc);
   vtkDataArray*   get_ele_global_id(const int& a_domain);
   vtkDataArray*   get_node_global_id(const int& a_domain);
   vtkDataArray*   get_node_depth(const int& a_domain);
@@ -302,6 +302,7 @@ private:
   std::map<int,long>          m_total_valid_3D_point;
   std::map<int,long>          m_total_valid_3D_side;
   std::map<int,long>          m_total_valid_3D_ele;
+  std::map<int, std::map<long, int>> m_3d_node_to_2d_node;
 
   // number of time step 
   std::string  m_dim_time;
@@ -329,6 +330,8 @@ private:
   bool         m_kbp_node_filled;
   std::map<int,int *>  m_kbp_ele;
   std::map<int,int >   m_kbp_ele_time;
+  std::map<int, int*>   m_kbp_prism;
+  std::map<int, int>    m_kbp_prism_time;
   bool         m_kbp_ele_filled;
   std::map<int,int *>  m_kbp_side;
   std::map<int,int>    m_kbp_side_time;
@@ -395,6 +398,14 @@ private:
   int m_quad_hexhedron;
   int m_quad_wedge;
   int m_quad_pyramid;
+
+  //store num of domain a side/node resides to figure out inter-facial node/side and mark them as ghost
+  std::vector<int> m_side_num_domain;
+  std::vector<int> m_node_num_domain;
+
+  int m_global_num_node;
+  int m_global_num_side;
+  int m_global_num_ele;
 };
 
 

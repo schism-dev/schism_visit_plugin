@@ -182,6 +182,13 @@ avtMDSCHISMFileFormatImpl::~avtMDSCHISMFileFormatImpl()
 				delete it->second;
 			}
 		}
+		for (it = m_kbp_prism.begin(); it != m_kbp_prism.end(); it++)
+		{
+			if (it->second)
+			{
+				delete it->second;
+			}
+		}
 
 		for (it = m_node_dry_wet.begin(); it != m_node_dry_wet.end(); it++)
 		{
@@ -1116,7 +1123,7 @@ void   avtMDSCHISMFileFormatImpl::create2DUnstructuredMesh(vtkUnstructuredGrid *
 		msgStream << "Fail to retrieve faces nodes coord at step " << a_timeState;
 		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 	}
-	vtkUnsignedCharArray *ghost_zones = vtkUnsignedCharArray::New();
+	/*vtkUnsignedCharArray *ghost_zones = vtkUnsignedCharArray::New();
 	ghost_zones->SetName("avtGhostZones");
 	long ncells = m_num_mesh_faces[a_domainID];
 	ghost_zones->SetNumberOfTuples(ncells);
@@ -1127,21 +1134,25 @@ void   avtMDSCHISMFileFormatImpl::create2DUnstructuredMesh(vtkUnstructuredGrid *
 	avtGhostData::AddGhostZoneType(val, DUPLICATED_ZONE_INTERNAL_TO_PROBLEM);
 	long ncell_not_ghost = m_external_mesh_providers[a_domainID]->m_number_element_no_ghost;
 	for (long i = ncell_not_ghost; i < ncells; i++)
-		gzp[i] = val;
-
+		gzp[i] = val;*/
+	unsigned char val2 = 1;
+	avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
 	vtkUnsignedCharArray *ghost_nodes = vtkUnsignedCharArray::New();
-	ghost_zones->SetName("avtGhostNodes");
+	ghost_nodes->SetName("avtGhostNodes");
 	long npts = m_num_mesh_nodes[a_domainID];
 	ghost_nodes->SetNumberOfTuples(npts);
 	unsigned char *gnp = ghost_nodes->GetPointer(0);
 	for (long i = 0; i < npts; i++)
-		gnp[i] = 0;
-	unsigned char val2 = 1;
-	avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
-	long nnode_not_ghost = m_external_mesh_providers[a_domainID]->m_number_node_no_ghost;
-	for (long i = nnode_not_ghost; i < npts; i++)
-		gnp[i] = val2;
-
+	{
+		long global_id = m_external_mesh_providers[a_domainID]->m_local_node_id_to_global_id[i];
+		int num_domain = m_node_num_domain[global_id - 1];
+		if (num_domain>1)
+			gnp[i] = val2;
+		else
+		    gnp[i] = 0;
+	}
+	
+	
 	a_uGrid->SetPoints(points);
 	points->Delete();
 	a_uGrid->Allocate(m_num_mesh_faces[a_domainID]);
@@ -1189,7 +1200,7 @@ void   avtMDSCHISMFileFormatImpl::create2DUnstructuredMesh(vtkUnstructuredGrid *
 	}
 	
 
-	a_uGrid->GetCellData()->AddArray(ghost_zones);
+	//a_uGrid->GetCellData()->AddArray(ghost_zones);
 	a_uGrid->GetCellData()->AddArray(ghost_nodes);
 	
 }
@@ -1373,6 +1384,23 @@ void   avtMDSCHISMFileFormatImpl::create3DUnstructuredMesh(vtkUnstructuredGrid *
 		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 	}
 
+	unsigned char val2 = 1;
+	avtGhostData::AddGhostNodeType(val2, DUPLICATED_NODE);
+	vtkUnsignedCharArray *ghost_nodes = vtkUnsignedCharArray::New();
+	ghost_nodes->SetName("avtGhostNodes");
+	long npts = m_total_valid_3D_point[a_domainID];
+	ghost_nodes->SetNumberOfTuples(npts);
+	unsigned char *gnp = ghost_nodes->GetPointer(0);
+	for (long i = 0; i < npts; i++)
+	{
+		long ii = m_3d_node_to_2d_node[a_domainID][i];
+		long global_id = m_external_mesh_providers[a_domainID]->m_local_node_id_to_global_id[ii];
+		int num_domain = m_node_num_domain[global_id - 1];
+		if (num_domain > 1)
+			gnp[i] = val2;
+		else
+			gnp[i] = 0;
+	}
 
 	debug1 << "finish compute and cahce z\n";
 	a_uGrid->SetPoints(points);
@@ -1390,6 +1418,13 @@ void   avtMDSCHISMFileFormatImpl::create3DUnstructuredMesh(vtkUnstructuredGrid *
 	m_quad_wedge = 0;
 	m_quad_pyramid = 0;
 	load_ele_dry_wet(a_timeState,a_domainID);
+
+	bool *prism_bottom_set = new bool[m_num_mesh_faces[a_domainID]];
+	for (int iCell = 0; iCell < m_num_mesh_faces[a_domainID]; ++iCell)
+	{
+		prism_bottom_set[iCell] = false;
+	}
+
 
 	for (int iLayer = 0; iLayer < m_num_layers - 1; iLayer++)
 	{
@@ -1412,6 +1447,15 @@ void   avtMDSCHISMFileFormatImpl::create3DUnstructuredMesh(vtkUnstructuredGrid *
 					iLayer,
 					nodePtrTemp,
 					m_kbp_node[a_domainID]);
+
+				if (!(prism_bottom_set[iCell]))
+				{
+					if (validBottomNodeNum > 0)
+					{
+						m_kbp_prism[a_domainID][iCell] = iLayer+1; //level starts from 1 schism tradition
+						prism_bottom_set[iCell] = true;
+					}
+				}
 
 
 				if (numberOfNodeInCell == 3)
@@ -1455,7 +1499,9 @@ void   avtMDSCHISMFileFormatImpl::create3DUnstructuredMesh(vtkUnstructuredGrid *
 		}
 
 	}
-
+	m_data_files[a_domainID]->set_prism_bottom(a_timeState, m_kbp_prism[a_domainID]);
+	a_uGrid->GetCellData()->AddArray(ghost_nodes);
+	delete [] prism_bottom_set;
 	debug1 << " tri_wedge " << m_tri_wedge << " tri_pyramid " << m_tri_pyramid << " tri_tetra " << m_tri_tetra;
 
 	debug1 << " quad_hexhedron " << m_quad_hexhedron << " quad_wedge " << m_quad_wedge << " quad_pyramid " << m_quad_pyramid << "\n";
@@ -2691,6 +2737,7 @@ void    avtMDSCHISMFileFormatImpl::load_bottom(const int& a_time, const int & a_
 
 
 	//count total valid 3d point
+    std:map < long, int> domain_3d_to_2d;
 	long total_valid_3D_point = 0;
 	for (int iLayer = 0; iLayer < m_num_layers; iLayer++)
 	{
@@ -2699,12 +2746,14 @@ void    avtMDSCHISMFileFormatImpl::load_bottom(const int& a_time, const int & a_
 			int bottomLayer = kbp_node[iNode];
 			if (bottomLayer <= (iLayer + 1))
 			{
+				domain_3d_to_2d[total_valid_3D_point] = iNode;
 				total_valid_3D_point++;
 			}
 		}
 	}
 
 	m_total_valid_3D_point[a_domain] = total_valid_3D_point;
+	m_3d_node_to_2d_node[a_domain] = domain_3d_to_2d;
 
 
 	int cache_ele_kbp_id = MeshConstants10::INVALID_NUM;
@@ -3272,7 +3321,7 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 
 
 	float * valBuff;
-	int numTotalLayers = m_num_layers + layer_size_adjust;
+	int numTotalLayers = m_num_layers+ layer_size_adjust;
 	valBuff = new float[numTotalLayers*numDataPerLayer];
 
 
@@ -3282,6 +3331,7 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 
 	SCHISMVarPtr->set_cur(timeStart);
 
+	debug1 << "loading data for var " << a_varName << " for domain " << a_domainID <<" "<< numDataPerLayer << "\n";
 
 	if (!(SCHISMVarPtr->get(valBuff)))
 	{
@@ -3289,7 +3339,7 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 		msgStream << "Fail to retrieve " << a_varName << " at step " << a_timeState;
 		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 	}
-
+	
 	long valid_var_size = 0;
 	long * node_start_index = new long[numDataPerLayer];
 	long * num_data_at_layer = new long[numTotalLayers];
@@ -3307,13 +3357,21 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 	}
 	else if (!(data_center.compare(MeshConstants10::ELEM)))
 	{
-		kbp00 = m_kbp_ele[a_domainID];
+		if (is_half_layer)
+		{
+			kbp00 = m_kbp_prism[a_domainID];
+		}
+		else
+		{
+			kbp00 = m_kbp_ele[a_domainID];
+		}
 	}
-
+	debug1 << "kbp loaded for domain " << a_domainID << "\n";
 
 	int num_layers = m_num_layers + layer_size_adjust;
 
 	long half_remove_cell = 0;
+	if (is_half_layer) half_remove_cell = 1;
 	for (int iNode = 0; iNode < numDataPerLayer; iNode++)
 	{
 
@@ -3321,6 +3379,7 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 		//if (!(drywet[iNode]))
 		{
 			long record_len = num_layers - std::max(1, kbp00[iNode]) + 1;
+			
 			//if((drywet[iNode])&&(record_len>0)) half_remove_cell+=record_len;
 			//if(record_len<0) record_len=0; // only happened for dry element
 			valid_var_size += record_len;
@@ -3343,15 +3402,16 @@ avtMDSCHISMFileFormatImpl::GetVar(int a_timeState, int a_domainID, const char *a
 		{
 			ntuples = numDataPerLayer;
 		}
-		if (is_half_layer) ntuples -= half_remove_cell;
+		//if (is_half_layer) ntuples -= half_remove_cell;
 		rv->SetNumberOfTuples(ntuples);
-		debug1 << " count total num of data " << ntuples << "\n ";
+		debug1 << " count total num of data on domain "<<a_domainID<<"  is " << ntuples << "\n ";
 		for (int iLayer = 0; iLayer < num_data_layers; iLayer++)
 		{
 			int layer = layerStarts[iLayer];
 			for (int iNode = 0; iNode < numDataPerLayer; iNode++)
 			{
 				int valid_bottom_layer = std::max(1, kbp00[iNode]) - 1;
+				//if (is_half_layer) valid_bottom_layer++;
 				if (is_bottom)
 				{
 					layer = valid_bottom_layer + 1;
@@ -4309,7 +4369,84 @@ avtMDSCHISMFileFormatImpl::getSingleLayerVar(float    *          a_valBuff,
 //{
 //	Initialize(a_filename);
 //}
-int   avtMDSCHISMFileFormatImpl::load_per_proc_file(const std::string& a_path) const
+
+void    avtMDSCHISMFileFormatImpl::count_node_side_num_domain(const std::string& a_path,const int& num_proc)
+{
+	//m_side_num_domain = new int[m_global_num_side];
+	//m_node_num_domain = new int[m_global_num_node];
+
+	std::string local_global_file;
+    //std:string pt = "\\";
+
+
+	int myrank = 0;
+#ifdef PARALLEL
+	myrank = PAR_Rank();
+#endif
+
+	//if (myrank == 0)
+	{
+
+		for (int i = 0; i < num_proc; i++)
+		{
+			std::stringstream ss;
+			ss << std::setw(4) << std::setfill('0') << i;
+			std::string domain_str = ss.str();
+			
+#ifdef _WIN32
+			local_global_file = a_path + "\\local_to_global_"+ domain_str;
+#else
+			local_global_file = a_path + "/local_to_global_"+ domain_str;
+#endif
+			ifstream*    localFileStream = new ifstream(local_global_file.c_str());
+			debug1 << "reading global id from " << local_global_file << "\n";
+			if (!localFileStream->good())
+			{
+				EXCEPTION1(InvalidFilesException,local_global_file+" is not valid");
+			}
+			std::string  lineTemp;
+
+			std::getline(*localFileStream, lineTemp);
+			std::getline(*localFileStream, lineTemp);
+			long num_element;
+			*(localFileStream) >> num_element;
+			
+			for (long iEle = 0; iEle < num_element; iEle++)
+			{
+				long v1, v2;
+				*(localFileStream) >> v1 >> v2;
+				
+			}
+			long num_node;
+			*(localFileStream) >> num_node;
+			
+
+			for (long iNode = 0; iNode < num_node; iNode++)
+			{
+				long v1, v2;
+				*(localFileStream) >> v1 >> v2;
+				m_node_num_domain[v2 - 1]++;
+				
+			}
+
+			long num_side;
+			*(localFileStream) >> num_side;
+			
+			for (long iSide = 0; iSide < num_side; iSide++)
+			{
+				long v1, v2;
+				*(localFileStream) >> v1 >> v2;
+				m_side_num_domain[v2 - 1]++;
+			}
+			localFileStream->close();
+			delete localFileStream;
+		}
+
+	}
+
+}
+
+int   avtMDSCHISMFileFormatImpl::load_per_proc_file(const std::string& a_path, int & num_node, int & num_side, int & num_ele) const
 {
 
 	std::string local_global_file;
@@ -4323,15 +4460,19 @@ int   avtMDSCHISMFileFormatImpl::load_per_proc_file(const std::string& a_path) c
 	ifstream*    localFileStream = new ifstream(local_global_file.c_str());
 	if (!localFileStream->good())
 	{
-		return false;
+	
+	   EXCEPTION1(InvalidDBTypeException, "not valid schsim NC output");
+	
 	}
 	std::string  lineTemp;
 
 	std::getline(*localFileStream, lineTemp);
     std:stringstream lstream(lineTemp);
-	long n1, n2, n3;
+	
 	int nl, nproc;
-	lstream >> n1 >> n2 >> n3 >> nl >> nproc;
+	lstream >> num_side >> num_ele >> num_node >> nl >> nproc;
+	localFileStream->close();
+	delete localFileStream;
 	return nproc;
 
 }
@@ -4373,15 +4514,81 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 		
 		//std::string data_file_part1 = m_data_file.substr(0, found1);
 		std::string data_file_part2 = m_data_file.substr(found2);
-		debug1 << "path:" << m_data_file_path << "\n";
+		//debug1 << "path:" << m_data_file_path << "\n";
 		debug1 << "part2:" << data_file_part2 << "\n";
-		debug1 << m_data_file_path + "\\" + "schout_" + "0000" + "_" + data_file_part2+"\n";
+		//debug1 << m_data_file_path + "\\" + "schout_" + "0000" + "_" + data_file_part2+"\n";
 		int nproc = 1;
-
+		int myrank = 0;
 #ifdef PARALLEL
 		nproc = PAR_Size();
+	    myrank = PAR_Rank();
 #endif
-		int ndomain = load_per_proc_file(m_data_file_path);
+		int ndomain = 0;
+		if (myrank == 0)
+		{
+			ndomain = load_per_proc_file(m_data_file_path, m_global_num_node, m_global_num_side, m_global_num_ele);
+			
+		}
+		debug1 << "global num before broadcast:" << m_global_num_node << " " << m_global_num_ele << " " << m_global_num_side << "\n";
+#ifdef PARALLEL
+		BroadcastInt(ndomain);
+		BroadcastInt(m_global_num_node);
+		BroadcastInt(m_global_num_ele);
+		BroadcastInt(m_global_num_side);
+		debug1 << "global num after broadcast:" << m_global_num_node << " " << m_global_num_ele << " " << m_global_num_side << "\n";
+#endif
+
+		for (int i = 0; i < m_global_num_side; i++)
+		{
+			m_side_num_domain.push_back(0);
+		}
+		for (int i = 0; i < m_global_num_node; i++)
+		{
+			m_node_num_domain.push_back(0);
+		}
+
+	
+		if (myrank == 0)
+		{
+			count_node_side_num_domain(m_data_file_path, ndomain);
+		}
+#ifdef PARALLEL
+
+		BroadcastIntVector(m_side_num_domain, 0);
+		BroadcastIntVector(m_node_num_domain, 0);
+
+#endif
+
+#ifdef PARALLEL
+
+		//int *buff1 = new int[20000];
+		//int *buff2 = new int[20000];
+		//if (myrank == 0)
+		//{
+		//	for (int i = 0; i < 20000; i++)
+		//		buff1[i] = m_side_num_domain[i];
+		//	for (int i = 0; i < 20000; i++)
+		//		buff2[i] = m_node_num_domain[i];
+		//	debug1 << "broadcast domain num arr\n";
+		//	int bsize1, bsize2;
+		//	bsize1 = m_global_num_node;
+		//	bsize2 = m_global_num_side;
+		//	debug1 << "global num after broadcast:" << bsize1<<" "<<bsize2<< "\n";
+		//	BroadcastIntArray(buff1, 20000);
+		//	BroadcastIntArray(buff2, 20000);
+		//	debug1 << "finished broadcast domain num arr\n";
+		//}
+		//if (myrank != 0)
+		//{
+		//	for (int i = 0; i < m_global_num_side; i++)
+		//		m_side_num_domain[i]=buff1[i];
+		//	for (int i = 0; i < m_global_num_node; i++)
+		//		m_node_num_domain[i]=buff2[i];
+		//}
+		//delete[] buff1;
+		//delete[] buff2;
+#endif PARALLEL
+
 		/*std::string d1 = m_data_file_path + "\\schout_0000_5.nc";
 		std::string l1 = m_data_file_path +  "\\local_to_global_0000";
 		MDSchismOutput* a_data_file_ptr = NULL;
@@ -4401,7 +4608,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 #endif
 
 #ifdef PARALLEL
-		int myrank = PAR_Rank();
+		
 
 		int num_domain_resides = ndomain_per_thread + (myrank < oneExtraUntil ? 1 : 0);
 		int *all_domain_resides = new int[num_domain_resides];
@@ -4550,6 +4757,7 @@ void avtMDSCHISMFileFormatImpl::Initialize(std::string a_data_file)
 			//debug1 << "done load dry/wet for domain:" << it->first << "\n";
 			this->load_bottom(current_time,it->first);
 			debug1 << "done load bottom for domain:" << it->first << "\n";
+			m_kbp_prism[it->first] = new int [m_num_mesh_faces[it->first]];
 		}
 
 		m_initialized = true;

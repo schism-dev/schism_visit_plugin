@@ -61,6 +61,7 @@ const std::string      LAYER_CENTER("data_vertical_center");
 const std::string      FULL_LAYER("full");
 const std::string      HALF_LAYER("half");
 const std::string      DYNAMIC_MESH("mesh_is_dynamic");
+const std::string      I23D("i23d");
 const float   DRY_ZCOR=-99999999.0;
 const long INVALID_NUM   = -9999;
 const int MAX_NUM_NODE_PER_CELL = 4;

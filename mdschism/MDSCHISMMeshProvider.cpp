@@ -422,7 +422,7 @@ bool MDSCHISMMeshProvider::loadMesh()
 	}
 	
 
-	(*localFileStream)>>m_number_node_no_ghost>>m_number_element_no_ghost>>m_number_side_no_ghost;
+	//(*localFileStream)>>m_number_node_no_ghost>>m_number_element_no_ghost>>m_number_side_no_ghost;
     m_mesh_loaded = true;
 	localFileStream->close();
 	delete localFileStream;
@@ -1194,7 +1194,7 @@ bool  MDSCHISMMeshProvider::fillMeshElement(long * a_elementCache) const
 	//{
 	//	loadMesh();
 	//}
-	debug1 << "in fill mesh " << m_number_element << "\n";
+	//debug1 << "in fill mesh " << m_number_element << "\n";
        for(long i=0;i<(MeshConstants10::MAX_NUM_NODE_PER_CELL+1)*m_number_element;i++)
 	   {
 		   a_elementCache[i]=m_faceNodesPtr[i];

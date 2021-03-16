@@ -127,6 +127,9 @@ public:
 	long         m_number_side_no_ghost;
 	long         m_number_node_no_ghost;
 	long         m_number_element_no_ghost;
+	long      *  m_local_node_id_to_global_id;
+	long      *  m_local_ele_id_to_global_id;
+	long      *  m_local_side_id_to_global_id;
 	
 private:
 
@@ -167,9 +170,7 @@ protected:
    double    *  m_nodex;
    double    *  m_nodey;
    long      *  m_faceNodesPtr;
-   long      *  m_local_node_id_to_global_id;
-   long      *  m_local_ele_id_to_global_id;
-   long      *  m_local_side_id_to_global_id;
+   
    double    *  m_dp;
 
    

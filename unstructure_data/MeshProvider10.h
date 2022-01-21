@@ -127,12 +127,12 @@ public :
 
    //update 3d grid bottom
    virtual bool update_bottom_layer(const int& a_timeStep);
-
+   virtual void  fill_ele_dry_wet(int*  &a_ele_dry_wet, const int& a_step);
    virtual void  fill_node_dry_wet(int* &a_node_dry_wet,int* a_ele_dry_wet);
    virtual void  fill_side_dry_wet(int* &a_side_dry_wet,int* a_ele_dry_wet);
 
    virtual bool mesh3d_is_static() const;
-
+   
 protected:
 	std::string m_data_file;
 	bool        m_valid_provider;

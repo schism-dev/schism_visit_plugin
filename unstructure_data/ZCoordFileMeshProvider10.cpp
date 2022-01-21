@@ -2,15 +2,42 @@
 #include "MeshConstants10.h"
 #include "SCHISMFile10.h"
 #include "SCHISMFileUtil10.h"
-#include <algorithm> 
+#include "NetcdfSCHISMOutput.h"
+#include <algorithm>
+#include <DebugStream.h>
+
 
 using namespace std;
 
-ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_zcoordFile):SCHISMMeshProvider10(a_zcoordFile)
+ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISMMeshProvider10(a_meshFile),
+                                                                          m_mesh_file(a_meshFile)
 {
+	
+	size_t found = m_mesh_file.find_last_of("/\\");
+    std:string data_file_path = m_mesh_file.substr(0,found);
 
+	std::size_t found3 = a_meshFile.find("schout");
+	if (found3 == std::string::npos)
+	{
+
+		//see if there any separate zcor nc file available under current folder 
+		size_t found2 = m_mesh_file.find_last_of("_");
+		std::string suffix = m_mesh_file.substr(found2);
+		std::string zcor_file = data_file_path + "\\zcor" + suffix;
+
+		m_zcor_file_ptr = new NetcdfSchismOutput10(zcor_file);
+		m_zcor_file_ptr->set_mesh_data_ptr(this->get_mesh_data_ptr());
+	}
+
+	
 }
-
+ ZCoordMeshProvider10::~ZCoordMeshProvider10()
+ {
+	 if(m_zcor_file_ptr)
+	 {
+		 delete m_zcor_file_ptr;
+	 }
+ }
 
 
 float  ZCoordMeshProvider10::convertStoZ(const float    & a_sigma,
@@ -64,16 +91,36 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 {
 	 int timeStart    = a_timeStep;
 
-     SCHISMVar10 * zVarPtr = m_dataFilePtr->get_var(MeshConstants10::ZCOORD);
+     SCHISMVar10 * zVarPtr=0;
+	 if (m_dataFilePtr->inquire_var(MeshConstants10::ZCOORD))
+	 {
+		 zVarPtr = m_dataFilePtr->get_var(MeshConstants10::ZCOORD);
+	 }
   
-     if (!(zVarPtr->is_valid()))
+	 else 
      {
-      
-       throw SCHISMFileException10("invlaid var "+MeshConstants10::ZCOORD+" for data file "+m_dataFilePtr->file());
+	   //first try to load from zcor_*.nc, for output might be in the new scriber format
+	  //this zcor file must be at the same folder of current file
+       if(m_zcor_file_ptr->is_valid())
+	   {
+		   zVarPtr=m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD);
+	   }
+	   else
+	   {
+		   throw SCHISMFileException10("No valid zcor data for file "+m_dataFilePtr->file());
+	   }
+	  
      }
    
-	
-     float missing_val = (zVarPtr->get_att("missing_value"))->float_value(0);
+	 if (!(zVarPtr->is_valid()))
+		 throw SCHISMFileException10("invlaid var " + MeshConstants10::ZCOORD + " for data file " + m_dataFilePtr->file());
+	 SCHISMAtt10* miss_val_ptr = 0;
+	 miss_val_ptr = zVarPtr->get_att("missing_value");
+	 float missing_val = MeshConstants10::DEGENERATED_Z;
+	 if (miss_val_ptr)
+	 {
+		 missing_val = miss_val_ptr->float_value(0);
+	 }
 	 float dry_zcor = MeshConstants10::DRY_ZCOR;
 
      zVarPtr->set_cur(timeStart);
@@ -81,7 +128,9 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 	 long z_var_size =0;
 	 long * node_start_index= new long [m_number_node];
 	 int * kbp00 = new int [m_number_node];
+	 debug1 << "getting node bottom\n";
 	 fillKbp00(kbp00,a_timeStep);
+	 debug1 << "got node bottom\n";
 	 for(int iNode=0;iNode<m_number_node;iNode++)
 	 {
 		 node_start_index[iNode]=z_var_size;
@@ -95,13 +144,13 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 	              m_dataFilePtr,
                   MeshConstants10::NODE_DEPTH,
                   m_number_node);
-
+	debug1 << "got node depth\n";
      float*           zPtr = new float [z_var_size];
      if (!(zVarPtr->get(zPtr)))
      {
         throw SCHISMFileException10("fail to retrieve var "+MeshConstants10::ZCOORD+" from data file "+m_dataFilePtr->file());
      }
-
+	 debug1 << "got node zcor\n";
 	  for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
       { 
 		 
@@ -122,16 +171,25 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 				  else
 				  {
 					  float surface= MeshConstants10::DUMMY_ELEVATION;
-				      float sigma        = m_layerSCoords[iLayer]; 
-				      float depth        = nodeDepthPtr[iNode];    
-				      float z            = convertStoZ(sigma,
-												       surface,
-												       depth,
-												       m_hs,
-												       m_hc,
-												       m_thetab,
-												       m_thetaf);
-				      *a_zCachePtr         = z;
+					  if (m_layerSCoords)
+					  {
+						  float sigma = m_layerSCoords[iLayer];
+						  float depth = nodeDepthPtr[iNode];
+						  float z = convertStoZ(sigma,
+							  surface,
+							  depth,
+							  m_hs,
+							  m_hc,
+							  m_thetab,
+							  m_thetaf);
+						  *a_zCachePtr = z;
+					  }
+					  else
+					  {
+						  float depth = nodeDepthPtr[iNode];
+						  float z = surface - depth * iLayer / m_number_layer;
+						  *a_zCachePtr = z;
+					  }
 				  }
 				  a_zCachePtr++;
 			  }
@@ -148,16 +206,41 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 {
 	 int timeStart    = a_timeStep;
 
-     SCHISMVar10 * zVarPtr = m_dataFilePtr->get_var(MeshConstants10::ZCOORD);
-  
-     if (!(zVarPtr->is_valid()))
-     {
-      
-       throw SCHISMFileException10("invlaid var "+MeshConstants10::ZCOORD+" for data file "+m_dataFilePtr->file());
-     }
+     SCHISMVar10 * zVarPtr=0;
+	 if (m_dataFilePtr->inquire_var(MeshConstants10::ZCOORD))
+	 {
+		 zVarPtr = m_dataFilePtr->get_var(MeshConstants10::ZCOORD);
+	 }
+
+	 else
+	 {
+		 //first try to load from zcor_*.nc, for output might be in the new scriber format
+		//this zcor file must be at the same folder of current file
+		 if (m_zcor_file_ptr->is_valid())
+		 {
+			 zVarPtr = m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD);
+		 }
+		 else
+		 {
+			 throw SCHISMFileException10("No valid zcor data for file " + m_dataFilePtr->file());
+		 }
+
+	 }
+
+	 if (!(zVarPtr->is_valid()))
+		 throw SCHISMFileException10("invlaid var " + MeshConstants10::ZCOORD + " for data file " + m_dataFilePtr->file());
+   
    
      zVarPtr->set_cur(timeStart);
-	 float missing_val = (zVarPtr->get_att("missing_value"))->float_value(0);
+	 SCHISMAtt10* miss_val_ptr = 0;
+	 
+	 miss_val_ptr = zVarPtr->get_att("missing_value");
+	 float missing_val = MeshConstants10::DEGENERATED_Z;
+	 if (miss_val_ptr)
+	 {
+		 missing_val = miss_val_ptr->float_value(0);
+	 }
+	 
 	 float dry_zcor = MeshConstants10::DRY_ZCOR;
 	 float * node_depth_ptr  = new float [m_number_node];
     
@@ -200,16 +283,25 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 				  if((temp==dry_zcor)||(temp==missing_val))
 				  {
 					  float surface= MeshConstants10::DUMMY_ELEVATION;
-				      float sigma        = m_layerSCoords[iLayer]; 
-				      float depth        = node_depth_ptr[iNode];    
-				      float z            = convertStoZ(sigma,
-												       surface,
-												       depth,
-												       m_hs,
-												       m_hc,
-												       m_thetab,
-												       m_thetaf);
-				      zPtr[start_index+iLayer+1-std::max(1,kbp00[iNode])] = z;
+					  if (m_layerSCoords)
+					  {
+						  float sigma = m_layerSCoords[iLayer];
+						  float depth = node_depth_ptr[iNode];
+						  float z = convertStoZ(sigma,
+							  surface,
+							  depth,
+							  m_hs,
+							  m_hc,
+							  m_thetab,
+							  m_thetaf);
+						  zPtr[start_index + iLayer + 1 - std::max(1, kbp00[iNode])] = z;
+					  }
+					  else
+					  {
+						  float depth = node_depth_ptr[iNode];
+						  float z = surface - depth * iLayer / m_number_layer;
+						  zPtr[start_index + iLayer + 1 - std::max(1, kbp00[iNode])] = z;
+					  }
 				  }
 			  }
 

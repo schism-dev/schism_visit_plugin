@@ -70,7 +70,7 @@ public :
 
    // return depth
    virtual bool depth(float * a_cache) const;
-   
+    
    bool isValid() const;
 
    // number of 2D mesh element

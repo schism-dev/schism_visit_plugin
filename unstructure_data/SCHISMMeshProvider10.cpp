@@ -3,6 +3,8 @@
 #include "SCHISMFileUtil10.h"
 #include "NetcdfSCHISMOutput10.h"
 #include "SchismGeometry10.h"
+#include <algorithm>
+
 
 
 SCHISMMeshProvider10::SCHISMMeshProvider10(const std::string & a_fileHasMeshData):MeshProvider10(a_fileHasMeshData),
@@ -86,6 +88,11 @@ SCHISMMeshProvider10::~SCHISMMeshProvider10()
 
 }
 
+SCHISMFile10* SCHISMMeshProvider10::get_mesh_data_ptr() const
+{
+	return m_dataFilePtr;
+}
+
 bool SCHISMMeshProvider10::fillKbp00(int * a_cache,const int & a_timeStep) const
  {
 
@@ -106,7 +113,7 @@ bool SCHISMMeshProvider10::fillKbe(int * a_cache,const int & a_timeStep) const
  {
 
 	m_dataFilePtr->get_face_bottom(a_cache,a_timeStep);
-	 return true;
+    return true;
 
  }
 
@@ -121,14 +128,20 @@ bool SCHISMMeshProvider10::loadSide()
 	
 	m_sideNodes = new long [m_number_side*2];
 
-	
-   SCHISMVar10 * side_node_ptr      = m_dataFilePtr->get_var(MeshConstants10::EDGE_NODE);
- 
-   if ( !(side_node_ptr->get(m_sideNodes))) 
-    {
-	   throw SCHISMFileException10("fail to retrieve dim "+MeshConstants10::EDGE_NODE+" from data file "+m_dataFilePtr->file());
-      return false;
-    }
+	if (m_dataFilePtr->inquire_var(MeshConstants10::EDGE_NODE))
+	{
+		SCHISMVar10 * side_node_ptr = m_dataFilePtr->get_var(MeshConstants10::EDGE_NODE);
+
+		if (!(side_node_ptr->get(m_sideNodes)))
+		{
+			throw SCHISMFileException10("fail to retrieve dim " + MeshConstants10::EDGE_NODE + " from data file " + m_dataFilePtr->file());
+			return false;
+		}
+	}
+	else //figure out from mesh 
+	{
+
+	}
  
    //decreae node id by one, for schism id is 1 based
    for(long i=0;i<m_number_side*2;i++)
@@ -138,7 +151,37 @@ bool SCHISMMeshProvider10::loadSide()
    return true;
 
 }
+void  SCHISMMeshProvider10::fill_ele_dry_wet(int*  &a_ele_dry_wet, const int& a_step)
+{
+	std::string SCHISMVarName = MeshConstants10::ELEM_DRYWET;
+	if (!(m_dataFilePtr->inquire_var(SCHISMVarName)))
+	{
+		SCHISMVarName = MeshConstants10::ELEM_DRYWET2;
+		if (!(m_dataFilePtr->inquire_var(SCHISMVarName)))
+		{
+			throw SCHISMFileException10("no ele dry wet flag in "+ m_dataFilePtr->file());
+		}
 
+
+	}
+	SCHISMVar10* SCHISMVarPtr = NULL;
+	try
+	{
+		SCHISMVarPtr = m_dataFilePtr->get_var(SCHISMVarName);
+	}
+	catch (...)
+	{
+		throw SCHISMFileException10("no " + SCHISMVarName + " in " + m_dataFilePtr->file());
+	}
+
+	SCHISMVarPtr->set_cur(a_step);
+	if (!(SCHISMVarPtr->get(a_ele_dry_wet)))
+	{
+		stringstream msgStream(stringstream::out);
+		msgStream << "Fail to retrieve " << SCHISMVarName << " at step " << a_step;
+		throw  SCHISMFileException10(msgStream.str());
+	}
+}
  void  SCHISMMeshProvider10::fill_node_dry_wet(int* &a_node_dry_wet,int* a_ele_dry_wet)
  {
 	 long * mesh_nodes =new long[m_number_element*(MeshConstants10::MAX_NUM_NODE_PER_CELL+1)];
@@ -313,71 +356,70 @@ bool SCHISMMeshProvider10::loadMeshDim()
 	   return false;
     }
 
-    SCHISMVar10 * sVarPtr = m_dataFilePtr->get_var(MeshConstants10::LAYER_SCOORD);
+  if (m_dataFilePtr->inquire_var(MeshConstants10::LAYER_SCOORD))
+  {
+	  SCHISMVar10 * sVarPtr = m_dataFilePtr->get_var(MeshConstants10::LAYER_SCOORD);
 
-    if (!(sVarPtr->is_valid()))
-      {
-        throw SCHISMFileException10("fail to retrieve dim "+MeshConstants10::LAYER_SCOORD+" from data file "+m_dataFilePtr->file());
-         return false;
-      }
-    else
-      {
-		SCHISMDim10 * dim_sigma_layers = sVarPtr->get_dim(0);
-		int num_sigma_layers = dim_sigma_layers->size();
-        SCHISMAtt10 * hsAttPtr = sVarPtr->get_att(MeshConstants10::HS);
-        if (!(hsAttPtr->is_valid()))
-          {
-            throw SCHISMFileException10("fail to retrieve dim "+MeshConstants10::HS+" from data file "+m_dataFilePtr->file());
-            return false;
-          }
-        m_hs              = hsAttPtr->float_value(0);
+	  if (!(sVarPtr->is_valid()))
+	  {
+		  throw SCHISMFileException10("fail to retrieve dim " + MeshConstants10::LAYER_SCOORD + " from data file " + m_dataFilePtr->file());
+		  return false;
+	  }
+	  else
+	  {
+		  SCHISMDim10 * dim_sigma_layers = sVarPtr->get_dim(0);
+		  int num_sigma_layers = dim_sigma_layers->size();
+		  SCHISMAtt10 * hsAttPtr = sVarPtr->get_att(MeshConstants10::HS);
+		  if (!(hsAttPtr->is_valid()))
+		  {
+			  throw SCHISMFileException10("fail to retrieve dim " + MeshConstants10::HS + " from data file " + m_dataFilePtr->file());
+			  return false;
+		  }
+		  m_hs = hsAttPtr->float_value(0);
 
-        SCHISMAtt10 * hcAttPtr = sVarPtr->get_att(MeshConstants10::HC);
-        if (!(hcAttPtr->is_valid()))
-          {
-            throw SCHISMFileException10("fail to retrieve dim "+MeshConstants10::HC+" from data file "+m_dataFilePtr->file());
-            return false;
-            return false;
-          }
-        m_hc              = hcAttPtr->float_value(0);
-        
-        
-        SCHISMAtt10 * thetabAttPtr = sVarPtr->get_att(MeshConstants10::THETAB);
-        if (!(thetabAttPtr->is_valid()))
-          {
-            throw SCHISMFileException10("fail to retrieve dim "+MeshConstants10::THETAB+" from data file "+m_dataFilePtr->file());
-            return false;
-            return false;
-          }
-        m_thetab             = thetabAttPtr->float_value(0);
-        
-        SCHISMAtt10 * thetafAttPtr = sVarPtr->get_att(MeshConstants10::THETAF);
-        if (!(thetafAttPtr->is_valid()))
-          {
-            throw SCHISMFileException10("fail to retrieve dim "+MeshConstants10::THETAF+" from data file "+m_dataFilePtr->file());
-            return false;
-            return false;
-          }
-        m_thetaf             = thetafAttPtr->float_value(0);
+		  SCHISMAtt10 * hcAttPtr = sVarPtr->get_att(MeshConstants10::HC);
+		  if (!(hcAttPtr->is_valid()))
+		  {
+			  throw SCHISMFileException10("fail to retrieve dim " + MeshConstants10::HC + " from data file " + m_dataFilePtr->file());
+			  return false;
+		  }
+		  m_hc = hcAttPtr->float_value(0);
 
-		m_layerSCoords = new float [m_number_layer];
 
-		float * stemp= new float[num_sigma_layers];
-		if (!sVarPtr->get(stemp))
-        {
-          throw SCHISMFileException10("fail to retrieve var "+MeshConstants10::LAYER_SCOORD+" from data file "+m_dataFilePtr->file());
-        }
+		  SCHISMAtt10 * thetabAttPtr = sVarPtr->get_att(MeshConstants10::THETAB);
+		  if (!(thetabAttPtr->is_valid()))
+		  {
+			  throw SCHISMFileException10("fail to retrieve dim " + MeshConstants10::THETAB + " from data file " + m_dataFilePtr->file());
+			  return false;
+		  }
+		  m_thetab = thetabAttPtr->float_value(0);
 
-		int sigma_layer_start_id = m_number_layer-num_sigma_layers;
-		int itemp=0;
-		for(int iLayer=sigma_layer_start_id;iLayer<m_number_layer;iLayer++)
-		{
-			m_layerSCoords[iLayer]=stemp[itemp];
-			itemp++;
-		}
-        delete stemp;
-      }  
+		  SCHISMAtt10 * thetafAttPtr = sVarPtr->get_att(MeshConstants10::THETAF);
+		  if (!(thetafAttPtr->is_valid()))
+		  {
+			  throw SCHISMFileException10("fail to retrieve dim " + MeshConstants10::THETAF + " from data file " + m_dataFilePtr->file());
+			  return false;
+		  }
+		  m_thetaf = thetafAttPtr->float_value(0);
 
+		  m_layerSCoords = new float[m_number_layer];
+
+		  float * stemp = new float[num_sigma_layers];
+		  if (!sVarPtr->get(stemp))
+		  {
+			  throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::LAYER_SCOORD + " from data file " + m_dataFilePtr->file());
+		  }
+
+		  int sigma_layer_start_id = m_number_layer - num_sigma_layers;
+		  int itemp = 0;
+		  for (int iLayer = sigma_layer_start_id; iLayer < m_number_layer; iLayer++)
+		  {
+			  m_layerSCoords[iLayer] = stemp[itemp];
+			  itemp++;
+		  }
+		  delete stemp;
+	  }
+  }
   m_mesh_loaded = true;
   return true;
 }
@@ -1411,7 +1453,7 @@ bool SCHISMMeshProvider10::fillPointCoord3D(double * a_pointCoord,const int & a_
 	}
 	else
 	{*/
-		
+	
       double * nodeXPtr      = new double [m_number_node];
       double * nodeYPtr      = new double [m_number_node];
     
@@ -1431,8 +1473,9 @@ bool SCHISMMeshProvider10::fillPointCoord3D(double * a_pointCoord,const int & a_
 
 	  float*           zPtr = new float [m_number_layer*m_number_node];
       float*           zPtrTemp = zPtr;
+	  
 	  zcoords3D(zPtr,a_timeStep);
-
+	 
 	 int * kbp00 = new int [m_number_node];
 	 fillKbp00(kbp00,a_timeStep);
 
@@ -1448,15 +1491,15 @@ bool SCHISMMeshProvider10::fillPointCoord3D(double * a_pointCoord,const int & a_
 			  {
                   *a_pointCoord++         = x;
                   *a_pointCoord++         = y;
-                  *a_pointCoord++         = *zPtrTemp++;
+				  double zval = *zPtrTemp++;
+                  *a_pointCoord++         = zval;
 			  }
 
             }
 
         }
 
-
-
+	 
 	  delete nodeXPtr;
 	  delete nodeYPtr;
 	  delete zPtr;

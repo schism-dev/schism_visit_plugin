@@ -38,7 +38,11 @@ NetcdfSchismOutput::NetcdfSchismOutput(const std::string a_outputFile):SCHISMFil
 	m_vector_component_map["tfu1_v"] = "tfu1";
 	m_vector_component_map["tfu2_u"] = "tfu2";
 	m_vector_component_map["tfu2_v"] = "tfu2";
-	this->load_dim_var();
+	
+	if(m_is_valid)
+	{
+	   this->load_dim_var();
+	}
 	
 }
 

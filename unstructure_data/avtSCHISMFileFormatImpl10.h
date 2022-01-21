@@ -4,7 +4,7 @@
 #include <map>
 #include <vtkUnstructuredGrid.h>
 #include "SCHISMFile10.h"
-#include "MeshProvider10.h"
+#include "SCHISMMeshProvider10.h"
 #include "FileFormatFavorInterface.h"
 
 
@@ -136,14 +136,17 @@ protected:
                                         const int    a_timeState,
                                         const char * a_meshName);
   
-  void           retrieve1DArray(float             * a_valBuff,
-	                             SCHISMFile10         * a_selfeFilePtr,
-                                 const std::string & a_varToken,
-                                 const int     & a_numVar) const;
-  void           retrieve1DArray(int           * a_valBuff,
-	                             SCHISMFile10     * a_selfeFilePtr,
-                                 const std::string & a_varToken,
-                                 const int     & a_numVar) const;
+  //void           retrieve1DArray(float             * a_valBuff,
+	 //                            SCHISMFile10         * a_selfeFilePtr,
+  //                               const std::string & a_varToken,
+  //                               const int     & a_numVar) const;
+
+
+
+  //void           retrieve1DArray(int           * a_valBuff,
+	 //                            SCHISMFile10     * a_selfeFilePtr,
+  //                               const std::string & a_varToken,
+  //                               const int     & a_numVar) const;
 
   void            loadAndCacheZ(const int& a_timeState,float * a_cache);
   void            loadAndCacheZSide(const int& a_timeState,float * a_cache);
@@ -278,7 +281,7 @@ protected:
   
 
   // element centered data use mesh from other file
-  MeshProvider10* m_external_mesh_provider;
+  SCHISMMeshProvider10* m_external_mesh_provider;
  
   
   // a number of token of saved vars and attributes

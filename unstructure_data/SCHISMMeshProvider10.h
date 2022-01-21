@@ -90,14 +90,14 @@ public :
   
    bool fillKbe(int* a_cache,const int & a_timeStep) const;
 
-
+   void  fill_ele_dry_wet(int*  &a_ele_dry_wet, const int& a_step);
    void  fill_node_dry_wet(int* &a_node_dry_wet,int* a_ele_dry_wet);
    void  fill_side_dry_wet(int* &a_side_dry_wet,int* a_ele_dry_wet);
 
    bool  update_bottom_layer(const int & a_timeStep);
 
    virtual bool mesh3d_is_static() const;
-
+   SCHISMFile10* get_mesh_data_ptr() const;
 protected:
 
 	bool loadMeshDim();

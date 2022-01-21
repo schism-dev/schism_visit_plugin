@@ -1312,8 +1312,6 @@ avtSCHISMFileFormatImpl10::GetMesh(int a_timeState, avtSCHISMFileFormat * a_avtF
       EXCEPTION3(DBYieldedNoDataException,m_data_file,m_plugin_name,msgStream.str());
     }
 
-  debug1<<"get face nodes\n";
-
   if(!m_mesh_is_static)
   {
 	  if(m_external_mesh_provider->update_bottom_layer(a_timeState))
@@ -2509,8 +2507,18 @@ void avtSCHISMFileFormatImpl10::load_ele_dry_wet(const int & a_time)
 		m_ele_dry_wet= new int [num];
 	}
 
+	try
+	{
+		m_external_mesh_provider->fill_ele_dry_wet(m_ele_dry_wet, a_time);
+    }
+	catch (...)
+	{
+		stringstream msgStream(stringstream::out);
+		msgStream << "Fail to retrieve ele dry/wet flag at step " << a_time;
+		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
+	}
 
-  std::string SCHISMVarName = MeshConstants10::ELEM_DRYWET;
+ /* std::string SCHISMVarName = MeshConstants10::ELEM_DRYWET;
   SCHISMVar10* SCHISMVarPtr=NULL;
   try
   {
@@ -2527,7 +2535,7 @@ void avtSCHISMFileFormatImpl10::load_ele_dry_wet(const int & a_time)
 	   stringstream msgStream(stringstream::out);
        msgStream <<"Fail to retrieve "<<SCHISMVarName << " at step " <<a_time;
        EXCEPTION3(DBYieldedNoDataException,m_data_file,m_plugin_name,msgStream.str());
-   }
+   }*/
     long nominal_data_size_per_layer=0;
 
    for(int i=0;i<num;i++)
@@ -2662,6 +2670,7 @@ void    avtSCHISMFileFormatImpl10::load_bottom(const int& a_time)
 	m_external_mesh_provider->fillKbs(m_kbp_side,a_time);
   }
  
+
   
   //count total valid 3d point
   m_total_valid_3D_side = 0;
@@ -2679,14 +2688,13 @@ void    avtSCHISMFileFormatImpl10::load_bottom(const int& a_time)
 
   }
  
-
+  
 
   if(!m_kbp_ele)
   {
 	  m_kbp_ele = new int [m_num_mesh_faces];
 	  m_external_mesh_provider->fillKbe(m_kbp_ele,a_time);
   }
-  
   
   //count total valid 3d ele
   m_total_valid_3D_ele = 0;
@@ -2703,7 +2711,7 @@ void    avtSCHISMFileFormatImpl10::load_bottom(const int& a_time)
   }
  
  m_cache_kbp_id=a_time;
- debug1<<"done side mapper\n";
+ 
  
 }
 
@@ -4100,9 +4108,9 @@ avtSCHISMFileFormatImpl10:: vectorDepthAverage(float        *  a_averageState,
 
 void 
 avtSCHISMFileFormatImpl10::getSingleLayerVar(float    *          a_valBuff,
-                                       SCHISMFile10*         a_SCHISMOutPtr,
-                                       const int &         a_timeState, 
-                                       const std::string&  a_varName) const
+                                             SCHISMFile10*         a_SCHISMOutPtr,
+                                             const int &         a_timeState, 
+                                             const std::string&  a_varName) const
 {
   time_t startTicks      = clock();
   SCHISMVar10 * SCHISMVarPtr = a_SCHISMOutPtr->get_var(a_varName);
@@ -4190,10 +4198,25 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 		EXCEPTION1(InvalidDBTypeException,"not valid schsim NC output");
 	}
 
-	std::string zCorFilePath = m_data_file;
+    //here a simple and temp way to decided if data file is the latest scriber format
+	std::string meshFilePath = m_data_file;
+	std::size_t found2 = m_data_file.find("schout");
+	
+	// if not name by schout then treated as scriber format, mesh file should
+	// be out2d*.nc + zcor*.nc
+	
+    if (found2==std::string::npos)
+	{
+		size_t found3 = m_data_file.find_last_of("_");
+	    std::string suffix=m_data_file.substr(found3);
+		meshFilePath = m_data_file_path+"\\out2d"+suffix;
+		debug1 << "found2:" << found2 << " "<<meshFilePath<<"\n";
+	}
+
+	
 	try
 	{
-        m_external_mesh_provider=new ZCoordMeshProvider10(zCorFilePath);
+        m_external_mesh_provider=new ZCoordMeshProvider10(meshFilePath);
 	}
 	catch(SCHISMFileException10 e)
 	{
@@ -4204,7 +4227,10 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 		EXCEPTION1(InvalidDBTypeException,"no valid mesh exist");
 	}
 		
-
+	if (found2 == std::string::npos)
+	{
+		m_data_file_ptr->set_mesh_data_ptr(m_external_mesh_provider->get_mesh_data_ptr());
+	}
     okay = m_data_file_ptr->is_valid();
 	
    
@@ -4230,7 +4256,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	std::string typeStr = m_data_file.substr(found);
 	
 	
-    debug1<<"opening zcor file "<<zCorFilePath;
+    //debug1<<"opening zcor file "<<zCorFilePath;
 
    
     okay = m_external_mesh_provider->isValid();
@@ -4254,14 +4280,14 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 
 
 	m_mesh_is_static=m_external_mesh_provider->mesh3d_is_static();
-
+	debug1 << "static mesh:" << m_mesh_is_static << "\n";
     PopulateVarMap();
-	
+	debug1 << "var mesh loaded\n";
 	int current_time=0;
 	this->load_ele_dry_wet(current_time);
-
+	debug1 << "dry/wet loaded\n";
 	this->load_bottom(current_time);
-
+	debug1 << "bottom loaded\n";
     m_initialized = true;
 
 	debug1<<"done initialize\n";

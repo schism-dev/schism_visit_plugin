@@ -669,6 +669,10 @@ SCHISMFile10& SCHISMFile10::operator=(const SCHISMFile10& a_other_file)
 	return m_data_center;
 }
 
+ void   SCHISMFile10::set_mesh_data_ptr(SCHISMFile10* a_ptr)
+ {
+	 return;
+ }
 
 
 bool  SCHISMFile10::none_data_var(const std::string a_varName) const
@@ -774,7 +778,7 @@ SCHISMVar10*     SCHISMFile10::get_var(const std::string& a_varName) const
          }
     }
    ostringstream temp;
-   temp<<a_varName<<"is invalid\n";
+   temp<<a_varName<<" is invalid\n";
    throw SCHISMFileException10(temp.str());
 
 }
@@ -785,6 +789,10 @@ bool    SCHISMFile10::read(char * a_buffer, const int& a_numByte)
 	return false;
 }
 
+bool SCHISMFile10::inquire_var(const std::string& a_var_name) const
+{
+	return false;
+}
 
 //empty api
 void    SCHISMFile10::set_cur(const int& a_TIMEStep,

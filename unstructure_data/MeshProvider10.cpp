@@ -216,6 +216,10 @@ bool MeshProvider10::mesh3d_is_static() const
 	return true;
 }
 
+void   MeshProvider10::fill_ele_dry_wet(int* &a_ele_dry_wet, const int& a_step)
+{
+	return;
+}
 
  void   MeshProvider10::fill_node_dry_wet(int* &a_node_dry_wet,int* a_ele_dry_wet)
  {

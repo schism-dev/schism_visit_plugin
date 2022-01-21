@@ -1,6 +1,7 @@
 #include "SCHISMFile10.h"
 #include "MeshConstants10.h"
 #include "netcdfcpp.h"
+#include <DebugStream.h>
 
 #ifndef _NETCDFSCHISMOUTPUT10_H_
 #define _NETCDFSCHISMOUTPUT10_H_
@@ -16,18 +17,22 @@ public:
   virtual            ~NetcdfSchismOutput10();
   void               close();
   int               get_dry_wet_val_flag();// 0: filled with last wetting val 1: junk
+  // if this file has bottom data, it will return cahced data, if not
+  // (like most of scriber format files), it will delegate to mesh file ptr.
   void              get_node_bottom(int* a_node_bottom,const int& a_time);
   void              get_face_bottom(int* a_face_bottom,const int& a_time);
   void              get_edge_bottom(int* a_ele_bottom,const int& a_time);
   bool              update_bottom_index(const int& a_time);
-  int              global_att_as_int(const std::string& a_att_name) const;
+  int               global_att_as_int(const std::string& a_att_name) const;
   std::string       global_att_as_string(const std::string& a_att_name) const;
- 
+  bool              inquire_var(const std::string& a_var_name) const;
+  void              set_mesh_data_ptr(SCHISMFile10* a_ptr);
 protected:
    
 private:
 
   bool              load_dim_var();
+  bool              has_var(const std::string& a_var_name) const;
   bool              cache_face_nodes(SCHISMVar10 * mesh_node_var);
   void              fill_node_bottom();
   void              fill_edge_bottom();
@@ -42,7 +47,9 @@ private:
 
 
   NcFile*           m_outputNcFilePtr;
+  //only set for latest scriber format file to access bottom index info.
 
+  SCHISMFile10*           m_meshFilePtr; 
   std::map<std::string, std::string>  m_varLongNameMap;
   std::map<std::string, std::string>  m_vector_component_map;
 
@@ -190,7 +197,7 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
   int * bottom_layer = new int [node_num];
 
   fill_current_bottom(bottom_layer);
-
+  debug1 << "in file load 3a\n";
   long * start_loc = new long [node_num];
 
   for(long inode=0;inode<node_num;inode++)
@@ -207,7 +214,7 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
    {
 		last_node_valid_record_len=last_node_valid_record_len-num_component;
    }
-
+ 
   for(long inode=1;inode<node_num;inode++)
   {
 	  int bottom = max(1,bottom_layer[inode-1]);
@@ -246,7 +253,7 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
 		ncvar->get(buffer,count);
 	}
 	
-
+	debug1 << "in file load 6\n";
 	int a_node_record_length_in_nc_buffer = buffer_size/node_num;
 
 	for(long inode=0;inode<node_num;inode++)

@@ -216,6 +216,7 @@ public:
   SCHISMDim10*          get_dim(const std::string& a_dimName) const;
   SCHISMDim10*          get_invalidDim() const;
   
+  virtual bool          inquire_var(const std::string& a_var_name) const;
   virtual bool          read(char * a_buffer, const int& a_numByte);
 
   // move stream reader to a specified TIME step
@@ -238,6 +239,7 @@ public:
   virtual void              get_node_bottom(int* a_node_bottom,const int& a_time);
   virtual void              get_face_bottom(int* a_face_bottom,const int& a_time);
   virtual void              get_edge_bottom(int* a_ele_bottom,const int& a_time);
+  virtual void              set_mesh_data_ptr(SCHISMFile10* a_ptr);
   virtual int       global_att_as_int(const std::string& a_att_name) const;
   virtual std::string global_att_as_string(const std::string& a_att_name) const;
 private:

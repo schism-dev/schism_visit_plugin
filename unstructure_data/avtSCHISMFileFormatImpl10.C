@@ -3320,14 +3320,42 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 {
  
     std::string SCHISMVarName = m_var_name_label_map[a_varName];  
+	
+	std::vector<std::string> varNames;
+
+	std::istringstream f(SCHISMVarName);
+	std::string s;
+
+	while (getline(f, s, ';'))
+	{
+		varNames.push_back(s);
+	}
+
     std::string varMesh      = m_var_mesh_map[a_varName];
 
-	SCHISMVar10 * SCHISMVarPtr = m_data_file_ptr->get_var(SCHISMVarName);
+	
+	SCHISMVar10 * SCHISMVarPtr = m_data_file_ptr->get_var(varNames[0]);
     if (!(SCHISMVarPtr->is_valid()))
     {
       
       EXCEPTION1(InvalidVariableException, a_varName);
     }
+	
+	SCHISMVar10 * SCHISMVarPtr2 = NULL;
+	if (varNames.size() == 2)
+	{
+		if (m_data_file_ptr2)
+		{
+			SCHISMVarPtr2 = m_data_file_ptr2->get_var(varNames[1]);
+	    }
+		else
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << " " << a_varName << "miss another component data source file \n";
+			EXCEPTION1(InvalidFilesException, msgStream.str());
+		}
+	}
+
 	std::string level_center = SCHISMVarPtr->get_vertical_center();
     std::string data_center =SCHISMVarPtr->get_horizontal_center();
 
@@ -3354,10 +3382,18 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
   }
 
     // last dim is vector component  
+    
     int      numDim = SCHISMVarPtr->num_dims();       
     SCHISMDim10* comDim = SCHISMVarPtr->get_dim(numDim-1);
     int ncomps       = comDim->size();
 	int ucomps       = (ncomps == 2 ? 3 : ncomps);
+
+	if (SCHISMVarPtr2) //for scribe format
+	{
+		ucomps = 3;
+		ncomps = 2;
+	}
+
 	float *oneEntry  = new float[ucomps];
 	int idata=0;
 
@@ -3367,14 +3403,38 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 	  long numData=numDataPerLayer;
 	  
 	  long numDataEntry=numData;
-
-	  numData*=ncomps;
+	  if (!SCHISMVarPtr2)
+	  {
+		  numData *= ncomps;
+	  }
 
       valBuff          = new float  [numData]; 
       getSingleLayerVar (valBuff,
 		                m_data_file_ptr,
                         a_timeState,
-                        SCHISMVarName);
+		                varNames[0]);
+	  float * valBuff2 = NULL;
+
+	  if (SCHISMVarPtr2)
+	  {
+		  valBuff2 = new float[numData];
+		  getSingleLayerVar(valBuff2,
+			                m_data_file_ptr2,
+			                a_timeState,
+			                 varNames[1]);
+	  }
+
+	  float * valBuffAll = valBuff;
+	  if (valBuff2)
+	  {
+		  valBuffAll =new float [ncomps * numData];
+		  for (long iNode = 0; iNode < numData; iNode++)
+		  {
+			  valBuffAll[ncomps*iNode] = valBuff[iNode];
+			  valBuffAll[ncomps * iNode + 1] = valBuff2[iNode];
+		  }
+	  }
+
       //total number of data = nodes for a time step
       long ntuples        = numDataEntry; 
       vtkFloatArray *rv = vtkFloatArray::New();
@@ -3388,7 +3448,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 		   {
              for(int iComp = 0; iComp < ncomps; iComp++)
              {
-                oneEntry[iComp]   = valBuff[iNode*ncomps+iComp];
+                oneEntry[iComp]   = valBuffAll[iNode*ncomps+iComp];
              }
              for(int iComp = ncomps; iComp < ucomps; iComp++)
              {
@@ -3408,6 +3468,11 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
            idata++;             
          }
       delete   valBuff;
+	  if (valBuff2)
+	  {
+		  delete valBuff2;
+		  delete valBuffAll;
+	  }
       return rv;
     }
 
@@ -3457,10 +3522,23 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 	//int numDataPerLayer=m_nominal_size_per_layer[data_center];
 	
 
-    float * valBuff;
+    float * valBuff = NULL;
+	float * valBuff2 = NULL;
+	float * valBuffAll = NULL;
+
 	int totalNumLayers=m_num_layers;
 	
-    valBuff = new float  [totalNumLayers*numDataPerLayer*ncomps];
+	if (!SCHISMVarPtr2)
+	{
+		valBuff = new float[totalNumLayers*numDataPerLayer*ncomps];
+		valBuffAll = valBuff;
+	}
+	else
+	{
+		valBuff = new float[totalNumLayers*numDataPerLayer];
+		valBuff2 = new float[totalNumLayers*numDataPerLayer];
+		valBuffAll = new float[totalNumLayers*numDataPerLayer*ncomps];
+	}
 
  
     int numOfRecord  = 1;
@@ -3469,12 +3547,32 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
    
     SCHISMVarPtr->set_cur(timeStart);
 
-    if (!(SCHISMVarPtr->get(valBuff)))
-    {
-       stringstream msgStream(stringstream::out);
-       msgStream <<"Fail to retrieve "<<a_varName << " at step " <<a_timeState;
-       EXCEPTION3(DBYieldedNoDataException,m_data_file,m_plugin_name,msgStream.str());
-     }
+	if (!(SCHISMVarPtr->get(valBuff)))
+	{
+		stringstream msgStream(stringstream::out);
+		msgStream << "Fail to retrieve " << a_varName << " at step " << a_timeState;
+		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
+	}
+     
+
+    if (SCHISMVarPtr2)
+	{
+		SCHISMVarPtr2->set_cur(timeStart);
+
+		if (!(SCHISMVarPtr2->get(valBuff2)))
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << "Fail to retrieve vector " << a_varName << "another component at step " << a_timeState;
+			EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
+		}
+		for (long iNode = 0; iNode < totalNumLayers*numDataPerLayer; iNode++)
+		{
+			valBuffAll[ncomps*iNode] = valBuff[iNode];
+			valBuffAll[ncomps * iNode + 1] = valBuff2[iNode];
+		}
+	}
+
+
   
 	long valid_var_size =0;
     long * node_start_index= new long [numDataPerLayer];
@@ -3567,7 +3665,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 
 					  for(int iComp = 0; iComp < ncomps; iComp++)
 					  {
-						 oneEntry[iComp]= valBuff[start_index+(layer+1-std::max(1,kbp00[iNode]))*ncomps+iComp];
+						 oneEntry[iComp]= valBuffAll[start_index+(layer+1-std::max(1,kbp00[iNode]))*ncomps+iComp];
                  
 					  }
 
@@ -3600,7 +3698,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 
        float * averageState = new float [numDataPerLayer*ncomps];
 
-       vectorDepthAverage(averageState,valBuff,node_start_index,a_timeState,ncomps,data_center,level_center);
+       vectorDepthAverage(averageState,valBuffAll,node_start_index,a_timeState,ncomps,data_center,level_center);
 
        idata  = 0;
        for( int iNode = 0 ; iNode   < numDataPerLayer; iNode++)
@@ -3634,6 +3732,11 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 
  
     delete valBuff;
+	if (valBuff2)
+	{
+		delete valBuff2;
+		delete valBuffAll;
+	}
     delete layerStarts;
     delete oneEntry;
     return rv;   
@@ -4186,8 +4289,46 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
     m_data_file_path = m_data_file.substr(0,found);
 
 	try
-	{
-	   m_data_file_ptr=new NetcdfSchismOutput10(m_data_file);
+	{ 
+	   std::string file_name = m_data_file.substr(found+1);
+	   size_t      found_underline = file_name.find_last_of("_");
+	   std::string  var_name = file_name.substr(0, found_underline);
+	   if ((var_name == "uvel") || (var_name == "uvelside"))
+	   {
+		   m_data_file_ptr = new NetcdfSchismOutput10(m_data_file);
+		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(0, 4, "vvel");
+		   try 
+		   {
+
+			    m_data_file_ptr2 = new NetcdfSchismOutput10(extra_file);
+		   }
+		   catch (...)
+		   {
+			   stringstream msgStream(stringstream::out);
+			   msgStream << extra_file<<" is not valid\n";
+			   EXCEPTION1(InvalidDBTypeException, msgStream.str().c_str());
+		   }
+	   }
+	   else if ((var_name == "uvel") || (var_name == "uvelside"))
+	   {
+
+		   m_data_file_ptr2 = new NetcdfSchismOutput10(m_data_file);
+		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(0, 4, "uvel");
+		   try
+		   {
+			   m_data_file_ptr = new NetcdfSchismOutput10(extra_file);
+		   }
+		   catch (...)
+		   {
+			   stringstream msgStream(stringstream::out);
+			   msgStream << extra_file << " is not valid\n";
+			   EXCEPTION1(InvalidDBTypeException, msgStream.str().c_str());
+		   }
+	   }
+	   else
+	   {
+		   m_data_file_ptr = new NetcdfSchismOutput10(m_data_file);
+	   }
 	}
 	catch(SCHISMFileException10 e)
 	{

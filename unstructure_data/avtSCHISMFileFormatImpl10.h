@@ -278,7 +278,7 @@ protected:
   std::string  m_data_file_path; 
   std::string  m_plugin_name;
   SCHISMFile10*   m_data_file_ptr;
-  
+  SCHISMFile10*   m_data_file_ptr2; // in scribe format, vector another component
 
   // element centered data use mesh from other file
   SCHISMMeshProvider10* m_external_mesh_provider;

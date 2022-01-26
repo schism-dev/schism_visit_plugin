@@ -1,7 +1,7 @@
 #include "SCHISMFile10.h"
 #include "MeshConstants10.h"
 #include "netcdfcpp.h"
-#include <DebugStream.h>
+
 
 #ifndef _NETCDFSCHISMOUTPUT10_H_
 #define _NETCDFSCHISMOUTPUT10_H_
@@ -128,7 +128,7 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
   int num_dim = ncvar->num_dims();
   long * current = new long [num_dim];
   long * count   = new long [num_dim];
-
+ 
   for(int idim =0; idim<num_dim;idim++)
   {
 	 // int dim_id = m_dimensions[idim];
@@ -193,11 +193,11 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
 	return true;
   }
 
-
+ 
   int * bottom_layer = new int [node_num];
 
   fill_current_bottom(bottom_layer);
-  debug1 << "in file load 3a\n";
+ 
   long * start_loc = new long [node_num];
 
   for(long inode=0;inode<node_num;inode++)
@@ -253,7 +253,7 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
 		ncvar->get(buffer,count);
 	}
 	
-	debug1 << "in file load 6\n";
+	
 	int a_node_record_length_in_nc_buffer = buffer_size/node_num;
 
 	for(long inode=0;inode<node_num;inode++)
@@ -282,7 +282,7 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
 	
 	delete buffer;
   
-
+	
   delete bottom_layer;
   delete start_loc;
   return true;

@@ -7,6 +7,7 @@
 
 
 
+
 SCHISMMeshProvider10::SCHISMMeshProvider10(const std::string & a_fileHasMeshData):MeshProvider10(a_fileHasMeshData),
 	                                                                          m_kbp00(NULL),
 																			  m_layerSCoords(NULL),
@@ -137,18 +138,27 @@ bool SCHISMMeshProvider10::loadSide()
 			throw SCHISMFileException10("fail to retrieve dim " + MeshConstants10::EDGE_NODE + " from data file " + m_dataFilePtr->file());
 			return false;
 		}
+		//decreae node id by one, for schism id is 1 based
+		for (long i = 0; i < m_number_side * 2; i++)
+		{
+			m_sideNodes[i]--;
+		}
+		return true;
 	}
 	else //figure out from mesh 
 	{
-
+		long * mesh_nodes = new long[m_number_element*(MeshConstants10::MAX_NUM_NODE_PER_CELL + 1)];
+		this->fillMeshElement(mesh_nodes);           
+		meshSideNode(m_sideNodes,
+			mesh_nodes,
+			m_number_side,
+			m_number_element,
+			m_number_node);
+		delete mesh_nodes;
+		return true;
 	}
  
-   //decreae node id by one, for schism id is 1 based
-   for(long i=0;i<m_number_side*2;i++)
-   {
-	   m_sideNodes[i]--;
-   }
-   return true;
+
 
 }
 void  SCHISMMeshProvider10::fill_ele_dry_wet(int*  &a_ele_dry_wet, const int& a_step)
@@ -184,6 +194,7 @@ void  SCHISMMeshProvider10::fill_ele_dry_wet(int*  &a_ele_dry_wet, const int& a_
 }
  void  SCHISMMeshProvider10::fill_node_dry_wet(int* &a_node_dry_wet,int* a_ele_dry_wet)
  {
+
 	 long * mesh_nodes =new long[m_number_element*(MeshConstants10::MAX_NUM_NODE_PER_CELL+1)];
 	 this->fillMeshElement(mesh_nodes);
 	 int max_node_in_cell=MeshConstants10::MAX_NUM_NODE_PER_CELL;
@@ -264,7 +275,7 @@ void  SCHISMMeshProvider10::fill_ele_dry_wet(int*  &a_ele_dry_wet, const int& a_
 	  m_side_neighbor_ele_filled=true;
 	  m_max_ele_at_node=max_ele_at_node;
 	 }
-
+	 
 	 for(long iside=0;iside<m_number_side;iside++)
 	 {
 		 bool all_ele_dry=true;
@@ -653,7 +664,7 @@ bool SCHISMMeshProvider10::fillSideCenterCoord3D(double * a_pointCoord,const int
 	  fillKbp00(kbp00,a_timeStep);
 	   int * kbs = new int [m_number_side];
 	  fillKbs(kbs,a_timeStep);
-
+	  
       for(long iNode=0;iNode<m_number_node;iNode++)
       {
 	    node_z_start_index[iNode]=valid_var_size;
@@ -991,7 +1002,7 @@ bool SCHISMMeshProvider10::fillSideCenterCoord2D(float * a_pointCoord,const int 
                        MeshConstants10::NODE_Y,
                        m_number_node);
 
-
+	  
 	  for(long iSide=0;iSide < m_number_side; iSide++)
           {
 			long node1 = m_sideNodes[iSide*2];
@@ -1041,7 +1052,7 @@ bool SCHISMMeshProvider10::fillSideCenterCoord2D(double * a_pointCoord,const int
                        MeshConstants10::NODE_Y,
                        m_number_node);
 
-
+	 
 	  for(long iSide=0;iSide < m_number_side; iSide++)
           {
 			long node1 = m_sideNodes[iSide*2];
@@ -1050,6 +1061,7 @@ bool SCHISMMeshProvider10::fillSideCenterCoord2D(double * a_pointCoord,const int
             double y1            =  nodeYPtr[node1];
 			double x2            =  nodeXPtr[node2];
             double y2            =  nodeYPtr[node2];
+
             *a_pointCoord++    = half*(x1+x2);
             *a_pointCoord++    = half*(y1+y2);
             // must put a dummy z value as visit manaul example does
@@ -1059,6 +1071,7 @@ bool SCHISMMeshProvider10::fillSideCenterCoord2D(double * a_pointCoord,const int
 
 	  delete nodeXPtr;
 	  delete nodeYPtr;
+	  
       
 	}
 	return true;

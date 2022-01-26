@@ -185,7 +185,7 @@ void   NetcdfSchismOutput10::fill_node_bottom()
 	{
 		node_bottom_name = "bottom_index_node";
 	}
-	if (has_var(MeshConstants10::NODE_BOTTOM)||has_var("bottom_index_node"))
+	if (has_var(node_bottom_name))
 	{
 		NcVar * ncvar = m_outputNcFilePtr->get_var(node_bottom_name.c_str());
 		if (ncvar->is_valid())
@@ -366,9 +366,11 @@ void   NetcdfSchismOutput10::get_node_bottom(int* a_node_bottom,const int& a_tim
 		{
 			a_node_bottom[i] = m_node_bottom[i];
 		}
+		
 	}
 	else//delegate to mesh ptr
 	{
+		
 		m_meshFilePtr->get_node_bottom(a_node_bottom, a_time);
 	}
 

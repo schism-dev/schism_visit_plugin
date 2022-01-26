@@ -404,7 +404,7 @@ void    avtSCHISMFileFormatImpl11::create2DPointMesh( vtkUnstructuredGrid *a_uGr
 	points->GetData()->SetNumberOfComponents(3);
     points->SetNumberOfPoints(numNodes);
     double * pointPtr       = (double *) points->GetVoidPointer(0);
-        
+	debug1 << "before load side center 2d xy\n";
     if (!m_external_mesh_provider->fillSideCenterCoord2D(pointPtr,a_timeState))
     {
         stringstream msgStream(stringstream::out);
@@ -412,7 +412,7 @@ void    avtSCHISMFileFormatImpl11::create2DPointMesh( vtkUnstructuredGrid *a_uGr
         EXCEPTION3(DBYieldedNoDataException,m_data_file,m_plugin_name,msgStream.str());
     }
 
-
+	debug1 << "done load side center 2d xy\n";
     a_uGrid ->SetPoints(points);
     points->Delete();
 	a_uGrid->Allocate(numNodes);
@@ -430,6 +430,7 @@ void   avtSCHISMFileFormatImpl11::create3DPointMesh( vtkUnstructuredGrid *a_uGri
 										            const  int     &a_timeState) 
 {
 	long   numNodes           = m_total_valid_3D_side;
+	debug1 << "total num of side 3d " << m_total_valid_3D_side << "\n";
 	vtkPoints *points      = vtkPoints::New();
 	points->SetDataTypeToDouble();
 	points->GetData()->SetNumberOfComponents(3);

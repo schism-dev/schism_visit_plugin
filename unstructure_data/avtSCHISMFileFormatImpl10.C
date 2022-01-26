@@ -772,6 +772,8 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
 {
   int numVar = m_data_file_ptr->num_vars();
   debug1<<"get vars "<<numVar<<endl;
+
+
   for(int iVar = 0;iVar < numVar; iVar++)
    {
      
@@ -780,6 +782,57 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
       debug1<<" "<<varPtr->num_dims()<<endl;
 
       std::string varName = varPtr->name();
+
+	  if ((varName == "uvel") || (varName == "vvel") || (varName == "uvelside") || (varName == "vvelside"))
+	  {
+		  int ucomps = 2;
+		  std::string label = "hvel";
+		  avtCentering avtCenter(AVT_NODECENT);
+		  std::string vars = "uvel;vvel";
+		  string mesh2d = m_mesh_2d;
+		  string mesh3d = m_mesh_3d;
+
+		  if ((varName == "uvelside") || (varName == "vvelside"))
+		  {
+			  vars = "uvelside;vvelside";
+			  label = "hvelside";
+			  mesh2d = m_side_center_point_2d_mesh;
+			  mesh3d = m_side_center_point_3d_mesh;
+		  }
+
+		  a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh3d, avtCenter, ucomps);
+		  m_var_name_label_map[label] = vars;
+		  m_var_mesh_map[label] = mesh3d;
+
+		  // also add bottom, surface and depth average state option
+		  a_avtFile->addVectorVarToMetaData(a_metaData,
+			  label + m_surface_state_suffix,
+			  mesh2d,
+			  avtCenter,
+			  ucomps);
+		  //debug1 << "add  " << label + m_surface_state_suffix << " ";
+		  a_avtFile->addVectorVarToMetaData(a_metaData,
+			  label + m_bottom_state_suffix,
+			  mesh2d,
+			  avtCenter,
+			  ucomps);
+		  //debug1 << "add  " << label + m_bottom_state_suffix << " ";
+		  a_avtFile->addVectorVarToMetaData(a_metaData,
+			  label + m_depth_average_suffix,
+			  mesh2d,
+			  avtCenter,
+			  ucomps);
+		  // debug1 << "add  " << label + m_depth_average_suffix << " ";
+		  m_var_name_label_map[label + m_surface_state_suffix] = vars;
+		  m_var_name_label_map[label + m_bottom_state_suffix] = vars;
+		  m_var_name_label_map[label + m_depth_average_suffix] = vars;
+		  m_var_mesh_map[label + m_surface_state_suffix] = mesh2d;
+		  m_var_mesh_map[label + m_bottom_state_suffix] = mesh2d;
+		  m_var_mesh_map[label + m_depth_average_suffix] = mesh2d;
+		  m_var_dim[varName] = 3;
+		  continue;
+
+	  }
 	  if (m_data_file_ptr->none_data_var(varName))
 	  {
 		  debug1<<varName<<"is skipped\n";
@@ -1162,11 +1215,12 @@ void    avtSCHISMFileFormatImpl10::create2DPointMesh( vtkUnstructuredGrid *a_uGr
 	                                            long                 *a_meshEle,
 										        const  int          &a_timeState) 
 {
+
 	long   numNodes           = m_num_mesh_edges;
 	vtkPoints *points      = vtkPoints::New();
     points->SetNumberOfPoints(numNodes);
     float * pointPtr       = (float *) points->GetVoidPointer(0);
-        
+	
     if (!m_external_mesh_provider->fillSideCenterCoord2D(pointPtr,a_timeState))
     {
         stringstream msgStream(stringstream::out);
@@ -3381,6 +3435,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 	  drywet=m_node_dry_wet;
   }
 
+    debug1 << "load vector dry wet\n";
     // last dim is vector component  
     
     int      numDim = SCHISMVarPtr->num_dims();       
@@ -3553,12 +3608,13 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 		msgStream << "Fail to retrieve " << a_varName << " at step " << a_timeState;
 		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 	}
-     
+	debug1 << "vector buff1 filled\n";
 
     if (SCHISMVarPtr2)
 	{
+		debug1 << "vector buff2 time set\n";
 		SCHISMVarPtr2->set_cur(timeStart);
-
+		debug1 << "vector buff2 to load "<<valBuff2<<"\n";
 		if (!(SCHISMVarPtr2->get(valBuff2)))
 		{
 			stringstream msgStream(stringstream::out);
@@ -3572,7 +3628,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 		}
 	}
 
-
+	debug1 << "vector all buff filled\n";
   
 	long valid_var_size =0;
     long * node_start_index= new long [numDataPerLayer];
@@ -4371,6 +4427,10 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	if (found2 == std::string::npos)
 	{
 		m_data_file_ptr->set_mesh_data_ptr(m_external_mesh_provider->get_mesh_data_ptr());
+		if(m_data_file_ptr2)
+		{
+			m_data_file_ptr2->set_mesh_data_ptr(m_external_mesh_provider->get_mesh_data_ptr());
+		}
 	}
     okay = m_data_file_ptr->is_valid();
 	

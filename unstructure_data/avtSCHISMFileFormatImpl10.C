@@ -4352,7 +4352,11 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	   if ((var_name == "uvel") || (var_name == "uvelside"))
 	   {
 		   m_data_file_ptr = new NetcdfSchismOutput10(m_data_file);
+#ifdef _WIN32  
 		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(0, 4, "vvel");
+#else
+	       std::string extra_file = m_data_file_path + "/" + file_name.replace(0, 4, "vvel");
+#endif
 		   try 
 		   {
 
@@ -4369,7 +4373,11 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	   {
 
 		   m_data_file_ptr2 = new NetcdfSchismOutput10(m_data_file);
+#ifdef _WIN32 
 		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(0, 4, "uvel");
+#else
+	       std::string extra_file = m_data_file_path + "/" + file_name.replace(0, 4, "uvel");
+#endif
 		   try
 		   {
 			   m_data_file_ptr = new NetcdfSchismOutput10(extra_file);
@@ -4406,7 +4414,11 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	{
 		size_t found3 = m_data_file.find_last_of("_");
 	    std::string suffix=m_data_file.substr(found3);
+#ifdef _WIN32
 		meshFilePath = m_data_file_path+"\\out2d"+suffix;
+#else
+	   meshFilePath = m_data_file_path+"/out2d"+suffix;
+#endif
 		debug1 << "found2:" << found2 << " "<<meshFilePath<<"\n";
 	}
 

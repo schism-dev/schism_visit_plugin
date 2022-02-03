@@ -23,7 +23,11 @@ ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISM
 		//see if there any separate zcor nc file available under current folder 
 		size_t found2 = m_mesh_file.find_last_of("_");
 		std::string suffix = m_mesh_file.substr(found2);
+#ifdef _WIN32
 		std::string zcor_file = data_file_path + "\\zcor" + suffix;
+#else
+	    std::string zcor_file = data_file_path + "/zcor" + suffix;
+#endif
 
 		m_zcor_file_ptr = new NetcdfSchismOutput10(zcor_file);
 		m_zcor_file_ptr->set_mesh_data_ptr(this->get_mesh_data_ptr());

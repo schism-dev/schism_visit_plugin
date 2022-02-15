@@ -14,12 +14,20 @@
 #include <cmath>
 #include <map>
 
-std::map<int, std::string> i23d_horizontal_center{ {1,MeshConstants10::NODE}, {2,MeshConstants10::NODE}, {3,MeshConstants10::NODE}, \
-                                                   {4, MeshConstants10::ELEM}, {5,MeshConstants10::ELEM }, {6,MeshConstants10::ELEM},\
-                                                   {7, MeshConstants10::EDGE}, {8,MeshConstants10::EDGE}, {9,MeshConstants10::EDGE},};
-std::map<int, std::string> i23d_vertical_center{ {1,MeshConstants10::FULL_LAYER}, {2,MeshConstants10::FULL_LAYER}, {3,MeshConstants10::HALF_LAYER},\
-                                                {4, MeshConstants10::FULL_LAYER}, {5,MeshConstants10::FULL_LAYER }, {6,MeshConstants10::HALF_LAYER },\
-                                                {7, MeshConstants10::FULL_LAYER}, {8,MeshConstants10::FULL_LAYER }, {9,MeshConstants10::HALF_LAYER }, };
+
+
+std::map<int, std::string> i23d_horizontal_center;
+typedef pair<int, std::string> IS_Pair;
+
+//i23d_horizontal_center={ {1,MeshConstants10::NODE}, {2,MeshConstants10::NODE}, {3,MeshConstants10::NODE}, \
+//                                                   {4, MeshConstants10::ELEM}, {5,MeshConstants10::ELEM }, {6,MeshConstants10::ELEM},\
+//                                                   {7, MeshConstants10::EDGE}, {8,MeshConstants10::EDGE}, {9,MeshConstants10::EDGE},};
+
+std::map<int, std::string> i23d_vertical_center;
+//{ {1,MeshConstants10::FULL_LAYER}, {2,MeshConstants10::FULL_LAYER}, {3,MeshConstants10::HALF_LAYER},\
+//                                                {4, MeshConstants10::FULL_LAYER}, {5,MeshConstants10::FULL_LAYER }, {6,MeshConstants10::HALF_LAYER },\
+//                                                {7, MeshConstants10::FULL_LAYER}, {8,MeshConstants10::FULL_LAYER }, {9,MeshConstants10::HALF_LAYER }, };
+
 
 
 NetcdfSchismOutput10::NetcdfSchismOutput10(const std::string a_outputFile):SCHISMFile10(a_outputFile),
@@ -56,7 +64,7 @@ NetcdfSchismOutput10::NetcdfSchismOutput10(const std::string a_outputFile):SCHIS
 				std::string source = temp_ptr->as_string(0);
 				if ((source.find("SCHISM model output")) == std::string::npos)
 				{
-					throw SCHISMFileException10(a_outputFile + "is not a valid SCHSIM NC output file\n");
+					throw SCHISMFileException10(a_outputFile + "is not a valid SCHISM NC output file\n");
 				}
 			}
 		}
@@ -67,9 +75,29 @@ NetcdfSchismOutput10::NetcdfSchismOutput10(const std::string a_outputFile):SCHIS
 	//{
 	//	throw SCHISMFileException10( a_outputFile+"is not a valid SCHSIM NC output file\n");
 	//}
+
+
 	
-	
-	 
+	i23d_horizontal_center.insert(IS_Pair(1,MeshConstants10::NODE));
+	i23d_horizontal_center.insert(IS_Pair(2,MeshConstants10::NODE));
+	i23d_horizontal_center.insert(IS_Pair(3,MeshConstants10::NODE));
+	i23d_horizontal_center.insert(IS_Pair(4,MeshConstants10::ELEM));
+	i23d_horizontal_center.insert(IS_Pair(5,MeshConstants10::ELEM));
+	i23d_horizontal_center.insert(IS_Pair(6,MeshConstants10::ELEM));
+	i23d_horizontal_center.insert(IS_Pair(7,MeshConstants10::EDGE));
+	i23d_horizontal_center.insert(IS_Pair(8,MeshConstants10::EDGE));
+	i23d_horizontal_center.insert(IS_Pair(9,MeshConstants10::EDGE));
+
+	i23d_vertical_center.insert(IS_Pair(1,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(2,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(4,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(5,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(7,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(8,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(3,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(6,MeshConstants10::FULL_LAYER));
+	i23d_vertical_center.insert(IS_Pair(9,MeshConstants10::FULL_LAYER));
+
 	
 	this->load_dim_var();
 	this->fill_node_bottom();

@@ -54,6 +54,9 @@ const int NODESPERELE       = MeshConstants10::MAX_NUM_NODE_PER_CELL;
 const int NODESPERWEDGE     = NODESPERELE*2;
 
 
+std::map<std::string,std::string> VectorVarMapX;
+std::map<std::string,std::string> VectorVarMapY;
+
 avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
       m_initialized(false),
 	  m_mesh_is_static(true),
@@ -109,6 +112,35 @@ avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
   m_center_map[FACE]  = AVT_ZONECENT;
   m_center_map[UNKOWN]= AVT_UNKNOWN_CENT;
   m_var_name_label_map[m_node_depth_label]    = m_node_depth;
+
+  VectorVarMapX["horizontalVelX"]="horizontalVelX;horizontalVelY";
+  VectorVarMapY["horizontalVelY"]="horizontalVelX;horizontalVelY";
+  VectorVarMapX["horizontalSideVelX"]="horizontalSideVelX;horizontalSideVelY";
+  VectorVarMapY["horizontalSideVelY"]="horizontalSideVelX;horizontalSideVelY";
+  VectorVarMapX["waveForceX"]="waveForceX;waveForceY";
+  VectorVarMapY["waveForceY"]="waveForceX;waveForceY";
+  VectorVarMapX["horzontalViscosityX"]="horzontalViscosityX;horzontalViscosityY";
+  VectorVarMapY["horzontalViscosityY"]="horzontalViscosityX;horzontalViscosityY";
+  VectorVarMapX["baroclinicForceX"]="baroclinicForceX;baroclinicForceY";
+  VectorVarMapY["baroclinicForceY"]="baroclinicForceX;baroclinicForceY";
+  VectorVarMapX["verticalViscosityX"]="verticalViscosityX;verticalViscosityY";
+  VectorVarMapY["verticalViscosityY"]="verticalViscosityX;verticalViscosityY";
+  VectorVarMapX["mommentumAdvectionX"]="mommentumAdvectionX;mommentumAdvectionY";
+  VectorVarMapY["mommentumAdvectionY"]="mommentumAdvectionX;mommentumAdvectionY";
+  VectorVarMapX["airPressureGradientX"]="airPressureGradientX;airPressureGradientY";
+  VectorVarMapY["airPressureGradientY"]="airPressureGradientX;airPressureGradientY";
+  VectorVarMapX["tidePotentialGradX"]="tidePotentialGradX;tidePotentialGradY";
+  VectorVarMapY["tidePotentialGradY"]="tidePotentialGradX;tidePotentialGradY";
+
+  VectorVarMapX["bottomStressX"]="bottomStressX;bottomStressY";
+  VectorVarMapY["bottomStressY"]="bottomStressX;bottomStressY";
+  VectorVarMapX["windSpeedX"]="windSpeedX;windSpeedY";
+  VectorVarMapY["windSpeedY"]="windSpeedX;windSpeedY";
+  VectorVarMapX["windStressX"]="windStressX;windStressY";
+  VectorVarMapY["windStressY"]="windStressX;windStressY";
+  VectorVarMapX["depthAverageVelX"]="depthAverageVelX;depthAverageVelY";
+  VectorVarMapY["depthAverageVelY"]="depthAverageVelX;depthAverageVelY";
+
 
 }
 
@@ -782,20 +814,30 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
       debug1<<" "<<varPtr->num_dims()<<endl;
 
       std::string varName = varPtr->name();
+	  std::map<std::string,std::string>::iterator itX,itY;
+	  itX = VectorVarMapX.find(varName);
+	  itY = VectorVarMapY.find(varName);
 
-	  if ((varName == "uvel") || (varName == "vvel") || (varName == "uvelside") || (varName == "vvelside"))
+	  if ((itX != VectorVarMapX.end())||(itY != VectorVarMapY.end()))
 	  {
 		  int ucomps = 2;
-		  std::string label = "hvel";
+		  std::string label = varName.substr(0,varName.length()-1);
 		  avtCentering avtCenter(AVT_NODECENT);
-		  std::string vars = "uvel;vvel";
+		  std::string vars = ";";
+		  if(itX!=VectorVarMapX.end())
+		  {
+			  vars=VectorVarMapX[varName];
+		  }
+		  else
+		  {
+			  vars=VectorVarMapY[varName];
+		  }
 		  string mesh2d = m_mesh_2d;
 		  string mesh3d = m_mesh_3d;
+		  std::size_t found2 = varName.find("Side");
 
-		  if ((varName == "uvelside") || (varName == "vvelside"))
+          if (found2!=std::string::npos)
 		  {
-			  vars = "uvelside;vvelside";
-			  label = "hvelside";
 			  mesh2d = m_side_center_point_2d_mesh;
 			  mesh3d = m_side_center_point_3d_mesh;
 		  }
@@ -4349,17 +4391,24 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	   std::string file_name = m_data_file.substr(found+1);
 	   size_t      found_underline = file_name.find_last_of("_");
 	   std::string  var_name = file_name.substr(0, found_underline);
-	   if ((var_name == "uvel") || (var_name == "uvelside"))
+
+	   std::map<std::string,std::string>::iterator itX,itY;
+	   itX = VectorVarMapX.find(var_name);
+	   itY = VectorVarMapY.find(var_name);
+
+	   if (itX != VectorVarMapX.end())
 	   {
+		   
 		   m_data_file_ptr = new NetcdfSchismOutput10(m_data_file);
 #ifdef _WIN32  
-		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(0, 4, "vvel");
+		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(found_underline-1, 1 , "Y");
 #else
-	       std::string extra_file = m_data_file_path + "/" + file_name.replace(0, 4, "vvel");
+	       std::string extra_file = m_data_file_path + "/" + file_name.replace(found_underline-1,1 , "Y");
 #endif
 		   try 
 		   {
 
+			    
 			    m_data_file_ptr2 = new NetcdfSchismOutput10(extra_file);
 		   }
 		   catch (...)
@@ -4369,14 +4418,14 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 			   EXCEPTION1(InvalidDBTypeException, msgStream.str().c_str());
 		   }
 	   }
-	   else if ((var_name == "uvel") || (var_name == "uvelside"))
+	   else if (itY != VectorVarMapY.end())
 	   {
 
 		   m_data_file_ptr2 = new NetcdfSchismOutput10(m_data_file);
 #ifdef _WIN32 
-		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(0, 4, "uvel");
+		   std::string extra_file = m_data_file_path + "\\" + file_name.replace(found_underline-1, 1, "X");
 #else
-	       std::string extra_file = m_data_file_path + "/" + file_name.replace(0, 4, "uvel");
+	       std::string extra_file = m_data_file_path + "/" + file_name.replace(found_underline-1, 1, "X");
 #endif
 		   try
 		   {

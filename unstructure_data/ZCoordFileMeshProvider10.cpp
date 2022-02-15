@@ -24,9 +24,9 @@ ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISM
 		size_t found2 = m_mesh_file.find_last_of("_");
 		std::string suffix = m_mesh_file.substr(found2);
 #ifdef _WIN32
-		std::string zcor_file = data_file_path + "\\zcor" + suffix;
+		std::string zcor_file = data_file_path + "\\zCoordinates" + suffix;
 #else
-	    std::string zcor_file = data_file_path + "/zcor" + suffix;
+	    std::string zcor_file = data_file_path + "/zCoordinates" + suffix;
 #endif
 
 		m_zcor_file_ptr = new NetcdfSchismOutput10(zcor_file);
@@ -107,7 +107,7 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 	  //this zcor file must be at the same folder of current file
        if(m_zcor_file_ptr->is_valid())
 	   {
-		   zVarPtr=m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD);
+		   zVarPtr=m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
 	   }
 	   else
 	   {
@@ -222,7 +222,7 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 		//this zcor file must be at the same folder of current file
 		 if (m_zcor_file_ptr->is_valid())
 		 {
-			 zVarPtr = m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD);
+			 zVarPtr = m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
 		 }
 		 else
 		 {

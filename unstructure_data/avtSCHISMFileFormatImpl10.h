@@ -54,6 +54,8 @@ class avtSCHISMFileFormatImpl10 : public FileFormatFavorInterface
 protected:
 
   void           Initialize(std::string a_data_file);
+
+  vtkDataArray  *GetVectorWind(int          a_timeState);
   
 //private:
 
@@ -273,6 +275,7 @@ protected:
 protected:
   bool         m_initialized;
   bool         m_mesh_is_static;
+  bool         m_scribeIO;
   std::string  m_data_file;
   // path where  m_data_file is under
   std::string  m_data_file_path; 

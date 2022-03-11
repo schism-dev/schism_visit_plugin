@@ -24,7 +24,7 @@ private:
                        const float    & a_thetaf) const;
 					   
    std::string                m_mesh_file;
-   NetcdfSchismOutput10*                m_zcor_file_ptr; //only valid for the new scriber output
+   NetcdfSchismOutput10*      m_zcor_file_ptr; //only valid for the new scriber output
 
 };
 #endif

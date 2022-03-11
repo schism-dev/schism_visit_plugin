@@ -105,7 +105,8 @@ avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
 	  m_total_valid_3D_point(0),
 	  m_total_valid_3D_side(0),
 	  m_total_valid_3D_ele(0),
-	  m_dry_wet_flag(1)
+	  m_dry_wet_flag(1),
+	  m_scribeIO(false)
 {
   // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
   m_center_map[NODE]  = AVT_NODECENT;
@@ -134,8 +135,8 @@ avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
 
   VectorVarMapX["bottomStressX"]="bottomStressX;bottomStressY";
   VectorVarMapY["bottomStressY"]="bottomStressX;bottomStressY";
-  VectorVarMapX["windSpeedX"]="windSpeedX;windSpeedY";
-  VectorVarMapY["windSpeedY"]="windSpeedX;windSpeedY";
+  //VectorVarMapX["windSpeedX"]="windSpeedX;windSpeedY";
+  //VectorVarMapY["windSpeedY"]="windSpeedX;windSpeedY";
   VectorVarMapX["windStressX"]="windStressX;windStressY";
   VectorVarMapY["windStressY"]="windStressX;windStressY";
   VectorVarMapX["depthAverageVelX"]="depthAverageVelX;depthAverageVelY";
@@ -380,6 +381,16 @@ avtSCHISMFileFormatImpl10::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
     string mesh            = m_mesh_2d;  
     a_avtFile->addScalarVarToMetaData(a_metaData, m_node_depth_label,   mesh, nodeCent);
 
+	//for scribeIO add elev and wind
+	if (m_scribeIO)
+	{
+
+		m_var_name_label_map[m_node_depth_label] = "depth";
+		a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::NODE_SURFACE_LABEL, mesh, nodeCent);
+		m_var_name_label_map[MeshConstants10::NODE_SURFACE_LABEL] = "elevation";
+		
+		a_avtFile->addVectorVarToMetaData(a_metaData, "wind", mesh, nodeCent, 3);
+	}
 
 
    // m_var_mesh_map[m_node_surface_label] = mesh;
@@ -3109,7 +3120,18 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
   std::string SCHISMVarName = m_var_name_label_map[a_varName];  
   std::string varMesh      = m_var_mesh_map[a_varName];
 
-  SCHISMVar10 * SCHISMVarPtr = m_data_file_ptr->get_var(SCHISMVarName);
+  SCHISMVar10 * SCHISMVarPtr = NULL;
+  
+ 
+  if (m_scribeIO && ((!strcmp(a_varName, MeshConstants10::NODE_SURFACE_LABEL.c_str())) || (!strcmp(a_varName, m_node_depth_label.c_str()))))
+  {
+	 
+	  SCHISMVarPtr = m_external_mesh_provider->get_mesh_data_ptr()->get_var(SCHISMVarName);
+  }
+  else
+  {
+	  SCHISMVarPtr= m_data_file_ptr->get_var(SCHISMVarName);
+  }
   
   std::string level_center = SCHISMVarPtr->get_vertical_center();
   std::string data_center =SCHISMVarPtr->get_horizontal_center();
@@ -3158,7 +3180,7 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
 
   
 
-    if ( (!strcmp(a_varName,m_node_depth_label.c_str()))   ||
+    if ( (!strcmp(a_varName,m_node_depth_label.c_str()))   || (!strcmp(a_varName, MeshConstants10::NODE_SURFACE_LABEL.c_str())) ||
 		 (!SCHISMVarIs3D(SCHISMVarPtr)))
     {
      float * valBuff;
@@ -3166,10 +3188,22 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
 	
      valBuff          = new float  [numData]; 
 
-     getSingleLayerVar (valBuff,
-		                m_data_file_ptr,
-                        a_timeState,
-                        SCHISMVarName);
+	 if (m_scribeIO && ((!strcmp(a_varName, MeshConstants10::NODE_SURFACE_LABEL.c_str())) || (!strcmp(a_varName, m_node_depth_label.c_str()))))
+	 {
+		 debug1 << " get surface/depth from out2d if scribeio format\n";
+			 getSingleLayerVar(valBuff,
+				 m_external_mesh_provider->get_mesh_data_ptr(),
+				 a_timeState,
+				 SCHISMVarName);
+		 
+	 }
+	 else
+	 {
+		 getSingleLayerVar(valBuff,
+			 m_data_file_ptr,
+			 a_timeState,
+			 SCHISMVarName);
+	 }
 	
 
      //total number of data = nodes for a time step
@@ -3180,7 +3214,7 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
      for( int iNode = 0 ; iNode < numData; iNode++)
        {
 		   float valTemp = valBuff[iNode];
-		   if((!(drywet[iNode]))||(!strcmp(a_varName,m_node_depth_label.c_str())))
+		   if((!(drywet[iNode]))||(!strcmp(a_varName,m_node_depth_label.c_str())) || (!strcmp(a_varName, MeshConstants10::NODE_BOTTOM2.c_str())))
 		   {
              
 		     rv->SetTuple1(idata, valTemp); 
@@ -3387,11 +3421,92 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
    delete valBuff;
    delete layerStarts;
    delete num_data_at_layer;
+  
    debug1<<"done load data for "<<SCHISMVarName<<"\n";
    return rv;
    
 }
 
+vtkDataArray  * avtSCHISMFileFormatImpl10::GetVectorWind(int          a_timeState)
+{
+	SCHISMVar10 * SCHISMVarPtr = m_external_mesh_provider->get_mesh_data_ptr()->get_var("windSpeedX");
+	SCHISMVar10 * SCHISMVarPtr2 = m_external_mesh_provider->get_mesh_data_ptr()->get_var("windSpeedY");
+	long numDataPerLayer = m_num_mesh_nodes;
+
+	int      numDim = SCHISMVarPtr->num_dims();
+	SCHISMDim10* comDim = SCHISMVarPtr->get_dim(numDim - 1);
+	int ncomps = 2;
+	int ucomps = 3;
+
+
+	float *oneEntry = new float[ucomps];
+	int idata = 0;
+
+	
+	float * valBuff;
+	long numData = numDataPerLayer;
+
+	long numDataEntry = numData;
+	if (!SCHISMVarPtr2)
+	{
+		numData *= ncomps;
+	}
+
+	valBuff = new float[numData];
+	getSingleLayerVar(valBuff,
+		m_external_mesh_provider->get_mesh_data_ptr(),
+		a_timeState,
+		"windSpeedX");
+	float * valBuff2 = NULL;
+
+	valBuff2 = new float[numData];
+		getSingleLayerVar(valBuff2,
+			m_external_mesh_provider->get_mesh_data_ptr(),
+			a_timeState,
+			"windSpeedY");
+
+
+	float * valBuffAll = valBuff;
+
+		valBuffAll = new float[ncomps * numData];
+		for (long iNode = 0; iNode < numData; iNode++)
+		{
+			valBuffAll[ncomps*iNode] = valBuff[iNode];
+			valBuffAll[ncomps * iNode + 1] = valBuff2[iNode];
+		}
+
+
+	//total number of data = nodes for a time step
+	long ntuples = numDataEntry;
+	vtkFloatArray *rv = vtkFloatArray::New();
+	rv->SetNumberOfComponents(ucomps);
+	rv->SetNumberOfTuples(ntuples);
+	idata = 0;
+	for (long iNode = 0; iNode < ntuples; iNode++)
+	{
+
+
+			for (int iComp = 0; iComp < ncomps; iComp++)
+			{
+				oneEntry[iComp] = valBuffAll[iNode*ncomps + iComp];
+			}
+			for (int iComp = ncomps; iComp < ucomps; iComp++)
+			{
+				oneEntry[iComp] = 0.0;
+			}
+		
+
+
+		rv->SetTuple(idata, oneEntry);
+		idata++;
+	}
+	delete   valBuff;
+    delete valBuff2;
+	delete valBuffAll;
+	
+	return rv;
+	
+}
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormatImpl10::GetVectorVar
@@ -3414,6 +3529,11 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
 vtkDataArray *
 avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 {
+
+	if (!strcmp(a_varName, "wind"))
+	{
+		return GetVectorWind(a_timeState);
+	}
  
     std::string SCHISMVarName = m_var_name_label_map[a_varName];  
 	
@@ -4461,6 +4581,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	
     if (found2==std::string::npos)
 	{
+		m_scribeIO = true;
 		size_t found3 = m_data_file.find_last_of("_");
 	    std::string suffix=m_data_file.substr(found3);
 #ifdef _WIN32

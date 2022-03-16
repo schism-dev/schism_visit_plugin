@@ -55,7 +55,8 @@ protected:
 
   void           Initialize(std::string a_data_file);
 
-  vtkDataArray  *GetVectorWind(int          a_timeState);
+ // for scribe io 2d vector data, all coms saved in out2d file 
+  vtkDataArray  *GetVector2d(int          a_timeState,const std::string a_varName);
   
 //private:
 

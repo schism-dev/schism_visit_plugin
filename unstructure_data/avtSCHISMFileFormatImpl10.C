@@ -54,8 +54,11 @@ const int NODESPERELE       = MeshConstants10::MAX_NUM_NODE_PER_CELL;
 const int NODESPERWEDGE     = NODESPERELE*2;
 
 
-std::map<std::string,std::string> VectorVarMapX;
-std::map<std::string,std::string> VectorVarMapY;
+std::map<std::string,std::string> Vector3DVarMapX;
+std::map<std::string,std::string> Vector3DVarMapY;
+
+std::map<std::string, std::string> Vector2DVarMapX;
+std::map<std::string, std::string> Vector2DVarMapY;
 
 avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
       m_initialized(false),
@@ -114,34 +117,53 @@ avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
   m_center_map[UNKOWN]= AVT_UNKNOWN_CENT;
   m_var_name_label_map[m_node_depth_label]    = m_node_depth;
 
-  VectorVarMapX["horizontalVelX"]="horizontalVelX;horizontalVelY";
-  VectorVarMapY["horizontalVelY"]="horizontalVelX;horizontalVelY";
-  VectorVarMapX["horizontalSideVelX"]="horizontalSideVelX;horizontalSideVelY";
-  VectorVarMapY["horizontalSideVelY"]="horizontalSideVelX;horizontalSideVelY";
-  VectorVarMapX["waveForceX"]="waveForceX;waveForceY";
-  VectorVarMapY["waveForceY"]="waveForceX;waveForceY";
-  VectorVarMapX["horzontalViscosityX"]="horzontalViscosityX;horzontalViscosityY";
-  VectorVarMapY["horzontalViscosityY"]="horzontalViscosityX;horzontalViscosityY";
-  VectorVarMapX["baroclinicForceX"]="baroclinicForceX;baroclinicForceY";
-  VectorVarMapY["baroclinicForceY"]="baroclinicForceX;baroclinicForceY";
-  VectorVarMapX["verticalViscosityX"]="verticalViscosityX;verticalViscosityY";
-  VectorVarMapY["verticalViscosityY"]="verticalViscosityX;verticalViscosityY";
-  VectorVarMapX["mommentumAdvectionX"]="mommentumAdvectionX;mommentumAdvectionY";
-  VectorVarMapY["mommentumAdvectionY"]="mommentumAdvectionX;mommentumAdvectionY";
-  VectorVarMapX["airPressureGradientX"]="airPressureGradientX;airPressureGradientY";
-  VectorVarMapY["airPressureGradientY"]="airPressureGradientX;airPressureGradientY";
-  VectorVarMapX["tidePotentialGradX"]="tidePotentialGradX;tidePotentialGradY";
-  VectorVarMapY["tidePotentialGradY"]="tidePotentialGradX;tidePotentialGradY";
+  Vector3DVarMapX["horizontalVelX"]="horizontalVelX;horizontalVelY";
+  Vector3DVarMapY["horizontalVelY"]="horizontalVelX;horizontalVelY";
+  Vector3DVarMapX["horizontalSideVelX"]="horizontalSideVelX;horizontalSideVelY";
+  Vector3DVarMapY["horizontalSideVelY"]="horizontalSideVelX;horizontalSideVelY";
+  Vector3DVarMapX["waveForceX"]="waveForceX;waveForceY";
+  Vector3DVarMapY["waveForceY"]="waveForceX;waveForceY";
+  Vector3DVarMapX["horzontalViscosityX"]="horzontalViscosityX;horzontalViscosityY";
+  Vector3DVarMapY["horzontalViscosityY"]="horzontalViscosityX;horzontalViscosityY";
+  Vector3DVarMapX["baroclinicForceX"]="baroclinicForceX;baroclinicForceY";
+  Vector3DVarMapY["baroclinicForceY"]="baroclinicForceX;baroclinicForceY";
+  Vector3DVarMapX["verticalViscosityX"]="verticalViscosityX;verticalViscosityY";
+  Vector3DVarMapY["verticalViscosityY"]="verticalViscosityX;verticalViscosityY";
+  Vector3DVarMapX["mommentumAdvectionX"]="mommentumAdvectionX;mommentumAdvectionY";
+  Vector3DVarMapY["mommentumAdvectionY"]="mommentumAdvectionX;mommentumAdvectionY";
 
-  VectorVarMapX["bottomStressX"]="bottomStressX;bottomStressY";
-  VectorVarMapY["bottomStressY"]="bottomStressX;bottomStressY";
-  //VectorVarMapX["windSpeedX"]="windSpeedX;windSpeedY";
-  //VectorVarMapY["windSpeedY"]="windSpeedX;windSpeedY";
-  VectorVarMapX["windStressX"]="windStressX;windStressY";
-  VectorVarMapY["windStressY"]="windStressX;windStressY";
-  VectorVarMapX["depthAverageVelX"]="depthAverageVelX;depthAverageVelY";
-  VectorVarMapY["depthAverageVelY"]="depthAverageVelX;depthAverageVelY";
 
+  Vector2DVarMapX["airPressureGradientX"]="airPressureGradientX;airPressureGradientY";
+  Vector2DVarMapY["airPressureGradientY"]="airPressureGradientX;airPressureGradientY";
+  Vector2DVarMapX["tidePotentialGradX"]="tidePotentialGradX;tidePotentialGradY";
+  Vector2DVarMapY["tidePotentialGradY"]="tidePotentialGradX;tidePotentialGradY";
+
+  Vector2DVarMapX["bottomStressX"]="bottomStressX;bottomStressY";
+  Vector2DVarMapY["bottomStressY"]="bottomStressX;bottomStressY";
+  Vector2DVarMapX["windSpeedX"]="windSpeedX;windSpeedY";
+  Vector2DVarMapY["windSpeedY"]="windSpeedX;windSpeedY";
+  Vector2DVarMapX["windStressX"]="windStressX;windStressY";
+  Vector2DVarMapY["windStressY"]="windStressX;windStressY";
+  Vector2DVarMapX["depthAverageVelX"]="depthAverageVelX;depthAverageVelY";
+  Vector2DVarMapY["depthAverageVelY"]="depthAverageVelX;depthAverageVelY";
+  Vector2DVarMapX["waveEnergyDirX"] = "waveEnergyDirX;waveEnergyDirY";
+  Vector2DVarMapX["waveEnergyDirY"] = "waveEnergyDirX;waveEnergyDirY";
+  Vector2DVarMapX["sedBedloadTransportX"] = "sedBedloadTransportX;sedBedloadTransportY";
+  Vector2DVarMapX["sedBedloadTransportY"] = "sedBedloadTransportX;sedBedloadTransportY";
+
+  Vector2DVarMapX["iceVelocityX"] = "iceVelocityX;iceVelocityY";
+  Vector2DVarMapX["iceVelocityY"] = "iceVelocityX;iceVelocityY";
+
+  for (int i = 0; i < 10; i++) //max support 10 kinds of sediment
+  {
+	  stringstream x(stringstream::out), y(stringstream::out);
+	  x << "sedBedloadX_" << i;
+	  y << "sedBedloadY_" << i;
+	  stringstream xy(stringstream::out);
+	  xy << "sedBedloadX_" << i<<";"<< "sedBedloadY_"<<i;
+	  Vector2DVarMapX[x.str()] = xy.str();
+	  Vector2DVarMapY[y.str()] = xy.str();
+  }
 
 }
 
@@ -388,8 +410,6 @@ avtSCHISMFileFormatImpl10::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 		m_var_name_label_map[m_node_depth_label] = "depth";
 		a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::NODE_SURFACE_LABEL, mesh, nodeCent);
 		m_var_name_label_map[MeshConstants10::NODE_SURFACE_LABEL] = "elevation";
-		
-		a_avtFile->addVectorVarToMetaData(a_metaData, "wind", mesh, nodeCent, 3);
 	}
 
 
@@ -825,67 +845,136 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
       debug1<<" "<<varPtr->num_dims()<<endl;
 
       std::string varName = varPtr->name();
+	  std::string horizontal_center = varPtr->get_horizontal_center();
 	  std::map<std::string,std::string>::iterator itX,itY;
-	  itX = VectorVarMapX.find(varName);
-	  itY = VectorVarMapY.find(varName);
+	  itX = Vector3DVarMapX.find(varName);
+	  itY = Vector3DVarMapY.find(varName);
 
-	  if ((itX != VectorVarMapX.end())||(itY != VectorVarMapY.end()))
+	  if ((itX != Vector3DVarMapX.end())||(itY != Vector3DVarMapY.end()))
 	  {
 		  int ucomps = 2;
-		  std::string label = varName.substr(0,varName.length()-1);
-		  avtCentering avtCenter(AVT_NODECENT);
-		  std::string vars = ";";
-		  if(itX!=VectorVarMapX.end())
+		  std::string label = "";
+		  std::size_t found = varName.find_last_of("_");
+		  if (found != std::string::npos)
 		  {
-			  vars=VectorVarMapX[varName];
+			  label = varName.substr(0, found-1)+varName.substr(found);
 		  }
 		  else
 		  {
-			  vars=VectorVarMapY[varName];
+			  label = varName.substr(0, varName.length() - 1);
+		  }
+		  avtCentering avtCenter(AVT_NODECENT);
+		  avtCentering avtCenter_elem(AVT_ZONECENT);
+		  std::string vars = "";
+		  if(itX!=Vector3DVarMapX.end())
+		  {
+			  vars=Vector3DVarMapX[varName];
+		  }
+		  else
+		  {
+			  vars=Vector3DVarMapY[varName];
 		  }
 		  string mesh2d = m_mesh_2d;
 		  string mesh3d = m_mesh_3d;
-		  std::size_t found2 = varName.find("Side");
+		  //std::size_t found2 = varName.find("Side");
 
-          if (found2!=std::string::npos)
+          if (horizontal_center== MeshConstants10::EDGE)
 		  {
 			  mesh2d = m_side_center_point_2d_mesh;
 			  mesh3d = m_side_center_point_3d_mesh;
 		  }
 
-		  a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh3d, avtCenter, ucomps);
-		  m_var_name_label_map[label] = vars;
-		  m_var_mesh_map[label] = mesh3d;
+		  if (horizontal_center == MeshConstants10::ELEM)
+		  {
+			  avtCenter = avtCenter_elem;
+		  }
+		  std::map<std::string, std::string>::iterator it;
+		  it = m_var_name_label_map.find(label);
 
-		  // also add bottom, surface and depth average state option
-		  a_avtFile->addVectorVarToMetaData(a_metaData,
-			  label + m_surface_state_suffix,
-			  mesh2d,
-			  avtCenter,
-			  ucomps);
-		  //debug1 << "add  " << label + m_surface_state_suffix << " ";
-		  a_avtFile->addVectorVarToMetaData(a_metaData,
-			  label + m_bottom_state_suffix,
-			  mesh2d,
-			  avtCenter,
-			  ucomps);
-		  //debug1 << "add  " << label + m_bottom_state_suffix << " ";
-		  a_avtFile->addVectorVarToMetaData(a_metaData,
-			  label + m_depth_average_suffix,
-			  mesh2d,
-			  avtCenter,
-			  ucomps);
-		  // debug1 << "add  " << label + m_depth_average_suffix << " ";
-		  m_var_name_label_map[label + m_surface_state_suffix] = vars;
-		  m_var_name_label_map[label + m_bottom_state_suffix] = vars;
-		  m_var_name_label_map[label + m_depth_average_suffix] = vars;
-		  m_var_mesh_map[label + m_surface_state_suffix] = mesh2d;
-		  m_var_mesh_map[label + m_bottom_state_suffix] = mesh2d;
-		  m_var_mesh_map[label + m_depth_average_suffix] = mesh2d;
-		  m_var_dim[varName] = 3;
+		  if ((SCHISMVarIs3D(varPtr))&&(it == m_var_name_label_map.end()))
+		  {
+			  a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh3d, avtCenter, ucomps);
+			  m_var_name_label_map[label] = vars;
+			  m_var_mesh_map[label] = mesh3d;
+
+			  // also add bottom, surface and depth average state option
+			  a_avtFile->addVectorVarToMetaData(a_metaData,
+				  label + m_surface_state_suffix,
+				  mesh2d,
+				  avtCenter,
+				  ucomps);
+			  //debug1 << "add  " << label + m_surface_state_suffix << " ";
+			  a_avtFile->addVectorVarToMetaData(a_metaData,
+				  label + m_bottom_state_suffix,
+				  mesh2d,
+				  avtCenter,
+				  ucomps);
+			  //debug1 << "add  " << label + m_bottom_state_suffix << " ";
+			  a_avtFile->addVectorVarToMetaData(a_metaData,
+				  label + m_depth_average_suffix,
+				  mesh2d,
+				  avtCenter,
+				  ucomps);
+			  // debug1 << "add  " << label + m_depth_average_suffix << " ";
+			  m_var_name_label_map[label + m_surface_state_suffix] = vars;
+			  m_var_name_label_map[label + m_bottom_state_suffix] = vars;
+			  m_var_name_label_map[label + m_depth_average_suffix] = vars;
+			  m_var_mesh_map[label + m_surface_state_suffix] = mesh2d;
+			  m_var_mesh_map[label + m_bottom_state_suffix] = mesh2d;
+			  m_var_mesh_map[label + m_depth_average_suffix] = mesh2d;
+			  m_var_dim[varName] = 3;
+		  }
+
 		  continue;
 
 	  }
+
+	  itX = Vector2DVarMapX.find(varName);
+	  itY = Vector2DVarMapY.find(varName);
+	  if ((itX != Vector2DVarMapX.end()) || (itY != Vector2DVarMapY.end()))
+	  {
+		  int ucomps = 2;
+		  std::string label = varName.substr(0, varName.length() - 1);
+		  avtCentering avtCenter(AVT_NODECENT);
+		  avtCentering avtCenter_elem(AVT_ZONECENT);
+		  std::string vars = "";
+		  if (itX != Vector2DVarMapX.end())
+		  {
+			  vars = Vector2DVarMapX[varName];
+		  }
+		  else
+		  {
+			  vars = Vector2DVarMapY[varName];
+		  }
+		  string mesh2d = m_mesh_2d;
+		  string mesh3d = m_mesh_3d;
+		  //std::size_t found2 = varName.find("Side");
+
+		  if (horizontal_center == MeshConstants10::EDGE)
+		  {
+			  mesh2d = m_side_center_point_2d_mesh;
+			  mesh3d = m_side_center_point_3d_mesh;
+		  }
+
+		  if (horizontal_center == MeshConstants10::ELEM)
+		  {
+			  avtCenter = avtCenter_elem;
+		  }
+		  std::map<std::string, std::string>::iterator it;
+		  it = m_var_name_label_map.find(label);
+
+		  if (it == m_var_name_label_map.end())
+		  {
+			  a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh2d, avtCenter, ucomps);
+			  m_var_name_label_map[label] = vars;
+			  m_var_mesh_map[label] = mesh2d;
+			  
+		  }
+		  
+		  continue;
+
+	  }
+
 	  if (m_data_file_ptr->none_data_var(varName))
 	  {
 		  debug1<<varName<<"is skipped\n";
@@ -3427,10 +3516,22 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
    
 }
 
-vtkDataArray  * avtSCHISMFileFormatImpl10::GetVectorWind(int          a_timeState)
+vtkDataArray  * avtSCHISMFileFormatImpl10::GetVector2d(int          a_timeState,std::string a_varName)
 {
-	SCHISMVar10 * SCHISMVarPtr = m_external_mesh_provider->get_mesh_data_ptr()->get_var("windSpeedX");
-	SCHISMVar10 * SCHISMVarPtr2 = m_external_mesh_provider->get_mesh_data_ptr()->get_var("windSpeedY");
+	std::string xcom, ycom;
+	size_t      found = a_varName.find_last_of("_");
+	if (found != std::string::npos)
+	{
+		xcom = a_varName.substr(0, found) + "X" + a_varName.substr(found);
+		ycom = a_varName.substr(0, found) + "Y" + a_varName.substr(found);
+	}
+	else
+	{
+		xcom = a_varName + "X";
+		ycom = a_varName + "Y";
+	}
+	SCHISMVar10 * SCHISMVarPtr = m_external_mesh_provider->get_mesh_data_ptr()->get_var(xcom);
+	SCHISMVar10 * SCHISMVarPtr2 = m_external_mesh_provider->get_mesh_data_ptr()->get_var(ycom);
 	long numDataPerLayer = m_num_mesh_nodes;
 
 	int      numDim = SCHISMVarPtr->num_dims();
@@ -3456,14 +3557,14 @@ vtkDataArray  * avtSCHISMFileFormatImpl10::GetVectorWind(int          a_timeStat
 	getSingleLayerVar(valBuff,
 		m_external_mesh_provider->get_mesh_data_ptr(),
 		a_timeState,
-		"windSpeedX");
+		xcom);
 	float * valBuff2 = NULL;
 
 	valBuff2 = new float[numData];
 		getSingleLayerVar(valBuff2,
 			m_external_mesh_provider->get_mesh_data_ptr(),
 			a_timeState,
-			"windSpeedY");
+			ycom);
 
 
 	float * valBuffAll = valBuff;
@@ -3529,10 +3630,13 @@ vtkDataArray  * avtSCHISMFileFormatImpl10::GetVectorWind(int          a_timeStat
 vtkDataArray *
 avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 {
-
-	if (!strcmp(a_varName, "wind"))
+	//decide if it is 2d scribe io format
+	std::string varName(a_varName);
+	std::map<std::string, std::string>::iterator itX;
+	itX = Vector2DVarMapX.find(varName+"X");
+	if (itX!=Vector2DVarMapX.end())
 	{
-		return GetVectorWind(a_timeState);
+		return GetVector2d(a_timeState,varName);
 	}
  
     std::string SCHISMVarName = m_var_name_label_map[a_varName];  
@@ -3567,7 +3671,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 		else
 		{
 			stringstream msgStream(stringstream::out);
-			msgStream << " " << a_varName << "miss another component data source file \n";
+			msgStream << " " << a_varName << " miss another component data source file \n";
 			EXCEPTION1(InvalidFilesException, msgStream.str());
 		}
 	}
@@ -3700,7 +3804,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
     {
 	  num_data_layers=m_num_layers-1;
     }
-    std::string        varName(a_varName);
+    
     int * layerStarts;
 	bool is_bottom=false;
 	bool is_surface=false;
@@ -4513,10 +4617,10 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	   std::string  var_name = file_name.substr(0, found_underline);
 
 	   std::map<std::string,std::string>::iterator itX,itY;
-	   itX = VectorVarMapX.find(var_name);
-	   itY = VectorVarMapY.find(var_name);
+	   itX = Vector3DVarMapX.find(var_name);
+	   itY = Vector3DVarMapY.find(var_name);
 
-	   if (itX != VectorVarMapX.end())
+	   if (itX != Vector3DVarMapX.end())
 	   {
 		   
 		   m_data_file_ptr = new NetcdfSchismOutput10(m_data_file);
@@ -4538,7 +4642,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 			   EXCEPTION1(InvalidDBTypeException, msgStream.str().c_str());
 		   }
 	   }
-	   else if (itY != VectorVarMapY.end())
+	   else if (itY != Vector3DVarMapY.end())
 	   {
 
 		   m_data_file_ptr2 = new NetcdfSchismOutput10(m_data_file);

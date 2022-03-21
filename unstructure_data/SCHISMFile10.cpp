@@ -5,6 +5,7 @@
 #include <sstream>
 
 
+
 //const int DATA_NUM_BYTE = 4;
 //const int MAX_CELL_NODE = 3;
 
@@ -770,10 +771,12 @@ SCHISMVar10*   SCHISMFile10::get_var(const int& a_varID) const
 
 SCHISMVar10*     SCHISMFile10::get_var(const std::string& a_varName) const
 {
+
   for(int iVar=0;iVar<m_total_num_vars;iVar++)
     {
        SCHISMVar10 * var;
        var = m_variables[iVar];
+
        if((var->name()) == a_varName)
          {
             return var;

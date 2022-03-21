@@ -6,6 +6,7 @@
 #include <sstream>
 #include <time.h>
 #include <math.h>
+#include <algorithm>
 
 #include <vtkDoubleArray.h>
 #include <vtkFloatArray.h>
@@ -400,17 +401,21 @@ avtSCHISMFileFormatImpl10::PopulateDatabaseMetaData(avtDatabaseMetaData *a_metaD
 
     //
     // add water surface and depth scalar
-    string mesh            = m_mesh_2d;  
+    string mesh            = m_mesh_2d; 
+	if(!m_scribeIO)
+	{
     a_avtFile->addScalarVarToMetaData(a_metaData, m_node_depth_label,   mesh, nodeCent);
+	m_var_name_label_map[m_node_depth_label] = "depth";
+	}
 
 	//for scribeIO add elev and wind
-	if (m_scribeIO)
-	{
+	//if (m_scribeIO)
+	//{
 
-		m_var_name_label_map[m_node_depth_label] = "depth";
-		a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::NODE_SURFACE_LABEL, mesh, nodeCent);
-		m_var_name_label_map[MeshConstants10::NODE_SURFACE_LABEL] = "elevation";
-	}
+		
+	//	a_avtFile->addScalarVarToMetaData(a_metaData, MeshConstants10::NODE_SURFACE_LABEL, mesh, nodeCent);
+	//	m_var_name_label_map[MeshConstants10::NODE_SURFACE_LABEL] = "elevation";
+	//}
 
 
    // m_var_mesh_map[m_node_surface_label] = mesh;
@@ -836,6 +841,7 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
   int numVar = m_data_file_ptr->num_vars();
   debug1<<"get vars "<<numVar<<endl;
 
+  std::vector<std::string> out2d_vector_added;
 
   for(int iVar = 0;iVar < numVar; iVar++)
    {
@@ -891,9 +897,11 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
 		  std::map<std::string, std::string>::iterator it;
 		  it = m_var_name_label_map.find(label);
 
-		  if ((SCHISMVarIs3D(varPtr))&&(it == m_var_name_label_map.end()))
+		  if (SCHISMVarIs3D(varPtr))//&&(it == m_var_name_label_map.end()))
 		  {
 			  a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh3d, avtCenter, ucomps);
+			  //a_avtFile->addScalarVarToMetaData(a_metaData,varName, m_mesh_3d, avtCenter);   
+              //m_var_mesh_map[varName] = m_mesh_3d;
 			  m_var_name_label_map[label] = vars;
 			  m_var_mesh_map[label] = mesh3d;
 
@@ -960,14 +968,15 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
 		  {
 			  avtCenter = avtCenter_elem;
 		  }
-		  std::map<std::string, std::string>::iterator it;
-		  it = m_var_name_label_map.find(label);
+		 
+		 
 
-		  if (it == m_var_name_label_map.end())
+		  if (std::find(out2d_vector_added.begin(), out2d_vector_added.end(), label)==out2d_vector_added.end())
 		  {
 			  a_avtFile->addVectorVarToMetaData(a_metaData, label, mesh2d, avtCenter, ucomps);
 			  m_var_name_label_map[label] = vars;
 			  m_var_mesh_map[label] = mesh2d;
+			  out2d_vector_added.push_back(label);
 			  
 		  }
 		  
@@ -977,8 +986,15 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
 
 	  if (m_data_file_ptr->none_data_var(varName))
 	  {
-		  debug1<<varName<<"is skipped\n";
-		  continue;
+		  if((varName==m_node_depth)&&(m_scribeIO))
+		  {
+			  debug1<<"scribe IO depth need to add";
+		  }
+		  else
+		  {
+		    debug1<<varName<<"is skipped\n";
+		     continue;
+		  }
 	  }
 
 	  if(!(varPtr->is_defined_over_grid()))
@@ -997,7 +1013,7 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
       avtCentering avtCenter(AVT_NODECENT);
 	 
      
-      if ((varName==m_node_surface) || (varName==m_node_depth))
+      if (((varName==m_node_surface) || (varName==m_node_depth))&&(!m_scribeIO))
         {
           continue; 
         }
@@ -3212,15 +3228,15 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
   SCHISMVar10 * SCHISMVarPtr = NULL;
   
  
-  if (m_scribeIO && ((!strcmp(a_varName, MeshConstants10::NODE_SURFACE_LABEL.c_str())) || (!strcmp(a_varName, m_node_depth_label.c_str()))))
-  {
-	 
-	  SCHISMVarPtr = m_external_mesh_provider->get_mesh_data_ptr()->get_var(SCHISMVarName);
-  }
-  else
-  {
+  //if (m_scribeIO && ((!strcmp(a_varName, MeshConstants10::NODE_SURFACE_LABEL.c_str())) || (!strcmp(a_varName, m_node_depth_label.c_str()))))
+  //{
+	 //
+	 // SCHISMVarPtr = m_external_mesh_provider->get_mesh_data_ptr()->get_var(SCHISMVarName);
+  //}
+  //else
+  //{
 	  SCHISMVarPtr= m_data_file_ptr->get_var(SCHISMVarName);
-  }
+  //}
   
   std::string level_center = SCHISMVarPtr->get_vertical_center();
   std::string data_center =SCHISMVarPtr->get_horizontal_center();
@@ -3277,22 +3293,12 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
 	
      valBuff          = new float  [numData]; 
 
-	 if (m_scribeIO && ((!strcmp(a_varName, MeshConstants10::NODE_SURFACE_LABEL.c_str())) || (!strcmp(a_varName, m_node_depth_label.c_str()))))
-	 {
-		 debug1 << " get surface/depth from out2d if scribeio format\n";
-			 getSingleLayerVar(valBuff,
-				 m_external_mesh_provider->get_mesh_data_ptr(),
-				 a_timeState,
-				 SCHISMVarName);
-		 
-	 }
-	 else
-	 {
+
 		 getSingleLayerVar(valBuff,
 			 m_data_file_ptr,
 			 a_timeState,
 			 SCHISMVarName);
-	 }
+	 
 	
 
      //total number of data = nodes for a time step
@@ -3366,17 +3372,17 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
   int numOfRecord  = 1;
   int nodeStart    = 0;
   int timeStart    = a_timeState;
-   
+  debug1<<"before schism var "<<SCHISMVarName<<" set current\n";
   SCHISMVarPtr->set_cur(timeStart);
   
-  
+  debug1<<"schism var "<<SCHISMVarName<<" set current\n";
   if (!(SCHISMVarPtr->get(valBuff)))
   {
        stringstream msgStream(stringstream::out);
        msgStream <<"Fail to retrieve "<<a_varName << " at step " <<a_timeState;
        EXCEPTION3(DBYieldedNoDataException,m_data_file,m_plugin_name,msgStream.str());
   }
-     
+  debug1<<"schism var "<<SCHISMVarName<<" data loaded\n";  
   long valid_var_size =0;
   long * node_start_index  = new long [numDataPerLayer];
   long * num_data_at_layer = new long [numTotalLayers];
@@ -3608,6 +3614,353 @@ vtkDataArray  * avtSCHISMFileFormatImpl10::GetVector2d(int          a_timeState,
 	return rv;
 	
 }
+vtkDataArray  *avtSCHISMFileFormatImpl10::GetVector3d(int          a_timeState,const std::string a_varName)
+{
+
+	std::string SCHISMVarName = m_var_name_label_map[a_varName];  
+	
+	std::vector<std::string> varNames;
+
+	std::istringstream f(SCHISMVarName);
+	std::string s;
+
+	while (getline(f, s, ';'))
+	{
+		varNames.push_back(s);
+	}
+
+   std::string varMesh      = m_var_mesh_map[a_varName];
+
+	
+	SCHISMVar10 * SCHISMVarPtr = m_data_file_ptr->get_var(varNames[0]);
+	
+    if (!(SCHISMVarPtr->is_valid()))
+    {
+      
+      EXCEPTION1(InvalidVariableException, a_varName);
+    }
+	
+	SCHISMVar10 * SCHISMVarPtr2 = NULL;
+	if (varNames.size() == 2)
+	{
+		if (m_data_file_ptr2)
+		{
+			SCHISMVarPtr2 = m_data_file_ptr2->get_var(varNames[1]);
+	    }
+		else
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << " " << a_varName << " miss another component data source file \n";
+			EXCEPTION1(InvalidFilesException, msgStream.str());
+		}
+	}
+
+	std::string level_center = SCHISMVarPtr->get_vertical_center();
+    std::string data_center =SCHISMVarPtr->get_horizontal_center();
+
+	int * drywet;
+
+  long numDataPerLayer=m_num_mesh_nodes;
+  if (data_center ==MeshConstants10::ELEM)
+  {
+	  load_ele_dry_wet(a_timeState);
+	  numDataPerLayer=m_num_mesh_faces;
+	  drywet=m_ele_dry_wet;
+  }
+  else if (data_center ==MeshConstants10::EDGE)
+  {
+	  load_side_dry_wet(a_timeState);
+	  numDataPerLayer=m_num_mesh_edges;
+	  drywet=m_side_dry_wet;
+  }
+  else
+  {
+	  debug1<<"try to load node dry wet\n";
+	  load_node_dry_wet(a_timeState);
+	  drywet=m_node_dry_wet;
+  }
+
+    debug1 << "load vector dry wet\n";
+    // last dim is vector component  
+    
+    int      numDim = SCHISMVarPtr->num_dims();       
+    SCHISMDim10* comDim = SCHISMVarPtr->get_dim(numDim-1);
+    int ncomps       = comDim->size();
+	int ucomps       = (ncomps == 2 ? 3 : ncomps);
+
+
+	ucomps = 3;
+	ncomps = 2;
+
+
+	float *oneEntry  = new float[ucomps];
+	int idata=0;
+
+	
+
+    int num_data_layers    =m_num_layers;
+	if(level_center == MeshConstants10::HALF_LAYER)
+    {
+	  num_data_layers=m_num_layers-1;
+    }
+    
+    int * layerStarts;
+	bool is_bottom=false;
+	bool is_surface=false;
+
+    if (a_varName.find(m_surface_state_suffix) != string::npos) 
+    {
+      num_data_layers      = 1;
+      layerStarts    = new int [num_data_layers];
+      layerStarts[0] =m_num_layers-1;
+	  if(level_center == MeshConstants10::HALF_LAYER)
+      {
+	    //layerStarts[0]--;
+      }
+	  is_surface=true;
+    }
+    else if (a_varName.find(m_bottom_state_suffix) != string::npos)
+    {
+      num_data_layers      = 1;
+      layerStarts    = new int [num_data_layers];
+	  is_bottom=true;
+	  //this is the layer next to the bottom
+	  //for prism center data this is the first valid bottom prim center
+      layerStarts[0] = 1;
+    } 
+    else
+    {
+      layerStarts   = new int [num_data_layers];
+      for(int iLayers=0;iLayers<num_data_layers;iLayers++)
+        {
+          layerStarts[iLayers] = iLayers;
+        }
+     }
+  
+
+   
+    
+	//int numDataPerLayer=m_nominal_size_per_layer[data_center];
+	
+
+    float * valBuff = NULL;
+	float * valBuff2 = NULL;
+	float * valBuffAll = NULL;
+
+	int totalNumLayers=m_num_layers;
+	
+
+
+		valBuff = new float[totalNumLayers*numDataPerLayer];
+		valBuff2 = new float[totalNumLayers*numDataPerLayer];
+		valBuffAll = new float[totalNumLayers*numDataPerLayer*ncomps];
+
+
+ 
+    int numOfRecord  = 1;
+    int nodeStart    = 0;
+    int timeStart    = a_timeState;
+   
+    SCHISMVarPtr->set_cur(timeStart);
+
+	if (!(SCHISMVarPtr->get(valBuff)))
+	{
+		stringstream msgStream(stringstream::out);
+		msgStream << "Fail to retrieve " << a_varName << " at step " << a_timeState;
+		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
+	}
+
+	for(int i=0;i<totalNumLayers*numDataPerLayer;i++)
+	{
+		valBuff[i]=0.6;
+	}
+	//debug1 << "vector buff1 filled\n";
+
+
+		//debug1 << "vector buff2 time set\n";
+		SCHISMVarPtr2->set_cur(timeStart);
+		//debug1 << "vector buff2 to load "<<valBuff2<<"\n";
+		if (!(SCHISMVarPtr2->get(valBuff2)))
+		{
+			stringstream msgStream(stringstream::out);
+			msgStream << "Fail to retrieve vector " << a_varName << "another component at step " << a_timeState;
+			EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
+		}
+		for (long iNode = 0; iNode < totalNumLayers*numDataPerLayer; iNode++)
+		{
+			valBuffAll[ncomps*iNode] = valBuff[iNode];
+			valBuffAll[ncomps * iNode + 1] = valBuff[iNode];
+		}
+
+
+	//debug1 << "vector all buff filled\n";
+  
+	long valid_var_size =0;
+    long * node_start_index= new long [numDataPerLayer];
+    long * num_data_at_layer = new long [totalNumLayers];
+
+    for(int iLayer=0;iLayer<m_num_layers;iLayer++)
+    {
+	  num_data_at_layer[iLayer]=0;
+    }
+	int * kbp00=m_kbp_node;
+
+    if (!(data_center.compare(MeshConstants10::EDGE)))
+    {
+	    kbp00=m_kbp_side;
+    }
+    else if (!(data_center.compare(MeshConstants10::ELEM)))
+    {
+	    kbp00=m_kbp_ele;
+    }
+
+   int num_layers =m_num_layers;
+   if(level_center == MeshConstants10::HALF_LAYER)
+   {
+	    num_layers--;
+   }
+    for(int iNode=0;iNode<numDataPerLayer;iNode++)
+    {
+	  node_start_index[iNode]=valid_var_size;
+	  valid_var_size+=((num_layers-std::max(1,kbp00[iNode])+1)*ncomps);
+	  for(int iLayer=0;iLayer<totalNumLayers;iLayer++)
+      {
+		if(iLayer>=(std::max(1,kbp00[iNode])-1))
+		{
+	       num_data_at_layer[iLayer]++;
+		}
+      }
+    }
+ 
+	debug1<<"size of vector data "<<valid_var_size<<"\n";
+
+
+     vtkFloatArray *rv = vtkFloatArray::New(); 
+     rv->SetNumberOfComponents(ucomps);
+     idata = 0;
+     
+     if (a_varName.find(m_depth_average_suffix) == string::npos)
+     {
+       idata = 0;
+       //total number of data =layers*nodes for a time step
+       int ntuples       = 0;
+       for (int iLayer   = 0 ; iLayer < num_data_layers ; iLayer++)
+       {
+          int layer = layerStarts[iLayer];
+		  ntuples += num_data_at_layer[layer];
+	   }
+
+      
+	   if (is_bottom||is_surface) //for surface and bottom data, same as number of 2D node
+	   {
+	      ntuples=numDataPerLayer; 
+	   }
+	    rv->SetNumberOfTuples(ntuples); 
+
+	   debug1<<"totla number of vect tuples "<<ntuples<<" "<<num_data_layers<<" \n";
+
+       for (int iLayer   = 0 ; iLayer < num_data_layers ; iLayer++)
+       {
+          int layer = layerStarts[iLayer];
+           
+          for( int iNode = 0 ; iNode < numDataPerLayer; iNode++)
+          {  
+
+			  int bottom_layer = std::max(1,kbp00[iNode])-1;
+			   if(is_bottom)
+			   {
+				   layer=bottom_layer+1;
+				   if(layer>(num_layers-1))
+				   {
+					   layer=num_layers-1;
+				   }
+			   }
+              
+			  int start_index = node_start_index[iNode];
+
+			  if(layer>=bottom_layer) 
+			  {
+				  //if(!drywet[iNode])
+				  if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
+				  {
+
+					  for(int iComp = 0; iComp < ncomps; iComp++)
+					  {
+						 oneEntry[iComp]= valBuffAll[start_index+(layer+1-std::max(1,kbp00[iNode]))*ncomps+iComp];
+                 
+					  }
+
+					  for(int iComp = ncomps; iComp < ucomps; iComp++)
+					  {
+						 oneEntry[iComp]= 0.0;
+					  }
+				  }
+				  else
+				  {
+					  for(int iComp = 0; iComp < ucomps; iComp++)
+					  {
+						 oneEntry[iComp]= MeshConstants10::DRY_STATE;
+					  }
+				  }
+				  
+				  rv->SetTuple(idata, oneEntry); 
+				  idata++;
+			  }
+          }
+          
+	   }
+	 }
+     else
+     {
+       idata = 0;
+       //total number of data =nodes for a time step
+       int ntuples       = numDataPerLayer;
+       rv->SetNumberOfTuples(ntuples);
+
+       float * averageState = new float [numDataPerLayer*ncomps];
+
+       //vectorDepthAverage(averageState,valBuffAll,node_start_index,a_timeState,ncomps,data_center,level_center);
+
+       idata  = 0;
+       for( int iNode = 0 ; iNode   < numDataPerLayer; iNode++)
+         {
+				
+		   //if(!drywet[iNode])
+		   if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
+		   {
+				for(int iComp = 0; iComp < ncomps; iComp++)
+				{
+				   oneEntry[iComp]   = averageState[iNode*ncomps+iComp];
+				}
+				for(int iComp = ncomps; iComp < ucomps; iComp++)
+				{
+				   oneEntry[iComp]= 0.0;
+				}
+			 }
+			else
+			{
+				for(int iComp = 0; iComp < ucomps; iComp++)
+				{
+					oneEntry[iComp]= MeshConstants10::DRY_STATE;
+				}
+			}
+            
+           rv->SetTuple(idata, oneEntry);  
+           idata++;             
+         }
+       delete averageState;
+     }
+
+ 
+    delete valBuff;
+
+		delete valBuff2;
+		delete valBuffAll;
+
+    delete layerStarts;
+    delete oneEntry;
+    return rv;   
+}
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormatImpl10::GetVectorVar
@@ -3639,6 +3992,12 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 		return GetVector2d(a_timeState,varName);
 	}
  
+	//itX = Vector3DVarMapX.find(varName+"X");
+	//if (itX!=Vector3DVarMapX.end())
+	//{
+	//	return GetVector3d(a_timeState,varName);
+	//}
+
     std::string SCHISMVarName = m_var_name_label_map[a_varName];  
 	
 	std::vector<std::string> varNames;
@@ -3874,13 +4233,13 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 		msgStream << "Fail to retrieve " << a_varName << " at step " << a_timeState;
 		EXCEPTION3(DBYieldedNoDataException, m_data_file, m_plugin_name, msgStream.str());
 	}
-	debug1 << "vector buff1 filled\n";
+
 
     if (SCHISMVarPtr2)
 	{
-		debug1 << "vector buff2 time set\n";
+
 		SCHISMVarPtr2->set_cur(timeStart);
-		debug1 << "vector buff2 to load "<<valBuff2<<"\n";
+
 		if (!(SCHISMVarPtr2->get(valBuff2)))
 		{
 			stringstream msgStream(stringstream::out);
@@ -4631,9 +4990,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 #endif
 		   try 
 		   {
-
-			    
-			    m_data_file_ptr2 = new NetcdfSchismOutput10(extra_file);
+              m_data_file_ptr2 = new NetcdfSchismOutput10(extra_file);
 		   }
 		   catch (...)
 		   {
@@ -4801,6 +5158,65 @@ void avtSCHISMFileFormatImpl10::PopulateVarMap()
         {
           continue; 
         }
+
+	  std::map<std::string,std::string>::iterator itX,itY;
+	  itX = Vector3DVarMapX.find(varName);
+	  itY = Vector3DVarMapY.find(varName);
+
+	  if ((itX != Vector3DVarMapX.end())||(itY != Vector3DVarMapY.end()))
+	  {
+		 
+		  std::string label = "";
+		  std::size_t found = varName.find_last_of("_");
+		  if (found != std::string::npos)
+		  {
+			  label = varName.substr(0, found-1)+varName.substr(found);
+		  }
+		  else
+		  {
+			  label = varName.substr(0, varName.length() - 1);
+		  }
+		  
+		  std::string vars = "";
+		  if(itX!=Vector3DVarMapX.end())
+		  {
+			  vars=Vector3DVarMapX[varName];
+		  }
+		  else
+		  {
+			  vars=Vector3DVarMapY[varName];
+		  }
+
+		  std::map<std::string, std::string>::iterator it;
+		  m_var_name_label_map[label] = vars;
+          m_var_name_label_map[label + m_surface_state_suffix] = vars;
+		  m_var_name_label_map[label + m_bottom_state_suffix] = vars;
+	      m_var_name_label_map[label + m_depth_average_suffix] = vars;
+		  continue;
+		  
+	  }
+
+	  itX = Vector2DVarMapX.find(varName);
+	  itY = Vector2DVarMapY.find(varName);
+	  if ((itX != Vector2DVarMapX.end()) || (itY != Vector2DVarMapY.end()))
+	  {
+		  
+		  std::string label = varName.substr(0, varName.length() - 1);
+		  std::string vars = "";
+		  if (itX != Vector2DVarMapX.end())
+		  {
+			  vars = Vector2DVarMapX[varName];
+		  }
+		  else
+		  {
+			  vars = Vector2DVarMapY[varName];
+		  }
+
+	      m_var_name_label_map[label] = vars;	  
+		  continue;
+	  }
+
+
       std::string  label;
       label = varName;
       // this dic make it easy to find out data set for a visit plot variable

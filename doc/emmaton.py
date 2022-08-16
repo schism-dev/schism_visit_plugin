@@ -6,19 +6,19 @@ cross_points=[(607706, 4.21508e+006),(608204, 4.21443e+006),(610080, 4.2163e+006
 		
 		
 for i in range(len(stream_points)-1):
-   AddPlot("Pseudocolor", "salt")
+   AddPlot("Pseudocolor", "salinity")
    p = PseudocolorAttributes()
    p.minFlag = 1
    p.min= 0.0
    p.maxFlag = 1
-   p.max= 2.0
+   p.max= 1.0
    p.colorTableName = "hot"
    p.legendFlag=0
    SetPlotOptions(p)
    AddOperator("Transform")
    tr = TransformAttributes()
    tr.doScale = 1
-   tr.scaleZ  = 600
+   tr.scaleZ  = 100
    SetOperatorOptions(tr)
    x1 = stream_points[i][0]
    y1 = stream_points[i][1]
@@ -45,24 +45,24 @@ for i in range(len(stream_points)-1):
    DrawPlots()
 
 for i in range(len(cross_points)/2):
-   AddPlot("Pseudocolor", "salt")
+   AddPlot("Pseudocolor", "salinity")
    p = PseudocolorAttributes()
    p.minFlag = 1
    p.min= 0.0
    p.maxFlag = 1
-   p.max= 2.0
+   p.max= 1.0
    p.colorTableName = "hot"
    p.legendFlag=0
    SetPlotOptions(p)
    AddOperator("Threshold")
    ts=ThresholdAttributes()
-   ts.listedVarNames="salt"
+   ts.listedVarNames="salinity"
    ts.lowerBounds=0.0
    ts.zonePortions=1
    AddOperator("Transform")
    tr = TransformAttributes()
    tr.doScale = 1
-   tr.scaleZ  = 600
+   tr.scaleZ  = 100
    SetOperatorOptions(tr)
    x1 = cross_points[2*i][0]
    y1 = cross_points[2*i][1]
@@ -96,11 +96,6 @@ v.imageZoom=47.566
 v.shear=(0,0,1)
 v.perspective = 1
 SetView3D(v) # Set the 3D view
-AddPlot("Pseudocolor", "depth")
-p = PseudocolorAttributes()
-p.legendFlag=0
-SetPlotOptions(p)
-AddOperator("Elevate")
 DrawPlots()
 
     

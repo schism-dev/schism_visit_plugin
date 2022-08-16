@@ -36,7 +36,8 @@ The most comprehensive documentation of ViIt is the user site:\\
 \url{http://visitusers.org/}
 
 \section{Supported File Types}
-There are three plugins documented here. The \emph{SCHISM} plugin is for SCHISM NetCDF ouput and legacy binary outputs. A list of data centerings for various SCHISM binary output extensions is given in Table \ref{tab:binaryfiles}; supported file types are indicated with a checkmark.
+
+This plugin support SCHISM legacy binary and netCDF output files,and SCHISM 5.10 output format. There are three plugins documented here. The \emph{SCHISM} plugin is for SCHISM NetCDF ouput and legacy binary outputs. A list of data centerings for various legacy SCHISM binary output extensions is given in Table \ref{tab:binaryfiles}; supported file types are indicated with a checkmark.
 
 \begin{table}
 	\centering
@@ -59,11 +60,13 @@ Extension & Horizontal Center & Vertical Center & Mesh & Variable Dim. & Example
 	\label{tab:binaryfiles}
 \end{table}
 
+From version 5.10, SCHISM outputs are splited into different NetCDF files. All 2D output variables are saved in out2d\_*.nc files, like elevation, depth and windSpeed. In addition out2d files contains all 2D mesh information.3D scalar variables are saved in a single NetCDF file, for instance salinity and temperature. 3D vectors are saved into
+two seperated NetCDF file for each vector component , for instance horizontal veloicty vector are stored in two netCDF files, horizontalVelX\_*.nc and horizontalVelY\_*.nc.
 
 In addition to the binary output files, two input file types are also supported. 
 The \emph{gr3}  and \emph{prop} file types each have their own plugins. 
 
-Only node centered input (*.gr3) and output files (e.g. *.61) have the full grid connectivity listed within them. 
+ For legacy binary output, only node centered input (*.gr3) and output files (e.g. *.61) have the full grid connectivity listed within them. 
 Element-centered files such as *.prop input and *.66 output do not have the grid topology inside the files. 
 Hence, these files are not sufficient on their own for visualization. 
 To provide the grid connectivity, it is expected that a compatible hgrid.gr3 file is in the directory.
@@ -233,10 +236,12 @@ not appear at all it may indicate a problem with the plugin installation.
 \end{center}
 \end{figure}
 
-To view a SCHISM element-centered data file (for instance, extension .66 or .prop) you must have 
+For legacy binary output,to view a SCHISM element-centered data file (for instance, extension .66 ) you must have 
 an \emph{hgrid.gr3} file located in the same directory.  This file defines the 2D horizontal 
-unstructured mesh upon which the element-centered data are defined. 
+unstructured mesh upon which the element-centered data are defined. You also need \emph{hgrid.gr3} when viewing prop file.
 To open a SCHISM gr3 or prop files, you need to set {\bf the Open file as type} option to \emph{gr3} or \emph{prop} rather than {\emph SCHISM}.
+
+From version 5.10, you can open out2d\_*.nc file and plot 2D variable directly . To open all other 3D scalar and vector files, you need corresponding out2d\_*.nc and zCoordinates\_*.nc files in the same directory.
 
 Adding the SCHISM file to preferred database plugins will avoid unnecessary failures during some complex VisIt operations with SCHISM files. This preference can be set using the {\bf Options \textrightarrow Plugin manager} 
 option from the main interface, as shown in Figure \ref{figure:preferDatabase}.
@@ -262,7 +267,7 @@ applying the plot settings to the new data. {\bf Reopen} is more commonly used o
 in section \ref{sec:time}.
         
  \section{Displaying the Mesh}
-You can view the mesh from the binary file by clicking the {\bf Add} button on the {\bf Plots} panel. Select {\bf Mesh} 
+You can view the mesh from SCHISM output file by clicking the {\bf Add} button on the {\bf Plots} panel. Select {\bf Mesh} 
 in the submenu, which should give you five options: {\bf 2D\_Mesh}, {\bf 3D\_Mesh} ,{\bf Layer\_Mesh},{\bf side\_center\_2D} and
 {\bf side\_center\_3D}, choose one of them.
 (Figure \ref{figure:meshItems}).  
@@ -274,7 +279,7 @@ in the submenu, which should give you five options: {\bf 2D\_Mesh}, {\bf 3D\_Mes
         \end{center}
         \end{figure}
 				
-The table \ref{tab:meshComments} summarize some import features of those five options and  the {\bf SCHISM} output
+The table \ref{tab:meshComments} summarize some import features of those five options and  the legacy binary {\bf SCHISM} output
 defined over those mesh or point group.
 
 \begin{table}
@@ -340,7 +345,7 @@ Click {\bf Apply} button to finish; you may need to click {\bf Draw} again to up
 		 The available variables will depend on the file you opened, centerings of the data (node, element) 
 		 and whether the data in the file are 2D or 3D mesh. For instance, depth and surface are defined only over the 2D mesh.
 		 In contrast, velocity is a 3D variable; its native centering is element sides and whole levels, but 
-		 in SCHISM standard output (hvel.64) it is interpolated to nodes. In 3D, VisIt will also report the state of surface layer, bottom layer and
+		 in SCHISM standard output (legacy hvel.64, horizontalVelX/horizontalVelY) it is interpolated to nodes. In 3D, VisIt will also report the state of surface layer, bottom layer and
      depth averaged and treat them as state defined over a single layer.
      
      VisIt provides a number of ways that may be useful to plot state variables. The most common choice for
@@ -363,7 +368,7 @@ Click {\bf Apply} button to finish; you may need to click {\bf Draw} again to up
         \end{figure} 
 				
 			Another frequently used type is the vector plot, showing water velocity over the 2D or 3D grid. 
-			This type of plot can be generated from SCHISM's hvel.64 output, 
+			This type of plot can be generated from SCHISM's  legacy hvel.64 or horizontalVelX/horizontalVelY file,
 			whose velocity vectors have been pre-interpolated to the nodes of model grid. Options are available to plot 
 			depth averaged, surface or bottom velocity (which is usually very small).
       Figure \ref{figure:fractVelVector} shows a vector plot depth-averaged flow field at Fracts Tract in the Sacramento-San Joaquin
@@ -428,12 +433,12 @@ A second option is to generate a simple .visit database grouping file to specify
 
 \begin{verbatim}
 ====== File salinity.visit =======
-		   200_salt.63
-       201_salt.63
-       202_salt.63
-			  ... 
-       215_salt.63
-       216_salt.63
+       salinity_200.nc
+       salinity_201.nc
+       salinity_202.nc
+        ... 
+       salinity_215.nc
+       salinity_216.nc
 ====== End of file ====
 \end{verbatim}
 				
@@ -596,7 +601,7 @@ those polygons coordinates into a number of \emph{gr3} files in which all the me
 flagged a nonzero identification integer.
 
 To define a subsets in VisIt, first open the \emph{gr3} file. Given a example, the mesh points within the Franks Tract\
-is defined by the \emph{gr3} file, {\bf mask\_franks\_tract.gr3}. The Frank Tracts is the blue zone in the figure \ref {figure:frankTractZones}. Then do a pseudo-color plot of the data value stored in {\bf mask\_franks\_tract.gr3}. The \emph{gr3}
+is defined by the \emph{gr3} file, {\bf mask\_franks\_tract.gr3}. The Frank Tracts is the blue zone in the figure \ref {figure:franksTractZones}. Then do a pseudo-color plot of the data value stored in {\bf mask\_franks\_tract.gr3}. The \emph{gr3}
 file only store one type of value on each mesh node and the file name is used as the name of data value by default in VisIt.
 Use \emph{Threshold} operations to filter out any points whose value is other than the identification integer of the Franks
 Tract Zone as shown in the figure \ref{figure:franksTractZoneThreshold}, where the identifying integer of the Franks Tract is
@@ -777,13 +782,13 @@ We named it after the start and end day, but the .visit extension is the only re
 part of the name:
 		
 \begin{verbatim}
-====== File salt_200_216.visit =======
-		   200_salt.63
-       201_salt.63
-       202_salt.63
-			  ... 
-       215_salt.63
-       216_salt.63
+====== File salinity.visit =======
+       salinity_200.nc
+       salinity_201.nc
+       salinity_202.nc
+        ... 
+       salinity_215.nc
+       salinity_216.nc
 ====== End of file ====
 \end{verbatim}
 		

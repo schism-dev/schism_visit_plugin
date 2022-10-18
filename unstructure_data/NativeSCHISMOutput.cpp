@@ -3,6 +3,7 @@
 #include "SCHISMFileUtil.h"
 #include <sstream>
 #include <stdlib.h>
+#include <algorithm>
 
 
 const int DATA_NUM_BYTE = 4;
@@ -158,7 +159,7 @@ bool NativeSchismOutputVar::get(float * a_buffer) const
 	  fill_bottom(kbp00);
       for(int iNode=0;iNode<totalNodeNum;iNode++)
       {
-		  int valid_bottom_layer = max(1,kbp00[iNode]);
+		  int valid_bottom_layer = std::max(1,kbp00[iNode]);
           for(int iLayer = valid_bottom_layer; iLayer<numLayer+1;iLayer++)
           {
              for(int iComponent = 0 ;iComponent<comSize; iComponent++)

@@ -1,3 +1,4 @@
+#include <algorithm>
 #include "SCHISMMeshProvider.h"
 #include "MeshConstants.h"
 #include "SCHISMFileUtil.h"

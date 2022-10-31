@@ -942,7 +942,23 @@ void avtSCHISMFileFormatImpl10::PopulateStateMetaData(avtDatabaseMetaData * a_me
 	  if ((itX != Vector2DVarMapX.end()) || (itY != Vector2DVarMapY.end()))
 	  {
 		  int ucomps = 2;
-		  std::string label = varName.substr(0, varName.length() - 1);
+		  std::string label = "";
+		  if ((varName[varName.length() - 1] == 'Y') || (varName[varName.length() - 1] == 'X'))
+		  {
+			  label = varName.substr(0, varName.length() - 1);
+		  }
+		  else
+		  {
+			  std::size_t found = varName.find('_');
+			  if (found != std::string::npos)
+			  {
+				  label= varName.substr(0, found - 1)+ varName.substr(found, varName.length());
+			  }
+			  else
+			  {
+				  EXCEPTION1(InvalidVariableException, varName);
+			  }
+		  }
 		  avtCentering avtCenter(AVT_NODECENT);
 		  avtCentering avtCenter_elem(AVT_ZONECENT);
 		  std::string vars = "";
@@ -3305,7 +3321,7 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
      int ntuples        = numData; 
      vtkDoubleArray *rv = vtkDoubleArray::New();
      rv->SetNumberOfTuples(ntuples);
-     int idata = 0;    
+     int idata = 0; 
      for( int iNode = 0 ; iNode < numData; iNode++)
        {
 		   float valTemp = valBuff[iNode];
@@ -3321,7 +3337,6 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
 			 else
 				rv->SetTuple1(idata, valTemp);  
 		   }
-         
          idata++;             
        }
      delete   valBuff;
@@ -3986,12 +4001,27 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
 	//decide if it is 2d scribe io format
 	std::string varName(a_varName);
 	std::map<std::string, std::string>::iterator itX;
-	itX = Vector2DVarMapX.find(varName+"X");
-	if (itX!=Vector2DVarMapX.end())
+	std::size_t found = varName.find('_');
+	std::string x_com_name = "";
+	if (found != std::string::npos)
 	{
-		return GetVector2d(a_timeState,varName);
+		x_com_name = varName.substr(0, found) +"X"+ varName.substr(found, varName.length());
 	}
- 
+	else
+	{
+		x_com_name = varName + "X";
+
+	}
+	itX = Vector2DVarMapX.find(x_com_name);
+	if (itX != Vector2DVarMapX.end())
+	{
+		return GetVector2d(a_timeState, varName);
+	}
+
+	
+   
+
+
 	//itX = Vector3DVarMapX.find(varName+"X");
 	//if (itX!=Vector3DVarMapX.end())
 	//{

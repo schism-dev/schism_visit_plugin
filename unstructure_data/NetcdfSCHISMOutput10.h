@@ -27,6 +27,7 @@ public:
   std::string       global_att_as_string(const std::string& a_att_name) const;
   bool              inquire_var(const std::string& a_var_name) const;
   void              set_mesh_data_ptr(SCHISMFile10* a_ptr);
+  void              set_mesh_bottom(SCHISMFile10* a_ptr, const int& a_time);
 protected:
    
 private:
@@ -75,6 +76,12 @@ public:
   bool              get(float *     a_buffer)  ;
   bool              get(double *     a_buffer)  ;
   bool              get(long *     a_buffer) ;
+
+  bool              get(int *       a_buffer,int* a_bottom);
+  bool              get(float *     a_buffer, int* a_bottom);
+  bool              get(double *     a_buffer, int* a_bottom);
+  bool              get(long *     a_buffer, int* a_bottom);
+
   void              set_cur(const int& a_record);
   
   // add reference to thoe ncvar it wrapped
@@ -90,7 +97,7 @@ protected:
   bool              get_float_cache(float *     a_buffer) ;
 
   template<class T>
-  bool              load_from_file(T * a_buffer);
+  bool              load_from_file(T * a_buffer,int* a_bottom);
 
 private:
 
@@ -117,7 +124,7 @@ private:
 
 
 template<class T>
-bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
+bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer,int * a_bottom)
 {
   int num_component = m_num_component;
 
@@ -194,9 +201,18 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
   }
 
  
-  int * bottom_layer = new int [node_num];
+  int * bottom_layer = NULL;
+  if(a_bottom)
+  { 
+	  bottom_layer = a_bottom;
+  }
+  else
+  {
+	 bottom_layer = new int[node_num];
+	 fill_current_bottom(bottom_layer);
+  }
 
-  fill_current_bottom(bottom_layer);
+  
  
   long * start_loc = new long [node_num];
 
@@ -282,8 +298,10 @@ bool  NetcdfSchismOutputVar10::load_from_file(T * a_buffer)
 	
 	delete buffer;
   
-	
-  delete bottom_layer;
+	if (!a_bottom)
+	{
+		delete bottom_layer;
+	}
   delete start_loc;
   return true;
 }

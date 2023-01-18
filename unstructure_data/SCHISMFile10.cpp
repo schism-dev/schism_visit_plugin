@@ -321,12 +321,32 @@ bool   SCHISMVar10::get(double *     a_buffer)
 	return false;
 }
 
+bool   SCHISMVar10::get(int *       a_buffer,int* a_bottom)
+{
+	return false;
+}
+
+
+
+bool   SCHISMVar10::get(float *     a_buffer,int* a_bottom)
+{
+	return false;
+}
+
+bool   SCHISMVar10::get(double *     a_buffer,int* a_bottom)
+{
+	return false;
+}
+
 void    SCHISMVar10::set_cur(const int& a_timeRecord)
 {
 	return;
 }
 
-
+bool   SCHISMVar10::get(long *       a_buffer,int* a_bottom)
+{
+	return false;
+}
 
 bool   SCHISMVar10::get(long *       a_buffer) 
 {
@@ -673,6 +693,11 @@ SCHISMFile10& SCHISMFile10::operator=(const SCHISMFile10& a_other_file)
 }
 
  void   SCHISMFile10::set_mesh_data_ptr(SCHISMFile10* a_ptr)
+ {
+	 return;
+ }
+
+ void   SCHISMFile10::set_mesh_bottom(SCHISMFile10* a_ptr, const int& a_time)
  {
 	 return;
  }

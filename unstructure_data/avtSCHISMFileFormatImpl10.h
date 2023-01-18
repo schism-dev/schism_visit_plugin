@@ -57,8 +57,7 @@ protected:
 
  // for scribe io 2d vector data, all coms saved in out2d file 
   vtkDataArray  *GetVector2d(int          a_timeState,const std::string a_varName);
-  // for scirbe io 3d vector data
-  vtkDataArray  *GetVector3d(int          a_timeState,const std::string a_varName);
+  
   
 //private:
 

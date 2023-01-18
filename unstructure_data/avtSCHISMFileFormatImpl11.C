@@ -303,7 +303,7 @@ void   avtSCHISMFileFormatImpl11::create3DUnstructuredMesh(vtkUnstructuredGrid *
      points->SetNumberOfPoints(m_total_valid_3D_point);
 	  debug1<<"total valid 3d pts: "<<m_total_valid_3D_point<<"\n";
       double * pointPtr       = (double *) points->GetVoidPointer(0);
-	  debug1 << "pointer of mesh " << m_external_mesh_provider << "\n";
+	  debug1 << "pointer of mesh double xy " << m_external_mesh_provider << "\n";
 	  if (!m_external_mesh_provider->fillPointCoord3D(pointPtr,a_timeState))
         {
           stringstream msgStream(stringstream::out);

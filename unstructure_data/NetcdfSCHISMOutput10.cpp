@@ -238,7 +238,7 @@ void   NetcdfSchismOutput10::fill_node_bottom()
 			long count[1];
 			count[0] = numMeshNodes;
 			ncvar->get(m_node_bottom, count[0]);
-
+            
 			//fill should be called for first step
 			//m_node_bottom_time_id = 0;
 		}
@@ -384,7 +384,7 @@ void   NetcdfSchismOutput10::fill_ele_bottom()
 }
 void   NetcdfSchismOutput10::get_node_bottom(int* a_node_bottom,const int& a_time)
 {
-	if (m_node_bottom)
+	if ((m_node_bottom)&&(a_node_bottom))
 	{
 		NcDim * dimNodePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_NODES.c_str());
 		long numMeshNodes = 0;
@@ -396,16 +396,12 @@ void   NetcdfSchismOutput10::get_node_bottom(int* a_node_bottom,const int& a_tim
 		}
 		
 	}
-	else//delegate to mesh ptr
-	{
-		
-		m_meshFilePtr->get_node_bottom(a_node_bottom, a_time);
-	}
+
 
 }
 void   NetcdfSchismOutput10::get_face_bottom(int* a_face_bottom,const int& a_time)
 {
-	if (m_node_bottom)
+	if ((m_node_bottom)&&(a_face_bottom))
 	{
 		NcDim * dimFacePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_FACES.c_str());
 		long numMeshFaces = 0;
@@ -416,14 +412,11 @@ void   NetcdfSchismOutput10::get_face_bottom(int* a_face_bottom,const int& a_tim
 			a_face_bottom[i] = m_face_bottom[i];
 		}
 	}
-	else//delegate to mesh ptr
-	{
-		m_meshFilePtr->get_face_bottom(a_face_bottom, a_time);
-	}
+
 }
 void  NetcdfSchismOutput10::get_edge_bottom(int* a_edge_bottom,const int& a_time)
 {
-	if (m_node_bottom)
+	if ((m_node_bottom)&&(a_edge_bottom))
 	{
 		NcDim * dimEdgePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_EDGES.c_str());
 		long numMeshEdges = 0;
@@ -434,10 +427,41 @@ void  NetcdfSchismOutput10::get_edge_bottom(int* a_edge_bottom,const int& a_time
 			a_edge_bottom[i] = m_edge_bottom[i];
 		}
 	}
-	else//delegate to mesh ptr
+
+}
+
+
+
+void  NetcdfSchismOutput10::set_mesh_bottom(SCHISMFile10 * a_ptr, const int& a_time)
+{
+	if (!m_node_bottom)
 	{
-		m_meshFilePtr->get_edge_bottom(a_edge_bottom, a_time);
+		NcDim * dimNodePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_NODES.c_str());
+		long numMeshNodes = 0;
+		numMeshNodes = dimNodePtr->size();
+		m_node_bottom = new int[numMeshNodes];
+		a_ptr->get_node_bottom(m_node_bottom, a_time);
 	}
+	
+
+	if (!m_face_bottom)
+	{
+		NcDim * dimFacePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_FACES.c_str());
+		long numMeshFaces = 0;
+		numMeshFaces = dimFacePtr->size();
+		m_face_bottom = new int[numMeshFaces];
+		a_ptr->get_face_bottom(m_face_bottom, a_time);
+	}
+	
+	if (!m_edge_bottom)
+	{
+		NcDim * dimEdgePtr = m_outputNcFilePtr->get_dim(MeshConstants10::DIM_MESH_EDGES.c_str());
+		long numMeshEdges = 0;
+		numMeshEdges = dimEdgePtr->size();
+		m_edge_bottom = new int[numMeshEdges];
+		a_ptr->get_edge_bottom(m_edge_bottom, a_time);
+	}
+	
 }
 
  bool    NetcdfSchismOutput10::update_bottom_index(const int& a_time)
@@ -859,6 +883,41 @@ void  NetcdfSchismOutputVar10::fill_ncVar(NcVar * a_nc_var)
    }
  }
 
+ bool  NetcdfSchismOutputVar10::get(float *     a_buffer,int* a_bottom)
+ {
+
+	 int dataSize = computeDataNumPerTIMEStep();
+
+	 if (m_data_cached)
+	 {
+;
+		 return get_float_cache(a_buffer);
+	 }
+	 return load_from_file<float>(a_buffer, a_bottom);
+ }
+
+ bool  NetcdfSchismOutputVar10::get(double *     a_buffer,int* a_bottom)
+ {
+
+	 int dataSize = computeDataNumPerTIMEStep();
+	 return load_from_file<double>(a_buffer, a_bottom);
+ }
+
+
+ bool  NetcdfSchismOutputVar10::get(int *     a_buffer,int *a_bottom)
+ {
+
+	 int dataSize = computeDataNumPerTIMEStep();
+
+	 if (m_data_cached)
+	 {
+
+		 return get_int_cache(a_buffer);
+	 }
+
+	 return load_from_file<int>(a_buffer, a_bottom);
+ }
+
 bool  NetcdfSchismOutputVar10::get(float *     a_buffer) 
 {
 
@@ -873,14 +932,14 @@ bool  NetcdfSchismOutputVar10::get(float *     a_buffer)
    //return true;
    return get_float_cache(a_buffer);
  }
-  return load_from_file<float>(a_buffer);
+  return load_from_file<float>(a_buffer,NULL);
 }
 
 bool  NetcdfSchismOutputVar10::get(double *     a_buffer) 
 {
 
  int dataSize = computeDataNumPerTIMEStep();
-  return load_from_file<double>(a_buffer);
+  return load_from_file<double>(a_buffer,NULL);
 }
 
 
@@ -899,7 +958,7 @@ bool  NetcdfSchismOutputVar10::get(int *     a_buffer)
    return get_int_cache(a_buffer);
  }
   
- return load_from_file<int>(a_buffer);
+ return load_from_file<int>(a_buffer,NULL);
 }
 
 
@@ -951,8 +1010,27 @@ bool  NetcdfSchismOutputVar10::get(long *     a_buffer)
 	return get_long_cache(a_buffer);
  }
   
-  return load_from_file<long>(a_buffer);
+  return load_from_file<long>(a_buffer,NULL);
 }
+
+bool  NetcdfSchismOutputVar10::get(long *     a_buffer,int* a_bottom)
+{
+
+	long dataSize = computeDataNumPerTIMEStep();
+
+	if (m_data_cached)
+	{
+		// for(long idata=0;idata<dataSize;idata++)
+		// {
+		//    a_buffer[idata] = m_long_cache[idata];
+		// }
+		// return true;
+		return get_long_cache(a_buffer);
+	}
+
+	return load_from_file<long>(a_buffer, a_bottom);
+}
+
 
 void  NetcdfSchismOutputVar10::set_cur(const int& a_time_record)
 {

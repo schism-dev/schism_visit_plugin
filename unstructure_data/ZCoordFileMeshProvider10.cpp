@@ -39,7 +39,7 @@ ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISM
  {
 	 if(m_zcor_file_ptr)
 	 {
-		 delete m_zcor_file_ptr;
+		// delete m_zcor_file_ptr;
 	 }
  }
 
@@ -96,6 +96,7 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 	 int timeStart    = a_timeStep;
 
      SCHISMVar10 * zVarPtr=0;
+	 bool outZCoor = false;
 	 if (m_dataFilePtr->inquire_var(MeshConstants10::ZCOORD))
 	 {
 		 zVarPtr = m_dataFilePtr->get_var(MeshConstants10::ZCOORD);
@@ -113,6 +114,7 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 	   {
 		   throw SCHISMFileException10("No valid zcor data for file "+m_dataFilePtr->file());
 	   }
+	   outZCoor = true;
 	  
      }
    
@@ -150,10 +152,20 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
                   m_number_node);
 	debug1 << "got node depth\n";
      float*           zPtr = new float [z_var_size];
-     if (!(zVarPtr->get(zPtr)))
-     {
-        throw SCHISMFileException10("fail to retrieve var "+MeshConstants10::ZCOORD+" from data file "+m_dataFilePtr->file());
-     }
+	 if (outZCoor)
+	 {
+		 if (!(zVarPtr->get(zPtr,kbp00)))
+		 {
+			 throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::ZCOORD2 + " from data file " + m_zcor_file_ptr->file());
+		 }
+	 }
+	 else
+	 {
+		 if (!(zVarPtr->get(zPtr)))
+		 {
+			 throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::ZCOORD + " from data file " + m_dataFilePtr->file());
+		 }
+	 }
 	 debug1 << "got node zcor\n";
 	  for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
       { 
@@ -211,6 +223,7 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 	 int timeStart    = a_timeStep;
 
      SCHISMVar10 * zVarPtr=0;
+	 bool outZCoor = false;
 	 if (m_dataFilePtr->inquire_var(MeshConstants10::ZCOORD))
 	 {
 		 zVarPtr = m_dataFilePtr->get_var(MeshConstants10::ZCOORD);
@@ -228,7 +241,7 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 		 {
 			 throw SCHISMFileException10("No valid zcor data for file " + m_dataFilePtr->file());
 		 }
-
+		 outZCoor = true;
 	 }
 
 	 if (!(zVarPtr->is_valid()))
@@ -266,10 +279,22 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 	 }
 
      float*           zPtr = new float [z_var_size];
-     if (!(zVarPtr->get(zPtr)))
-     {
-        throw SCHISMFileException10("fail to retrieve var "+MeshConstants10::ZCOORD+" from data file "+m_dataFilePtr->file());
-     }
+
+
+	 if (outZCoor)
+	 {
+		 if (!(zVarPtr->get(zPtr, kbp00)))
+		 {
+			 throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::ZCOORD2 + " from data file " + m_zcor_file_ptr->file());
+		 }
+	 }
+	 else
+	 {
+		 if (!(zVarPtr->get(zPtr)))
+		 {
+			 throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::ZCOORD + " from data file " + m_dataFilePtr->file());
+		 }
+	 }
 	 debug1 << "got node zcor in zcor3d2\n";
 	  for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
       { 

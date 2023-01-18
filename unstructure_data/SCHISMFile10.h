@@ -150,6 +150,12 @@ public:
   virtual bool              get(long *       a_buffer) ;
   virtual bool              get(float *     a_buffer) ;
   virtual bool              get(double *     a_buffer) ;
+
+  virtual bool              get(int *       a_buffer,int* a_bottom);
+  virtual bool              get(long *       a_buffer,int* a_bottom);
+  virtual bool              get(float *     a_buffer,int* a_bottom);
+  virtual bool              get(double *     a_buffer,int* a_bottom);
+
   virtual void              set_cur(const int& a_record);
   //virtual void              set_current(const int& a_record);
 
@@ -240,6 +246,7 @@ public:
   virtual void              get_face_bottom(int* a_face_bottom,const int& a_time);
   virtual void              get_edge_bottom(int* a_ele_bottom,const int& a_time);
   virtual void              set_mesh_data_ptr(SCHISMFile10* a_ptr);
+  virtual void              set_mesh_bottom(SCHISMFile10* a_ptr, const int& a_time);
   virtual int       global_att_as_int(const std::string& a_att_name) const;
   virtual std::string global_att_as_string(const std::string& a_att_name) const;
 private:

@@ -11,20 +11,12 @@ Note: command xml2plugin in step 3 is a VisIt command.
    
 Install VisIt on a Jetstream2 instance, with Ubuntu22 image.  (Might have to downgrade.)  We will use VisIt version [3.1.4](https://visit-dav.github.io/visit-website/releases-as-tables/#series-31) so we can use server mode on Expanse.
 ```
-wget https://github.com/visit-dav/visit/releases/download/v3.1.4/visit3_1_4.linux-x86_64-ubuntu20.tar.gz
-wget https://github.com/visit-dav/visit/releases/download/v3.1.4/visit-install3_1_4
-chmod u+x visit-install3_1_4
-./visit-install3_1_4 3.1.4 linux-x86_64-ubuntu20 visit
-[1]
-export PATH=$PATH:/home/exouser/visit/bin
+wget https://github.com/visit-dav/visit/releases/download/v3.1.4/build_visit3_1_4yes
+mkdir third_party
+./build_visit3_1_4
+yes
 ```
   
-Now to install the plugin.
-
-```
-cd /home/exouser/visit/current/linux-x86_64/plugins/databases
-```
-
 Custom plugin documenation
 
 https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/using_visit/Preferences/File_Locations.html?highlight=plugin#custom-plugin-files

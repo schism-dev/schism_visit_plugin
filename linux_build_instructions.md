@@ -23,5 +23,12 @@ Now to install the plugin.
 
 ```
 cd /home/exouser/visit/current/linux-x86_64/plugins/databases
+```
+
+Custom plugin documenation
+
+https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/using_visit/Preferences/File_Locations.html?highlight=plugin#custom-plugin-files
+
+VUSER_HOME/<visit-version>/<visit-arch>/plugins/databases/
 
 

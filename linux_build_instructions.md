@@ -9,7 +9,7 @@ Note: command xml2plugin in step 3 is a VisIt command.
 6. run "make" to build plugins binary. You should found four new files under your /home/qshu/.visit/visit_version/linux-x86_64/plugins/databases.
    They are named as libE***Database_par.so, libE***Database_ser.so, libI***Database_par.so, libM***Database_par.so.
    
-Install VisIt on a Jetstream2 instance, with Ubuntu22 image.  (Might have to downgrade.)  We will use VisIt version [3.1.4](https://visit-dav.github.io/visit-website/releases-as-tables/#series-31) so we can use server mode on Expanse.
+Install VisIt on a Jetstream2 instance, with Ubuntu20 image. We will use VisIt version [3.1.4](https://visit-dav.github.io/visit-website/releases-as-tables/#series-31) so we can use server mode on Expanse.
 ```
 wget https://github.com/visit-dav/visit/releases/download/v3.1.4/build_visit3_1_4yes
 mkdir third_party

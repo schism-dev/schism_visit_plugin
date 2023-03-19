@@ -1,26 +1,93 @@
-Note: command xml2plugin in step 3 is a VisIt command.
-1. Navigate to a database type folder, for instance ./unstructure_data.
-2. Backup two main VisIt plugin class files, they are named as avt***FileFormat.C and avt***FileFormat.h. 
-   Those two files will be overwrote in the next step by VisIt code skeleton generating tool.
-3. run command "xml2plugin -clobber ***Output.xml ".  ***Output.xml is the file used by VisIt code generating tool
-   to create code skeleton and makelist file, for the case of ./unstructure_data, it is SCHSIMOutput.xml.
-4. Use two backup plugin class file to overwrite the files avt***FileFormat.C and avt***FileFormat.h.
-5. run "cmake -DCMAKE_BUILD_TYPE:STRING=Release " to create make system.
-6. run "make" to build plugins binary. You should found four new files under your /home/qshu/.visit/visit_version/linux-x86_64/plugins/databases.
-   They are named as libE***Database_par.so, libE***Database_ser.so, libI***Database_par.so, libM***Database_par.so.
-   
-Install VisIt on a Jetstream2 instance, with Ubuntu20 image. We will use VisIt version [3.1.4](https://visit-dav.github.io/visit-website/releases-as-tables/#series-31) so we can use server mode on Expanse.
-```
-wget https://github.com/visit-dav/visit/releases/download/v3.1.4/build_visit3_1_4yes
-mkdir third_party
-./build_visit3_1_4
-yes
-```
-  
-Custom plugin documenation
+Install VisIt on a Jetstream2 instance.  Assuming you have an account on Jetstream2:
+- Go to the Project page
+- Click Create, choose Instance
+- Choose Ubuntu 20.04, to be compatible with an older version of VisIt
 
-https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/using_visit/Preferences/File_Locations.html?highlight=plugin#custom-plugin-files
+Create instance:
+- Name: visit-plugin-for-schism
+- m3.medium
+- Keep default 60GB
+- 1 instance
+- Yes, Enable web desktop
+- Create
 
-VUSER_HOME/<visit-version>/<visit-arch>/plugins/databases/
+Click visit-plugin-for-schism, then Connect to Web Desktop.  Click the terminal icon. 
+
+See the VisIt User Guide, [Installing and Starting VisIt](https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/getting_started/Installing_VisIt.html)
+
+We will use VisIt version [3.1.4](https://visit-dav.github.io/visit-website/releases-as-tables/#series-31) so we can use server mode on Expanse.  Get the source code and the install script.
+```
+wget https://github.com/visit-dav/visit/releases/download/v3.1.4/visit3_1_4.linux-x86_64-ubuntu20.tar.gz
+wget https://github.com/visit-dav/visit/releases/download/v3.1.4/visit-install3_1_4
+```
+Change to executable mode
+```
+chmod +x visit-install3_1_4
+```
+For the following, we install visit in the home directory to avoid using sudo.  Choose '1', no specific configuration.
+```
+./visit-install3_1_4 3.1.4 linux-x86_64-ubuntu20 ~/visit
+1
+```
+Set the path for the executable
+```
+export PATH=~/visit/bin:$PATH
+```
+Get a sample FVCOM file from OSN:
+```
+wget https://renc.osn.xsede.org/ees210015-bucket01/FVCOM/mi_gem_archive/042020161/mi_0001.nc
+```
+
+Try VisIt
+```
+visit
+```
+
+Now try the steps to install the plugin.
+
+Get the plugin code:
+```
+git clone https://github.com/schism-dev/schism_visit_plugin.git
+cd schism_visit_plugin
+```
+
+Install the unstructure_data plugin:
+```
+cd unstructure_data
+```
+Save a copy of the main VisIt plugin class files to your home directory. These files will be overwritten in the next step by VisIt's code skeleton generating tool.
+```
+cp avtSCHISMFileFormat.C ~
+cp avtSCHISMFileFormat.h ~
+```
+The command `xml2plugin` is a VisIt command.
+```
+xml2plugin -clobber SCHISMOutput.xml
+```
+SCHISMOutput.xml is the file used by VisIt code generating tool to create code skeleton and makelist file.
+
+Use two backup plugin class file to overwrite the files avtSCHISMFileFormat.C and avtSCHISMFileFormat.h.
+```
+cp ~/avtSCHISMFileFormat.C .
+cp ~/avtSCHISMFileFormat.h .
+```
+
+Use `cmake` to create the `make` system.
+```
+cmake -DCMAKE_BUILD_TYPE:STRING=Release
+```
+
+Run `make` to build plugins binary. 
+```
+make
+```
+
+There should be four new files in ~/.visit/3.1.4/linux-x86_64/plugins/databases:
+```
+libESCHISMDatabase_par.so
+libESCHISMDatabase_ser.so
+libISCHISMDatabase_par.so
+libMSCHISMDatabase_par.so
+```
 
 

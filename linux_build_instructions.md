@@ -128,26 +128,5 @@ cmake -DCMAKE_BUILD_TYPE:STRING=Release
 make
 ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
-The above relies on the netcdf/hdf5 library.  To install on Ubuntu, do
-```
-sudo apt-get install libnetcdf-c++4
-sudo apt-get install libnetcdf-dev
-sudo apt-get install libnetcdf-bin
+The above relies on the netcdf/hdf5 library. It should be using VisIt's libraries.
 
-ADD_DEFINITIONS(${NETCDF_CXX_LIB})
-ADD_DEFINITIONS(${NETCDF_LIB})
-${NETCDF_LIBRARY_DIR}
-```
-
-
-Great, I can't get the libraries hooked up.  Falling back to Conda...
-```
-wget https://repo.anaconda.com/miniconda/Miniconda3-py37_23.1.0-1-Linux-x86_64.sh
-bash Miniconda3-py37_23.1.0-1-Linux-x86_64.sh
-conda env create --prefix ./env_netcdf -f environment.yml 
-conda activate /home/exouser/env_netcdf 
-/home/exouser/env_netcdf/lib
-export NETCDF_INCLUDE_DIR=/home/exouser/env_netcdf/include
-export NETCDF_LIBRARY_DIR=/home/exouser/env_netcdf/lib
-export NETCDF_CXX_LIB=/home/exouser/env_netcdf/lib
-export NETCDF_LIB=/home/exouser/env_netcdf/lib

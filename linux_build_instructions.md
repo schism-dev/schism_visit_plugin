@@ -90,4 +90,48 @@ libISCHISMDatabase_par.so
 libMSCHISMDatabase_par.so
 ```
 
+Repeat the steps for the other plugins:
+```
+cd ~/schism_visit_plugin/prop
+cp avtpropFileFormat.C ~
+cp avtpropFileFormat.h ~
+xml2plugin -clobber prop.xml
+cp ~/avtpropFileFormat.C .
+cp ~/avtpropFileFormat.h .
+cmake -DCMAKE_BUILD_TYPE:STRING=Release
+make
+ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
+```
+
+And
+```
+cd ~/schism_visit_plugin/gr3
+cp avtgr3FileFormat.C ~
+cp avtgr3FileFormat.h ~
+xml2plugin -clobber gr3.xml
+cp ~/avtgr3FileFormat.C .
+cp ~/avtgr3FileFormat.h .
+cmake -DCMAKE_BUILD_TYPE:STRING=Release
+make
+ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
+```
+
+And
+```
+cd ~/schism_visit_plugin/mdschism
+cp avtMDSCHISMFileFormat.C ~
+cp avtMDSCHISMFileFormat.h ~
+xml2plugin -clobber mdschism.xml
+cp ~/avtMDSCHISMFileFormat.C .
+cp ~/avtMDSCHISMFileFormat.h .
+cmake -DCMAKE_BUILD_TYPE:STRING=Release
+make
+ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
+```
+The above relies on the netcdf/hdf5 library.  To install on Ubuntu, do
+```
+
+```
+
+
 

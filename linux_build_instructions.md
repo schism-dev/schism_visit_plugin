@@ -140,4 +140,9 @@ ${NETCDF_LIBRARY_DIR}
 ```
 
 
-
+Great, I can't get the libraries hooked up.  Falling back to Conda...
+```
+wget https://repo.anaconda.com/miniconda/Miniconda3-py37_23.1.0-1-Linux-x86_64.sh
+bash Miniconda3-py37_23.1.0-1-Linux-x86_64.sh
+conda env create --prefix ./env_netcdf -f environment.yml 
+conda activate /home/exouser/env_netcdf 

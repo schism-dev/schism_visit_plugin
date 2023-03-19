@@ -130,7 +130,13 @@ ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
 The above relies on the netcdf/hdf5 library.  To install on Ubuntu, do
 ```
+sudo apt-get install libnetcdf-c++4
+sudo apt-get install libnetcdf-dev
+sudo apt-get install libnetcdf-bin
 
+ADD_DEFINITIONS(${NETCDF_CXX_LIB})
+ADD_DEFINITIONS(${NETCDF_LIB})
+${NETCDF_LIBRARY_DIR}
 ```
 
 

@@ -146,3 +146,8 @@ wget https://repo.anaconda.com/miniconda/Miniconda3-py37_23.1.0-1-Linux-x86_64.s
 bash Miniconda3-py37_23.1.0-1-Linux-x86_64.sh
 conda env create --prefix ./env_netcdf -f environment.yml 
 conda activate /home/exouser/env_netcdf 
+/home/exouser/env_netcdf/lib
+export NETCDF_INCLUDE_DIR=/home/exouser/env_netcdf/include
+export NETCDF_LIBRARY_DIR=/home/exouser/env_netcdf/lib
+export NETCDF_CXX_LIB=/home/exouser/env_netcdf/lib
+export NETCDF_LIB=/home/exouser/env_netcdf/lib

@@ -130,3 +130,22 @@ ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
 The above relies on the netcdf/hdf5 library. It should be using VisIt's libraries.
 
+try xml2cmake instead.
+```
+cmake -DCMAKE_BUILD_TYPE:STRING=Release
+```
+
+Stop it from using Ubuntu compiler:
+```
+alias c++='g++'
+alias cc='gcc'
+```
+
+Set library paths...still doesn't work
+```
+export LIB=~/visit/3.1.4/linux-x86_64/lib
+export INCLUDE=~/visit/3.1.4/linux-x86_64/include
+export LD_LIBRARY_PATH=~/visit/3.1.4/linux-x86_64/lib
+export C_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
+export CPLUS_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
+``

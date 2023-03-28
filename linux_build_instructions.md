@@ -1,3 +1,6 @@
+# Installing on Ubuntu 20
+Note: These instructions don't make a `build` directory, it just does CMake in the source directory which is not great practice.  It will be good to modify the instructions (and test them again).
+
 Install VisIt on a Jetstream2 instance.  Assuming you have an account on Jetstream2:
 - Go to the Project page
 - Click Create, choose Instance
@@ -142,7 +145,7 @@ make
 ```
 Error.
 
-So, this is where we hack the makefiles, as per Eric's email**, and it works.
+So, this is where we hack the makefiles, as per Eric's email (see below), and it works.
 ```
 exouser@visit-plugin-for-schism:~/schism_visit_plugin/mdschism$ ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 libEMDSCHISMDatabase_par.so  libEpropDatabase_par.so  libMMDSCHISMDatabase.so

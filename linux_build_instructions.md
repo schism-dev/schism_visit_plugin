@@ -188,3 +188,6 @@ I removed those libraries from the makefile (just for EMDSCHISMDatabase_par.dir/
    58 |     return YOU_MUST_DECIDE;
       |            ^~~~~~~~~~~~~~~
 ```
+
+I'm going to redo the steps with a clean VM without setting the library paths...
+

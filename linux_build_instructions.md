@@ -60,15 +60,6 @@ alias c++='g++'
 alias cc='gcc'
 ```
 
-Set library and include paths
-```
-export LIB=~/visit/3.1.4/linux-x86_64/lib
-export LIBRARY_PATH=~/visit/3.1.4/linux-x86_64/lib
-export LD_LIBRARY_PATH=~/visit/3.1.4/linux-x86_64/lib
-export INCLUDE=~/visit/3.1.4/linux-x86_64/include
-export C_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
-export CPLUS_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
-```
 
 Install the unstructure_data plugin:
 ```
@@ -150,44 +141,18 @@ cmake -DCMAKE_BUILD_TYPE:STRING=Release
 make
 ```
 Error.
+
+So, this is where we hack the makefiles, as per Eric's email, and it works.
 ```
-exouser@try-visit:~/schism_visit_plugin/mdschism$ make
-Scanning dependencies of target EMDSCHISMDatabase_par
-[  2%] Building CXX object CMakeFiles/EMDSCHISMDatabase_par.dir/MDSCHISMEnginePluginInfo.C.o
-c++: error: libnetcdf_c++.a: No such file or directory
-c++: error: libnetcdf.a: No such file or directory
-c++: error: libhdf5_hl.so: No such file or directory
-c++: error: libhdf5.so: No such file or directory
-c++: error: libsz.so: No such file or directory
-c++: error: libz.so: No such file or directory
-make[2]: *** [CMakeFiles/EMDSCHISMDatabase_par.dir/build.make:63: CMakeFiles/EMDSCHISMDatabase_par.dir/MDSCHISMEnginePluginInfo.C.o] Error 1
-make[1]: *** [CMakeFiles/Makefile2:82: CMakeFiles/EMDSCHISMDatabase_par.dir/all] Error 2
-make: *** [Makefile:84: all] Error 2
+exouser@visit-plugin-for-schism:~/schism_visit_plugin/mdschism$ ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
+libEMDSCHISMDatabase_par.so  libEpropDatabase_par.so  libMMDSCHISMDatabase.so
+libEMDSCHISMDatabase_ser.so  libEpropDatabase_ser.so  libMSCHISMDatabase.so
+libESCHISMDatabase_par.so    libIMDSCHISMDatabase.so  libMgr3Database.so
+libESCHISMDatabase_ser.so    libISCHISMDatabase.so    libMpropDatabase.so
+libEgr3Database_par.so	     libIgr3Database.so
+libEgr3Database_ser.so	     libIpropDatabase.so
 ```
 
-I set the library path to
-```
-~/visit/3.1.4/linux-x86_64/lib
-```
 
-Then check if libraries are there by...
-```
-exouser@try-visit:~/schism_visit_plugin/mdschism$ grep libsz.so ~/visit/3.1.4/linux-x86_64/lib/*
-```
-And found all libraries except the netCDFs.  There are netCDF include files here:
-```
-~/visit/3.1.4/linux-x86_64/include/netcdf/include/
-```
-Since it can't even find libz.so, I suspect that doesn't matter.
 
-I removed those libraries from the makefile (just for EMDSCHISMDatabase_par.dir/flags.make), it started the build process, then I got this error:
-```
-[  8%] Building CXX object CMakeFiles/EMDSCHISMDatabase_par.dir/avtMDSCHISMFileFormat.C.o
-/home/exouser/schism_visit_plugin/mdschism/avtMDSCHISMFileFormat.C: In member function ??virtual int avtMDSCHISMFileFormat::GetNTimesteps()??:
-/home/exouser/schism_visit_plugin/mdschism/avtMDSCHISMFileFormat.C:58:12: error: ??YOU_MUST_DECIDE?? was not declared in this scope
-   58 |     return YOU_MUST_DECIDE;
-      |            ^~~~~~~~~~~~~~~
-```
-
-I'm going to redo the steps with a clean VM without setting the library paths...
 

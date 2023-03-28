@@ -180,4 +180,11 @@ And found all libraries except the netCDFs.  There are netCDF include files here
 ```
 Since it can't even find libz.so, I suspect that doesn't matter.
 
-Try the makefile hack?
+I removed those libraries from the makefile (just for EMDSCHISMDatabase_par.dir/flags.make), it started the build process, then I got this error:
+```
+[  8%] Building CXX object CMakeFiles/EMDSCHISMDatabase_par.dir/avtMDSCHISMFileFormat.C.o
+/home/exouser/schism_visit_plugin/mdschism/avtMDSCHISMFileFormat.C: In member function ??virtual int avtMDSCHISMFileFormat::GetNTimesteps()??:
+/home/exouser/schism_visit_plugin/mdschism/avtMDSCHISMFileFormat.C:58:12: error: ??YOU_MUST_DECIDE?? was not declared in this scope
+   58 |     return YOU_MUST_DECIDE;
+      |            ^~~~~~~~~~~~~~~
+```

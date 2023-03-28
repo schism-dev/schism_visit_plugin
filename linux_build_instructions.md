@@ -4,7 +4,7 @@ Install VisIt on a Jetstream2 instance.  Assuming you have an account on Jetstre
 - Choose Ubuntu 20.04, to be compatible with an older version of VisIt
 
 Create instance:
-- Name: visit-plugin-for-schism
+- Name: try-visit
 - m3.medium
 - Keep default 60GB
 - 1 instance
@@ -38,10 +38,11 @@ Get a sample FVCOM file from OSN:
 wget https://renc.osn.xsede.org/ees210015-bucket01/FVCOM/mi_gem_archive/042020161/mi_0001.nc
 ```
 
-Try VisIt
+Try VisIt, open the FVCOM file, take a look:
 ```
 visit
 ```
+It works.
 
 Now try the steps to install the plugin.
 
@@ -49,6 +50,24 @@ Get the plugin code:
 ```
 git clone https://github.com/schism-dev/schism_visit_plugin.git
 cd schism_visit_plugin
+```
+
+Before starting:
+
+Stop it from using Ubuntu compiler:
+```
+alias c++='g++'
+alias cc='gcc'
+```
+
+Set library and include paths
+```
+export LIB=~/visit/3.1.4/linux-x86_64/lib
+export LIBRARY_PATH=~/visit/3.1.4/linux-x86_64/lib
+export LD_LIBRARY_PATH=~/visit/3.1.4/linux-x86_64/lib
+export INCLUDE=~/visit/3.1.4/linux-x86_64/include
+export C_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
+export CPLUS_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
 ```
 
 Install the unstructure_data plugin:
@@ -89,6 +108,7 @@ libESCHISMDatabase_ser.so
 libISCHISMDatabase_par.so
 libMSCHISMDatabase_par.so
 ```
+So far, so good.
 
 Repeat the steps for the other plugins:
 ```
@@ -102,6 +122,7 @@ cmake -DCMAKE_BUILD_TYPE:STRING=Release
 make
 ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
+Works.
 
 And
 ```
@@ -115,6 +136,7 @@ cmake -DCMAKE_BUILD_TYPE:STRING=Release
 make
 ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
+Works.
 
 And
 ```
@@ -126,26 +148,36 @@ cp ~/avtMDSCHISMFileFormat.C .
 cp ~/avtMDSCHISMFileFormat.h .
 cmake -DCMAKE_BUILD_TYPE:STRING=Release
 make
-ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
-The above relies on the netcdf/hdf5 library. It should be using VisIt's libraries.
+Error.
+```
+exouser@try-visit:~/schism_visit_plugin/mdschism$ make
+Scanning dependencies of target EMDSCHISMDatabase_par
+[  2%] Building CXX object CMakeFiles/EMDSCHISMDatabase_par.dir/MDSCHISMEnginePluginInfo.C.o
+c++: error: libnetcdf_c++.a: No such file or directory
+c++: error: libnetcdf.a: No such file or directory
+c++: error: libhdf5_hl.so: No such file or directory
+c++: error: libhdf5.so: No such file or directory
+c++: error: libsz.so: No such file or directory
+c++: error: libz.so: No such file or directory
+make[2]: *** [CMakeFiles/EMDSCHISMDatabase_par.dir/build.make:63: CMakeFiles/EMDSCHISMDatabase_par.dir/MDSCHISMEnginePluginInfo.C.o] Error 1
+make[1]: *** [CMakeFiles/Makefile2:82: CMakeFiles/EMDSCHISMDatabase_par.dir/all] Error 2
+make: *** [Makefile:84: all] Error 2
+```
 
-try xml2cmake instead.
+I set the library path to
 ```
-cmake -DCMAKE_BUILD_TYPE:STRING=Release
-```
-
-Stop it from using Ubuntu compiler:
-```
-alias c++='g++'
-alias cc='gcc'
+~/visit/3.1.4/linux-x86_64/lib
 ```
 
-Set library paths...still doesn't work
+Then check if libraries are there by...
 ```
-export LIB=~/visit/3.1.4/linux-x86_64/lib
-export INCLUDE=~/visit/3.1.4/linux-x86_64/include
-export LD_LIBRARY_PATH=~/visit/3.1.4/linux-x86_64/lib
-export C_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
-export CPLUS_INCLUDE_PATH=~/visit/3.1.4/linux-x86_64/include
-``
+exouser@try-visit:~/schism_visit_plugin/mdschism$ grep libsz.so ~/visit/3.1.4/linux-x86_64/lib/*
+```
+And found all libraries except the netCDFs.  There are netCDF include files here:
+```
+~/visit/3.1.4/linux-x86_64/include/netcdf/include/
+```
+Since it can't even find libz.so, I suspect that doesn't matter.
+
+Try the makefile hack?

@@ -4,7 +4,7 @@ Install VisIt on a Jetstream2 instance.  Assuming you have an account on Jetstre
 - Choose Ubuntu 20.04, to be compatible with an older version of VisIt
 
 Create instance:
-- Name: try-visit
+- Name: visit-plugin-for-schism
 - m3.medium
 - Keep default 60GB
 - 1 instance

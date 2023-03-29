@@ -192,3 +192,5 @@ It works:
 When I use the new IO, I need to specify "SCHISM" when reading in the file, and it has an artifact that makes it impossible to do the transform.
 ![](artifact.png)
 
+Try client-server mode.  Instructions are here: /cm/shared/examples/sdsc/visit/README
+

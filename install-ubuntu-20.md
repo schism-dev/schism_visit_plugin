@@ -80,9 +80,15 @@ cp ~/avtSCHISMFileFormat.C .
 cp ~/avtSCHISMFileFormat.h .
 ```
 
+Make a build directory:
+```
+mkdir build
+cd build
+```
+
 Use `cmake` to create the `make` system.
 ```
-cmake -DCMAKE_BUILD_TYPE:STRING=Release
+cmake -DCMAKE_BUILD_TYPE:STRING=Release ..
 ```
 
 Run `make` to build plugins binary. 
@@ -107,7 +113,9 @@ cp avtpropFileFormat.h ~
 xml2plugin -clobber prop.xml
 cp ~/avtpropFileFormat.C .
 cp ~/avtpropFileFormat.h .
-cmake -DCMAKE_BUILD_TYPE:STRING=Release
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE:STRING=Release ..
 make
 ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
@@ -121,7 +129,9 @@ cp avtgr3FileFormat.h ~
 xml2plugin -clobber gr3.xml
 cp ~/avtgr3FileFormat.C .
 cp ~/avtgr3FileFormat.h .
-cmake -DCMAKE_BUILD_TYPE:STRING=Release
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE:STRING=Release ..
 make
 ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
 ```
@@ -135,7 +145,9 @@ cp avtMDSCHISMFileFormat.h ~
 xml2plugin -clobber mdschism.xml
 cp ~/avtMDSCHISMFileFormat.C .
 cp ~/avtMDSCHISMFileFormat.h .
-cmake -DCMAKE_BUILD_TYPE:STRING=Release
+mkdir build
+cd build
+cmake -DCMAKE_BUILD_TYPE:STRING=Release ..
 make
 ```
 Error.

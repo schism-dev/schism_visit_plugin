@@ -72,13 +72,10 @@ Run `make` to build plugins binary.
 make
 ```
 
-
-
-My VisIt is here:
+Check
 ```
-/Applications/VisIt.app/Contents/Resources/bin/VisIt
+ls ~/.visit/3.1.4/darwin-x86_64/plugins/databases
 ```
-
 
 There should be four new files in ~/.visit/3.1.4/darwin-x86_64/plugins/databases:
 ```
@@ -135,57 +132,33 @@ cmake -DCMAKE_BUILD_TYPE:STRING=Release -DCMAKE_OSX_ARCHITECTURES=x86_64 ..
 make
 ```
 Error.  
-So, this is where we hack the makefiles, as per Eric's email (see below).  Also, there are more malloc.h to fix.
 
-For this error:
+So, this is where we hack the makefiles, as per Eric's email (see below), 
 ```
-/Users/lllowe/schism_visit_plugin/mdschism/avtMDSCHISMFileFormatImpl.C:42:10: fatal error: 'malloc.h' file not found
-#include <malloc.h>
+vi CMakeFiles/EMDSCHISMDatabase_par.dir/flags.make
+vi CMakeFiles/MMDSCHISMDatabase.dir/flags.make
+vi CMakeFiles/EMDSCHISMDatabase_ser.dir/flags.make
+vi CMakeFiles/IMDSCHISMDatabase.dir/flags.make
 ```
-Open the C file for the error, e.g., above is, from the build directory:
+remove all the
 ```
-vi ../avtMDSCHISMFileFormatImpl.C
-```
-Then replace
-```
-#include <malloc.h>
-```
-with
-```
-#if defined(__MACH__)
-#include <stdlib.h>
-#else
-#include <malloc.h>
-#endif
+libnetcdf_c++.dylib libnetcdf.dylib libhdf5_hl.dylib libhdf5.dylib libsz.dylib libz.dylib
 ```
 
-
+Check
+```
+ls ~/.visit/3.1.4/darwin-x86_64/plugins/databases
+```
 
 
 And here you go:
 ```
-exouser@visit-plugin-for-schism:~/schism_visit_plugin/mdschism$ ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
-libEMDSCHISMDatabase_par.so  libEpropDatabase_par.so  libMMDSCHISMDatabase.so
-libEMDSCHISMDatabase_ser.so  libEpropDatabase_ser.so  libMSCHISMDatabase.so
-libESCHISMDatabase_par.so    libIMDSCHISMDatabase.so  libMgr3Database.so
-libESCHISMDatabase_ser.so    libISCHISMDatabase.so    libMpropDatabase.so
-libEgr3Database_par.so	     libIgr3Database.so
-libEgr3Database_ser.so	     libIpropDatabase.so
+(base) lllowe@LisasMacStudio build % ls ~/.visit/3.1.4/darwin-x86_64/plugins/databases
+libEMDSCHISMDatabase_par.dylib libEgr3Database_par.dylib      libIMDSCHISMDatabase.dylib     libMMDSCHISMDatabase.dylib
+libEMDSCHISMDatabase_ser.dylib libEgr3Database_ser.dylib      libISCHISMDatabase.dylib       libMSCHISMDatabase.dylib
+libESCHISMDatabase_par.dylib   libEpropDatabase_par.dylib     libIgr3Database.dylib          libMgr3Database.dylib
+libESCHISMDatabase_ser.dylib   libEpropDatabase_ser.dylib     libIpropDatabase.dylib         libMpropDatabase.dylib
 ```
-
-*from Eric*
-
-Remove references to libraries in the CXX_FLAGS in schism_visit_plugin/mdschism/build/CMakeFiles/*.dir/flags.make
-
-For example:
-```
-CXX_FLAGSx86_64 = -O3 -DNDEBUG -std=gnu++11 -arch x86_64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk -fPIC   -std=c++0x libnetcdf_c++.dylib libnetcdf.dylib libhdf5_hl.dylib libhdf5.dylib libsz.dylib libz.dylib
-
-CXX_FLAGS = -O3 -DNDEBUG -std=gnu++11 -arch x86_64 -isysroot /Applications/Xcode.app/Contents/Developer/Platforms/MacOSX.platform/Developer/SDKs/MacOSX13.1.sdk -fPIC   -std=c++0x libnetcdf_c++.dylib libnetcdf.dylib libhdf5_hl.dylib libhdf5.dylib libsz.dylib libz.dylib
-```
-i.e. we removed this part of CXX_FLAGS:
-
-libnetcdf_c++.a libnetcdf.a libhdf5_hl.so libhdf5.so libsz.so libz.so
 
 
 Now try it out.  Links to data are on the [SCHISM visualization page](https://schism-dev.github.io/schism/master/getting-started/visualization.html)

@@ -133,7 +133,7 @@ make
 ```
 Error.  
 
-So, this is where we hack the makefiles, as per Eric's email (see below), 
+So, this is where we hack the makefiles, as per Eric's email, 
 ```
 vi CMakeFiles/EMDSCHISMDatabase_par.dir/flags.make
 vi CMakeFiles/MMDSCHISMDatabase.dir/flags.make

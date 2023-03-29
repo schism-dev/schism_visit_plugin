@@ -1,19 +1,37 @@
-# Installing on mac studio
+# Installing on Mac Studio
 
-Installing on my mac.
+Installing on my Mac Studio that has an M1 chip.
 
-Using VisIt 3.1.4, to use client-server mode from Expanse.
+Using VisIt 3.1.4, to use client-server mode from Expanse, which is only available as x86_64.
 
-Download CMake for mac, drag it into the applications bin.  Open CMake, in the top menu bar, click Tools, 
+Download CMake for Mac, drag it into the applications bin.  Open CMake, in the top menu bar, click Tools, 
 choose How to Install For Command Line Use.  I chose this way:
 ```
 sudo "/Applications/CMake.app/Contents/bin/cmake-gui" --install
 ```
 
-
-Get the plugin code:
+When compiling, I got a bunch of errors because of `malloc.h`.  Searching on the internets, I found [this possible solution](https://github.com/RIOT-OS/RIOT/issues/2361).
+So for every subroutine where there is `malloc.h`, I did this:
 ```
-git clone https://github.com/schism-dev/schism_visit_plugin.git
+#if defined(__MACH__)
+#include <stdlib.h>
+#else
+#include <malloc.h>
+#endif
+```
+These were the files:
+```
+(base) lllowe@LisasMacStudio schism_visit_plugin % grep malloc.h */*
+mdschism/avtMDSCHISMFileFormatImpl.C
+unstructure_data/avtSCHISMFileFormat.C
+unstructure_data/avtSCHISMFileFormatImpl.C
+unstructure_data/avtSCHISMFileFormatImpl10.C
+unstructure_data/avtSCHISMFileFormatImpl11.C
+```
+
+On my fork, it is fixed, so get that one:
+```
+git clone https://github.com/lisalenorelowe/schism_visit_plugin.git
 cd schism_visit_plugin
 ```
 
@@ -54,15 +72,7 @@ Run `make` to build plugins binary.
 make
 ```
 
-Now I get a bunch of errors because of `malloc.h`.  Searching on the internets, I find [this possible solution](https://github.com/RIOT-OS/RIOT/issues/2361).
-So for every subroutine where there is `malloc.h`, do this:
-```
-#if defined(__MACH__)
-#include <stdlib.h>
-#else
-#include <malloc.h>
-#endif
-```
+
 
 My VisIt is here:
 ```
@@ -149,15 +159,7 @@ with
 #endif
 ```
 
-These were the files:
-```
-(base) lllowe@LisasMacStudio schism_visit_plugin % grep malloc.h */*
-mdschism/avtMDSCHISMFileFormatImpl.C
-unstructure_data/avtSCHISMFileFormat.C
-unstructure_data/avtSCHISMFileFormatImpl.C
-unstructure_data/avtSCHISMFileFormatImpl10.C
-unstructure_data/avtSCHISMFileFormatImpl11.C
-```
+
 
 
 And here you go:

@@ -182,6 +182,10 @@ wget -r -nH --cut-dirs=2 -np -R "index.html*" http://ccrm.vims.edu/yinglong/SVN_
 wget -r -nH --cut-dirs=2 -np -R "index.html*" http://ccrm.vims.edu/yinglong/SVN_large_files/SCHISM_v5.6.1_sample_outputs/
 ```
 
+For SCHISM_v5.6.1_sample_outputs:
+
+
+It works:
 
 
 

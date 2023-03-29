@@ -149,6 +149,15 @@ with
 #endif
 ```
 
+These were the files:
+```
+(base) lllowe@LisasMacStudio schism_visit_plugin % grep malloc.h */*
+mdschism/avtMDSCHISMFileFormatImpl.C
+unstructure_data/avtSCHISMFileFormat.C
+unstructure_data/avtSCHISMFileFormatImpl.C
+unstructure_data/avtSCHISMFileFormatImpl10.C
+unstructure_data/avtSCHISMFileFormatImpl11.C
+```
 
 
 And here you go:
@@ -183,15 +192,3 @@ Now try it out.  Links to data are on the [SCHISM visualization page](https://sc
 wget -r -nH --cut-dirs=2 -np -R "index.html*" http://ccrm.vims.edu/yinglong/SVN_large_files/Scribe_IO_outputs/
 wget -r -nH --cut-dirs=2 -np -R "index.html*" http://ccrm.vims.edu/yinglong/SVN_large_files/SCHISM_v5.6.1_sample_outputs/
 ```
-
-For SCHISM_v5.6.1_sample_outputs:
-![](READ_OLDIO.png)
-
-It works:
-![](OLD_IO.png)
-
-
-When I use the new IO, I need to specify "SCHISM" when reading in the file, and it has an artifact that makes it impossible to do the transform.
-![](artifact.png)
-
-Try client-server mode.  Instructions are here: /cm/shared/examples/sdsc/visit/README

@@ -1,5 +1,4 @@
 # Installing on Ubuntu 20
-Note: These instructions don't make a `build` directory, it just does CMake in the source directory which is not great practice.  It will be good to modify the instructions (and test them again).
 
 Install VisIt on a Jetstream2 instance.  Assuming you have an account on Jetstream2:
 - Go to the Project page
@@ -45,9 +44,9 @@ It works.
 
 Now try the steps to install the plugin.
 
-Get the plugin code:
+Get the plugin code.  This one test *my* plugin code with the malloc.h in ifdef statements:
 ```
-git clone https://github.com/schism-dev/schism_visit_plugin.git
+git clone https://github.com/lisalenorelowe/schism_visit_plugin.git
 cd schism_visit_plugin
 ```
 

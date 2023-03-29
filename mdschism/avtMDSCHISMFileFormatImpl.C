@@ -39,7 +39,13 @@
 #include <InvalidFilesException.h>
 #include <DBYieldedNoDataException.h>
 #include <DebugStream.h>
+//L3 #include <malloc.h>
+#if defined(__MACH__)
+#include <stdlib.h>
+#else
 #include <malloc.h>
+#endif
+
 #include <BufferConnection.h>
 #ifdef PARALLEL
 #include <avtParallel.h>

@@ -183,9 +183,9 @@ wget -r -nH --cut-dirs=2 -np -R "index.html*" http://ccrm.vims.edu/yinglong/SVN_
 ```
 
 For SCHISM_v5.6.1_sample_outputs:
-
+![](READ_OLDIO.png)
 
 It works:
-
+![](OLD_IO.png)
 
 

@@ -36,12 +36,8 @@ Set the path for the executable
 ```
 export PATH=~/visit/bin:$PATH
 ```
-Get a sample FVCOM file from OSN:
-```
-wget https://renc.osn.xsede.org/ees210015-bucket01/FVCOM/mi_gem_archive/042020161/mi_0001.nc
-```
 
-Try VisIt, open the FVCOM file, take a look:
+Try VisIt:
 ```
 visit
 ```
@@ -62,7 +58,6 @@ Stop it from using Ubuntu compiler:
 alias c++='g++'
 alias cc='gcc'
 ```
-
 
 Install the unstructure_data plugin:
 ```

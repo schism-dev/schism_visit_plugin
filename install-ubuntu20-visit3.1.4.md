@@ -1,19 +1,6 @@
 # Installing on Ubuntu 20
 
-Install VisIt on a Jetstream2 instance.  Assuming you have an account on Jetstream2:
-- Go to the Project page
-- Click Create, choose Instance
-- Choose Ubuntu 20.04, to be compatible with an older version of VisIt
-
-Create instance:
-- Name: visit-plugin-for-schism
-- m3.medium
-- Keep default 60GB
-- 1 instance
-- Yes, Enable web desktop
-- Create
-
-Click visit-plugin-for-schism, then Connect to Web Desktop.  Click the terminal icon. 
+These instructions were tested on a clean VM with Ubuntu 20 OS. (I used Jetstream2 for cloud services.)
 
 See the VisIt User Guide, [Installing and Starting VisIt](https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/getting_started/Installing_VisIt.html)
 

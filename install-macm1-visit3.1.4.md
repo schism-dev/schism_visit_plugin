@@ -145,6 +145,11 @@ remove all the
 libnetcdf_c++.dylib libnetcdf.dylib libhdf5_hl.dylib libhdf5.dylib libsz.dylib libz.dylib
 ```
 
+Then make
+```
+make
+```
+
 Check
 ```
 ls ~/.visit/3.1.4/darwin-x86_64/plugins/databases

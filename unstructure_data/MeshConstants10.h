@@ -66,6 +66,8 @@ const std::string      HALF_LAYER("half");
 const std::string      DYNAMIC_MESH("mesh_is_dynamic");
 const std::string      DRY_VALUE_FLAG("dry_value_flag");
 const std::string      i23d("i23d");
+const std::string      source("source");
+const std::string      SCHISM58_OUTPUT_FORMAT("v10");
 const float   DRY_ZCOR=-99999999.0;
 const long INVALID_NUM   = -9999;
 const int MAX_NUM_NODE_PER_CELL = 4;

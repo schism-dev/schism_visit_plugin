@@ -15,9 +15,29 @@ ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISM
 	
 	size_t found = m_mesh_file.find_last_of("/\\");
     std:string data_file_path = m_mesh_file.substr(0,found);
-
-	std::size_t found3 = a_meshFile.find("schout");
-	if (found3 == std::string::npos)
+	bool scribeIO = false;
+	//find out format of output by reading global attribute source
+    //if "V10" in the string 5.8 format, otherwise scribeIo format (no atribute or other values)
+	try
+	{
+		std::string source = m_dataFilePtr->global_att_as_string(MeshConstants10::source);
+		std::size_t found_v10 = source.find(MeshConstants10::SCHISM58_OUTPUT_FORMAT);
+		if (found_v10 != std::string::npos)
+		{
+			scribeIO = false;
+		}
+		else
+		{
+			scribeIO = true;
+		}
+	}
+	catch (...)
+	{
+		scribeIO = true;
+	}
+	//std::size_t found3 = a_meshFile.find("schout");
+	//if (found3 == std::string::npos)
+	if(scribeIO)
 	{
 
 		//see if there any separate zcor nc file available under current folder 
@@ -28,9 +48,15 @@ ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISM
 #else
 	    std::string zcor_file = data_file_path + "/zCoordinates" + suffix;
 #endif
-
-		m_zcor_file_ptr = new NetcdfSchismOutput10(zcor_file);
-		m_zcor_file_ptr->set_mesh_data_ptr(this->get_mesh_data_ptr());
+		try
+		{
+			m_zcor_file_ptr = new NetcdfSchismOutput10(zcor_file);
+			m_zcor_file_ptr->set_mesh_data_ptr(this->get_mesh_data_ptr());
+		}
+		catch(...)
+		{
+			m_zcor_file_ptr = 0;
+		}
 	}
 
 	

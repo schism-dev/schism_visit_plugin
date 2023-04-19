@@ -109,7 +109,7 @@ avtSCHISMFileFormatImpl10::avtSCHISMFileFormatImpl10():
 	  m_total_valid_3D_point(0),
 	  m_total_valid_3D_side(0),
 	  m_total_valid_3D_ele(0),
-	  m_dry_wet_flag(1),
+	  m_dry_wet_flag(0),
 	  m_scribeIO(false)
 {
   // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
@@ -3327,18 +3327,18 @@ avtSCHISMFileFormatImpl10::GetVar(int a_timeState, const char *a_varName)
      for( int iNode = 0 ; iNode < numData; iNode++)
        {
 		   float valTemp = valBuff[iNode];
-		   if((!(drywet[iNode]))||(!strcmp(a_varName,m_node_depth_label.c_str())) || (!strcmp(a_varName, MeshConstants10::NODE_BOTTOM2.c_str())))
-		   {
+		   //if((!(drywet[iNode]))||(!strcmp(a_varName,m_node_depth_label.c_str())) || (!strcmp(a_varName, MeshConstants10::NODE_BOTTOM2.c_str())))
+		   //{
              
 		     rv->SetTuple1(idata, valTemp); 
-		   }
-		   else
-		   {
-			 if(m_dry_wet_flag)
-			    rv->SetTuple1(idata, MeshConstants10::DRY_STATE); 
-			 else
-				rv->SetTuple1(idata, valTemp);  
-		   }
+		   //}
+		   //else
+		   //{
+			// if(m_dry_wet_flag)
+			//    rv->SetTuple1(idata, MeshConstants10::DRY_STATE); 
+			// else
+			//	rv->SetTuple1(idata, valTemp);  
+		   //}
          idata++;             
        }
      delete   valBuff;
@@ -3829,7 +3829,7 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
       for( long iNode = 0 ; iNode   < ntuples; iNode++)
          {
 
-		   if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
+		   //if((!drywet[iNode])|| (drywet[iNode]&&(!(m_dry_wet_flag))))
 		   {
              for(int iComp = 0; iComp < ncomps; iComp++)
              {
@@ -3840,14 +3840,14 @@ avtSCHISMFileFormatImpl10::GetVectorVar(int a_timeState, const char *a_varName)
                 oneEntry[iComp]= 0.0;
              }
 		   }
-		   else
-		   {
-			   for(int iComp = 0; iComp < ucomps; iComp++)
-             {
-                oneEntry[iComp]   = MeshConstants10::DRY_STATE;
-             }
+		  // else
+		  // {
+		 //   for(int iComp = 0; iComp < ucomps; iComp++)
+         //    {
+          //      oneEntry[iComp]   = MeshConstants10::DRY_STATE;
+          //   }
    
-		   }
+		  // }
             
            rv->SetTuple(idata, oneEntry);  
            idata++;             
@@ -4807,16 +4807,38 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 		EXCEPTION1(InvalidDBTypeException,"not valid schsim NC output");
 	}
 
+	//find out format of output by reading global attribute source
+	//if "V10" in the string 5.8 format, otherwise scribeIo format (no atribute or other values)
+	try
+	{
+		std::string source = m_data_file_ptr->global_att_as_string(MeshConstants10::source);
+		std::size_t found_v10= source.find(MeshConstants10::SCHISM58_OUTPUT_FORMAT);
+		if (found_v10 != std::string::npos)
+		{
+			m_scribeIO = false;
+		}
+		else
+		{
+			m_scribeIO = true;
+		}
+	}
+	catch (...)
+	{
+		m_scribeIO = true;
+	}
+
+
+
     //here a simple and temp way to decided if data file is the latest scriber format
 	std::string meshFilePath = m_data_file;
-	std::size_t found2 = m_data_file.find("schout");
+	//std::size_t found2 = m_data_file.find("schout");
 	
 	// if not name by schout then treated as scriber format, mesh file should
 	// be out2d*.nc + zcor*.nc
-	
-    if (found2==std::string::npos)
+    //if (found2==std::string::npos)
+	if(m_scribeIO == true)
 	{
-		m_scribeIO = true;
+		//m_scribeIO = true;
 		size_t found3 = m_data_file.find_last_of("_");
 	    std::string suffix=m_data_file.substr(found3);
 #ifdef _WIN32
@@ -4824,7 +4846,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 #else
 	   meshFilePath = m_data_file_path+"/out2d"+suffix;
 #endif
-		debug1 << "found2:" << found2 << " "<<meshFilePath<<"\n";
+		//debug1 << "found2:" << found2 << " "<<meshFilePath<<"\n";
 	}
 
 
@@ -4870,7 +4892,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	}
 	else
 	{
-		m_dry_wet_flag = 1;
+		m_dry_wet_flag = 0;
 	}
 	debug1<<"wet_dry_flag is "<<m_dry_wet_flag<<"\n";
     debug1<<"begin get dim\n";

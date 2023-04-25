@@ -132,14 +132,21 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
      {
 	   //first try to load from zcor_*.nc, for output might be in the new scriber format
 	  //this zcor file must be at the same folder of current file
-       if(m_zcor_file_ptr->is_valid())
-	   {
-		   zVarPtr=m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
-	   }
-	   else
-	   {
-		   throw SCHISMFileException10("No valid zcor data for file "+m_dataFilePtr->file());
-	   }
+		 if (m_zcor_file_ptr)
+		 {
+			 if (m_zcor_file_ptr->is_valid())
+			 {
+				 zVarPtr = m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
+			 }
+			 else
+			 {
+				 throw SCHISMFileException10("No valid zcor data for file " + m_dataFilePtr->file());
+			 }
+		 }
+		 else
+		 {
+			 throw SCHISMFileException10("No valid zcor data for data file ");
+		 }
 	   outZCoor = true;
 	  
      }

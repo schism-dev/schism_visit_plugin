@@ -851,7 +851,8 @@ bool SCHISMMeshProvider::zSideCenter3D(float * a_zCachePtr,const int & a_timeSte
 {
 	float*           zPtr = new float [m_number_layer*m_number_node];
     float*           zPtrTemp = zPtr;
-	zcoords3D2(zPtr,a_timeStep);
+	bool temp=zcoords3D2(zPtr,a_timeStep);
+	if (!temp) return temp;
 
 	int * node_z_start_index  = new int [m_number_node];
 	int valid_var_size = 0;
@@ -928,7 +929,8 @@ bool SCHISMMeshProvider::zEleCenter3D(float * a_zCachePtr,const int & a_timeStep
 {
 	float*           zPtr = new float [m_number_layer*m_number_node];
     float*           zPtrTemp = zPtr;
-	zcoords3D2(zPtr,a_timeStep);
+	bool temp=zcoords3D2(zPtr,a_timeStep);
+	if (!temp) return temp;
 
 	int * node_z_start_index  = new int [m_number_node];
 	int valid_var_size = 0;

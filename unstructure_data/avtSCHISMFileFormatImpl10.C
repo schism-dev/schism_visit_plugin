@@ -4892,7 +4892,7 @@ void avtSCHISMFileFormatImpl10::Initialize(std::string a_data_file)
 	}
 	else
 	{
-		m_dry_wet_flag = 0;
+		m_dry_wet_flag = 1;
 	}
 	debug1<<"wet_dry_flag is "<<m_dry_wet_flag<<"\n";
     debug1<<"begin get dim\n";

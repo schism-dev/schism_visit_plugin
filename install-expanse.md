@@ -18,7 +18,11 @@ module load cmake
 Here is my modulefile for VisIt 3.1.4.
 ```
 #%Module
-prepend-path PATH {/cm/shared/apps/vis/visit/3.1.4/gcc/9.2.0/openmpi/3.1.6/3.1.4/linux-x86_64/bin};
+set VISITARCHHOME "/cm/shared/apps/vis/visit/3.1.4/gcc/9.2.0/openmpi/3.1.6/3.1.4/linux-x86_64"
+setenv VISITARCHHOME "/cm/shared/apps/vis/visit/3.1.4/gcc/9.2.0/openmpi/3.1.6/3.1.4/linux-x86_64"
+prepend-path PATH "$VISITARCHHOME/bin"
+prepend-path LD_LIBRARY_PATH "$VISITARCHHOME/lib"
+setenv VISITPLUGININSTPRI "/home/llowe/.visit/3.1.4/linux-x86_64/plugins/"
 ```
 
 And I have this in my .bashrc:

@@ -41,8 +41,6 @@ git clone https://github.com/lisalenorelowe/schism_visit_plugin.git
 cd schism_visit_plugin
 ```
 
-Before starting:
-
 Stop it from using Ubuntu compiler:
 ```
 alias c++='g++'

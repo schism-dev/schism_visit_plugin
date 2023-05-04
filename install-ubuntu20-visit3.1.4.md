@@ -2,6 +2,8 @@
 
 These instructions were tested on a clean VM with Ubuntu 20 OS. (I used Jetstream2 for cloud services.)
 
+## First, install VisIt
+
 See the VisIt User Guide, [Installing and Starting VisIt](https://visit-sphinx-github-user-manual.readthedocs.io/en/develop/getting_started/Installing_VisIt.html)
 
 We will use VisIt version [3.1.4](https://visit-dav.github.io/visit-website/releases-as-tables/#series-31) so we can use server mode on Expanse.  Get the source code and the install script.
@@ -28,6 +30,8 @@ Try VisIt:
 visit
 ```
 It works.
+
+# Install the plugin
 
 Now try the steps to install the plugin.
 

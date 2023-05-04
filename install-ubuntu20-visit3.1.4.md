@@ -150,9 +150,16 @@ and remove all the
 ```
 libnetcdf_c++.a libnetcdf.a libhdf5_hl.so libhdf5.so libsz.so libz.so
 ```
-and then, it works.
+and then, do make:
 ```
-exouser@visit-plugin-for-schism:~/schism_visit_plugin/mdschism$ ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
+make
+```
+Check that you have all the plugins now:
+```
+ls ~/.visit/3.1.4/linux-x86_64/plugins/databases
+```
+You should have the following.
+```
 libEMDSCHISMDatabase_par.so  libEpropDatabase_par.so  libMMDSCHISMDatabase.so
 libEMDSCHISMDatabase_ser.so  libEpropDatabase_ser.so  libMSCHISMDatabase.so
 libESCHISMDatabase_par.so    libIMDSCHISMDatabase.so  libMgr3Database.so

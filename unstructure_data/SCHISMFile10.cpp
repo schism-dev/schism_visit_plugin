@@ -20,6 +20,7 @@ SCHISMAtt10::SCHISMAtt10(const std::string& a_attName):m_name(a_attName),
                                                  m_num_str_value(0),
                                                  m_num_float_value(0),
                                                  m_num_int_value(0),
+												 m_num_double_value(0),
                                                  m_is_valid(true)
 {
 }

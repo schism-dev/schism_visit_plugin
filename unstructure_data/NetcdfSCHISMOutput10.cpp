@@ -98,8 +98,14 @@ NetcdfSchismOutput10::NetcdfSchismOutput10(const std::string a_outputFile):SCHIS
 	i23d_vertical_center.insert(IS_Pair(6,MeshConstants10::FULL_LAYER));
 	i23d_vertical_center.insert(IS_Pair(9,MeshConstants10::FULL_LAYER));
 
-	
+	try
+	{
 	this->load_dim_var();
+	}
+	catch( const std::invalid_argument& e )
+	{
+         throw SCHISMFileException10(a_outputFile + "has long int attribute which is not supported by current netcdf c++ lib\n");
+     }
 	this->fill_node_bottom();
     this->fill_edge_bottom();
 	this->fill_ele_bottom();
@@ -711,6 +717,11 @@ bool  NetcdfSchismOutput10::load_dim_var()
 			{
 				schism_att->add_int_value(att_var->as_int(0));
 			}
+			else if ((type==ncLong))
+			{
+				
+				throw std::invalid_argument( "current version of nectd c++ api doesn't support long int attribute!");
+			}
 			else if (type==ncFloat)
 			{
 				schism_att->add_float_value(att_var->as_float(0));
@@ -734,6 +745,7 @@ bool  NetcdfSchismOutput10::load_dim_var()
 
 			if (!(nc_att_name.compare(MeshConstants10::i23d)))
 			{
+	
 				int i23d = att_var->as_int(0);
 				schism_var->set_horizontal_center(i23d_horizontal_center[i23d]);
 				schism_var->set_vertical_center(i23d_vertical_center[i23d]);

@@ -1125,7 +1125,15 @@ resulting by the different number of sigma levels of neighboring element.
 
 \section{State on Dry Cells}
 
-  The plugin doesn't honor the state value on dry cells loaded from NC4 output file, it always display state of dry cells as NULL. For the binary output case, it will plot the state value on dry cells, which is usually set to -99.0 (temp, salt), 0.0 (nodal horizontal/vertical vel, zcor, other).
+  With the  SCHISM 5.10 scribeIO format otuput, the plugin will always honor the state values in out2d file, and it will dilsplay the state of dry spots as NULL for 3D ouptut files, such as temperature, salinity, and velocity. VisIt will plot those dry state as burgundy block as shown in  Figure \ref{figure:dryTemperature}  The plugin  honor the state value on dry cells loaded from NC4 output file before SCHISM 5.10 if $dry\_value\_flag$ variable inside output file is set as 0, otherwise  it display state of dry cells as NULL. For the legacy binary output case, it will plot the state value on dry cells, which is usually set to -99.0 (temp, salt), 0.0 (nodal horizontal/vertical vel, zcor, other).
+
+       \begin{figure}
+        \begin{center}
+        \includegraphics[scale=0.4]{dry_state_temperature}
+        \caption{Temperature on dry nodes}
+        \label{figure:dryTemperature}
+        \end{center}
+        \end{figure}
 	
 \section{Unstructured Meshes Generation}
 	
@@ -1135,7 +1143,7 @@ resulting by the different number of sigma levels of neighboring element.
 	
 	The 3D mesh consists of four type of element VTK\_TERA, VTK\_PYRAMID, VTK\_WEDGE and VTK\_HEXAHEDRON shown in Figure \ref{figure:3dElements}.
 				
-				\begin{figure}
+       \begin{figure}
         \begin{center}
         \includegraphics[scale=0.75]{Element3D}
         \caption{Unstructured Cells}

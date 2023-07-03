@@ -15,9 +15,29 @@ ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISM
 	
 	size_t found = m_mesh_file.find_last_of("/\\");
     std:string data_file_path = m_mesh_file.substr(0,found);
-
-	std::size_t found3 = a_meshFile.find("schout");
-	if (found3 == std::string::npos)
+	bool scribeIO = false;
+	//find out format of output by reading global attribute source
+    //if "V10" in the string 5.8 format, otherwise scribeIo format (no atribute or other values)
+	try
+	{
+		std::string source = m_dataFilePtr->global_att_as_string(MeshConstants10::source);
+		std::size_t found_v10 = source.find(MeshConstants10::SCHISM58_OUTPUT_FORMAT);
+		if (found_v10 != std::string::npos)
+		{
+			scribeIO = false;
+		}
+		else
+		{
+			scribeIO = true;
+		}
+	}
+	catch (...)
+	{
+		scribeIO = true;
+	}
+	//std::size_t found3 = a_meshFile.find("schout");
+	//if (found3 == std::string::npos)
+	if(scribeIO)
 	{
 
 		//see if there any separate zcor nc file available under current folder 
@@ -28,9 +48,15 @@ ZCoordMeshProvider10::ZCoordMeshProvider10(const std::string& a_meshFile):SCHISM
 #else
 	    std::string zcor_file = data_file_path + "/zCoordinates" + suffix;
 #endif
-
-		m_zcor_file_ptr = new NetcdfSchismOutput10(zcor_file);
-		m_zcor_file_ptr->set_mesh_data_ptr(this->get_mesh_data_ptr());
+		try
+		{
+			m_zcor_file_ptr = new NetcdfSchismOutput10(zcor_file);
+			m_zcor_file_ptr->set_mesh_data_ptr(this->get_mesh_data_ptr());
+		}
+		catch(...)
+		{
+			m_zcor_file_ptr = 0;
+		}
 	}
 
 	
@@ -106,20 +132,31 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
      {
 	   //first try to load from zcor_*.nc, for output might be in the new scriber format
 	  //this zcor file must be at the same folder of current file
-       if(m_zcor_file_ptr->is_valid())
-	   {
-		   zVarPtr=m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
-	   }
-	   else
-	   {
-		   throw SCHISMFileException10("No valid zcor data for file "+m_dataFilePtr->file());
-	   }
+		 if (m_zcor_file_ptr)
+		 {
+			 if (m_zcor_file_ptr->is_valid())
+			 {
+				 zVarPtr = m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
+			 }
+			 else
+			 {
+				 return false;
+				// throw SCHISMFileException10("No valid zcor data for file " + m_dataFilePtr->file());
+			 }
+		 }
+		 else
+		 {
+			 return false;
+		 }
 	   outZCoor = true;
 	  
      }
    
 	 if (!(zVarPtr->is_valid()))
-		 throw SCHISMFileException10("invlaid var " + MeshConstants10::ZCOORD + " for data file " + m_dataFilePtr->file());
+	 {
+		 return false;
+		 //throw SCHISMFileException10("invlaid var " + MeshConstants10::ZCOORD + " for data file " + m_dataFilePtr->file());
+	 }
 	 SCHISMAtt10* miss_val_ptr = 0;
 	 miss_val_ptr = zVarPtr->get_att("missing_value");
 	 float missing_val = MeshConstants10::DEGENERATED_Z;
@@ -157,6 +194,7 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 		 if (!(zVarPtr->get(zPtr,kbp00)))
 		 {
 			 throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::ZCOORD2 + " from data file " + m_zcor_file_ptr->file());
+			 
 		 }
 	 }
 	 else
@@ -164,6 +202,7 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 		 if (!(zVarPtr->get(zPtr)))
 		 {
 			 throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::ZCOORD + " from data file " + m_dataFilePtr->file());
+			 
 		 }
 	 }
 	 debug1 << "got node zcor\n";
@@ -233,19 +272,30 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 	 {
 		 //first try to load from zcor_*.nc, for output might be in the new scriber format
 		//this zcor file must be at the same folder of current file
-		 if (m_zcor_file_ptr->is_valid())
+		 if (m_zcor_file_ptr)
 		 {
-			 zVarPtr = m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
+			 if (m_zcor_file_ptr->is_valid())
+			 {
+				 zVarPtr = m_zcor_file_ptr->get_var(MeshConstants10::ZCOORD2);
+			 }
+			 else
+			 {
+				 //throw SCHISMFileException10("No valid zcor data for file " + m_dataFilePtr->file());
+				 return false;
+			 }
+			 outZCoor = true;
 		 }
 		 else
 		 {
-			 throw SCHISMFileException10("No valid zcor data for file " + m_dataFilePtr->file());
+			 return false;
 		 }
-		 outZCoor = true;
 	 }
 
 	 if (!(zVarPtr->is_valid()))
-		 throw SCHISMFileException10("invlaid var " + MeshConstants10::ZCOORD + " for data file " + m_dataFilePtr->file());
+	 {
+		 //throw SCHISMFileException10("invlaid var " + MeshConstants10::ZCOORD + " for data file " + m_dataFilePtr->file());
+		 return false;
+	 }
    
    
      zVarPtr->set_cur(timeStart);

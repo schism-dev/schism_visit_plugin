@@ -1,10 +1,14 @@
-You can install the plugin in your home directory.
+# Installing on Expanse (SDSC)
 
-# Set the VisIt environment
+VisIt 3.1.4 is installed on Expanse.  You can install the plugin in your home directory.
 
-Currently, there is no 'visit' module, and I think that is because you should only use it in client-server mode.  But we need the xml stuff to compile the plugins.
+When using client-server mode, the local VisIt(client) must use the same VisIt as the HPC(server).  To use Expanse client-server VisIt (as of 6/30/2023), you must also install this plugin on your local machine with VisIt 3.1.4. 
 
-The instructions for running in client-server mode is here: `/cm/shared/examples/sdsc/visit/README`.
+## Set the VisIt environment
+
+Currently, there is no 'visit' module, so we need to set the environment by adding the path to VisIt's xml commands used to compile the plugins.
+
+The instructions for running in client-server mode are here: `/cm/shared/examples/sdsc/visit/README`.
 
 From that, you can get the path: `/cm/shared/apps/vis/visit/3.1.4/gcc/9.2.0/openmpi/3.1.6/3.1.4/linux-x86_64/bin`, which indicates that VisIt 3.1.4 was compiled with gcc 9.2.0 and openmpi 3.1.6.
 
@@ -40,13 +44,13 @@ If you don't want to make a module, do:
 export PATH=/cm/shared/apps/vis/visit/3.1.4/gcc/9.2.0/openmpi/3.1.6/3.1.4/linux-x86_64/bin:$PATH
 ```
 
-# Install the plugin
+## Install the plugin
 
 Now try the steps to install the plugin.
 
-Get the plugin code.  This one test *my* plugin code with the malloc.h in ifdef statements:
+Get the plugin code.
 ```
-git clone https://github.com/lisalenorelowe/schism_visit_plugin.git
+git clone https://github.com/schism-dev/schism_visit_plugin.git
 cd schism_visit_plugin
 ```
 

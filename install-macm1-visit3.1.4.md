@@ -1,39 +1,47 @@
 # Installing on Mac Studio
 
-Installing on my Mac Studio that has an M1 chip.
+Instructions for installing the SCHISM plugins for VisIt 3.1.4 on a Mac Studio that has an M1 chip.
 
-Using VisIt 3.1.4, to use client-server mode from Expanse, which is only available as x86_64.
+We are using VisIt 3.1.4 to use client-server mode from Expanse.  The local VisIt(client) must use the same VisIt as the HPC(server). Older versions of VisIt(pre-M1) are only available as x86, so an extra CMAKE flag is needed to compile for x86 instead of the default arm(M1) processor.
 
-Download CMake for Mac, drag it into the applications bin.  Open CMake, in the top menu bar, click Tools, 
+
+## Install VisIt 3.1.4
+
+First, install VisIt 3.1.4 in the usual Mac way: [download](https://visit-dav.github.io/visit-website/releases-as-tables/#series-31), click, drag to applications. Test it by clicking on the application icon to open VisIt, then close VisIt.
+
+To follow the instructions below, VisIt must be in the path.  If you open a terminal and type `visit`, it will probably say `command not found: visit`.  The VisIt executable is usually here: `/Applications/VisIt.app/Contents/Resources/bin`.  Confirm the following opens VisIt.
+```
+/Applications/VisIt.app/Contents/Resources/bin/visit
+```
+
+To avoid typing the whole filepath, add VisIt to your PATH by doing:
+```
+export PATH="/Applications/VisIt.app/Contents/Resources/bin:$PATH"
+visit
+```
+
+That PATH will only be valid while that terminal is open.  To add an additional executable path to your environment, add it to the 'dot' file for your shell, which (unless you changed your default shell), is the file `~/.zshrc`.  Open `~/.zshrc` and add the following, 
+```
+export PATH="/Applications/VisIt.app/Contents/Resources/bin:$PATH"
+```
+
+Exit the terminal and open a new one.  Now, `visit` should be in your path.  The command `xml2plugin` used below is a VisIt command.  To confirm that both are in your path, do:
+```
+which visit
+which xml2plugin
+```
+
+If that was successful, you're ready to move on.
+
+## Get CMake
+
+[Download CMake](https://cmake.org/download/) for Mac, drag it into the applications bin.  Open CMake, in the top menu bar, click Tools, 
 choose How to Install For Command Line Use.  I chose this way:
 ```
 sudo "/Applications/CMake.app/Contents/bin/cmake-gui" --install
 ```
 
-When compiling, I got a bunch of errors because of `malloc.h`.  Searching on the internets, I found [this possible solution](https://github.com/RIOT-OS/RIOT/issues/2361).
-So for every subroutine where there is `malloc.h`, I did this:
-```
-#if defined(__MACH__)
-#include <stdlib.h>
-#else
-#include <malloc.h>
-#endif
-```
-These were the files:
-```
-(base) lllowe@LisasMacStudio schism_visit_plugin % grep malloc.h */*
-mdschism/avtMDSCHISMFileFormatImpl.C
-unstructure_data/avtSCHISMFileFormat.C
-unstructure_data/avtSCHISMFileFormatImpl.C
-unstructure_data/avtSCHISMFileFormatImpl10.C
-unstructure_data/avtSCHISMFileFormatImpl11.C
-```
-
-On my fork, it is fixed, so get that one:
-```
-git clone https://github.com/lisalenorelowe/schism_visit_plugin.git
-cd schism_visit_plugin
-```
+## Install the plugins
 
 Install the unstructure_data plugin:
 ```

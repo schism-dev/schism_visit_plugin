@@ -26,6 +26,21 @@ And netcdf_c++.lib and its path needed in the project linker option.
 
     where CMAKE Var PLUGIN_DIR is the source folder of plugin unstructure data folder, VISIT_DIR is VISIT installation folder, make sure VISIT_DIR/lib contains netcdf and netcdf_c++ libs,
     
+   - then run make
+
+    If you get error of lib linking error like  below,
+
+      ld: cannot find -lnetcdf_c++
+      ld: cannot find -lnetcdf
+      ld: cannot find -lhdf5_hl
+      ld: cannot find -lhdf5
+      ld: cannot find -lsz
+
+   Currently you can circumvent this error by modifying link.txt in ./test/test_output/CMakeFiles/test_output.dir, insert lib directory linking option before netcdf link parts like below:
+
+    "  -Wl,-Bstatic -L/opt/visit/3.3.1/3.3.1/linux-x86_64/lib -lnetcdf_c++ -lnetcdf "
+
+
 
 
 

@@ -1,4 +1,4 @@
-// test_scirbio2.cpp : Defines the entry point for the console application.
+// test_scribio2.cpp : Defines the entry point for the console application.
 //
 
 #include "SCHISMFile10.h"
@@ -325,12 +325,15 @@ int testZCoreProvider(std::string &file1, std::string &out)
 	return 0;
 }
 
-void main()
+void main(int argc, char *argv[])
 {
-	std::string meshFile = "out2d_1.nc";
+	std::string meshFile;
+	std::string soutputFile;
+	// The first arg is an out2d file, if it exists.
+	// The second one is a SCHISM file to test.
+	meshFile = argc > 1 ? argv[1] : "E:/temp/test/b1/out2d_1.nc";
+	soutputFile = argc > 2 ? argv[2] : "E:/temp/test/depth_averaged_salinity_75.nc";
 	test_netcdf4(meshFile);
-	std::string soutputFile = "E:/temp/test/depth_averaged_salinity_75.nc";
-	meshFile = "E:/temp/test/b1/out2d_1.nc";
 	testScribeIO(soutputFile, meshFile);
 }
 

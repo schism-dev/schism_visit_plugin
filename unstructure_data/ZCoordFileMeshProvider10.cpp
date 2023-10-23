@@ -4,7 +4,7 @@
 #include "SCHISMFileUtil10.h"
 #include "NetcdfSCHISMOutput.h"
 #include <algorithm>
-#include <DebugStream.h>
+
 
 
 using namespace std;
@@ -171,9 +171,9 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 	 long z_var_size =0;
 	 long * node_start_index= new long [m_number_node];
 	 int * kbp00 = new int [m_number_node];
-	 debug1 << "getting node bottom\n";
+	 //debug1 << "getting node bottom\n";
 	 fillKbp00(kbp00,a_timeStep);
-	 debug1 << "got node bottom\n";
+	 //debug1 << "got node bottom\n";
 	 for(int iNode=0;iNode<m_number_node;iNode++)
 	 {
 		 node_start_index[iNode]=z_var_size;
@@ -187,7 +187,7 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 	              m_dataFilePtr,
                   MeshConstants10::NODE_DEPTH,
                   m_number_node);
-	debug1 << "got node depth\n";
+	//debug1 << "got node depth\n";
      float*           zPtr = new float [z_var_size];
 	 if (outZCoor)
 	 {
@@ -205,7 +205,7 @@ bool ZCoordMeshProvider10::zcoords3D(float * a_zCachePtr,const int & a_timeStep)
 			 
 		 }
 	 }
-	 debug1 << "got node zcor\n";
+	 //debug1 << "got node zcor\n";
 	  for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
       { 
 		 
@@ -316,12 +316,12 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 	              m_dataFilePtr,
                   MeshConstants10::NODE_DEPTH,
                   m_number_node);
-	debug1 << "got node depth in zcor3d2\n";
+	//debug1 << "got node depth in zcor3d2\n";
 	 long z_var_size =0;
 	 long * node_start_index= new long [m_number_node];
 	 int * kbp00 = new int [m_number_node];
 	 fillKbp00(kbp00,a_timeStep);
-	 debug1 << "got node bottom in zcor3d2\n";
+	 //debug1 << "got node bottom in zcor3d2\n";
 	 for(long iNode=0;iNode<m_number_node;iNode++)
 	 {
 	    node_start_index[iNode]=z_var_size;	     
@@ -345,7 +345,7 @@ bool ZCoordMeshProvider10::zcoords3D2(float * a_zCachePtr,const int & a_timeStep
 			 throw SCHISMFileException10("fail to retrieve var " + MeshConstants10::ZCOORD + " from data file " + m_dataFilePtr->file());
 		 }
 	 }
-	 debug1 << "got node zcor in zcor3d2\n";
+	 //debug1 << "got node zcor in zcor3d2\n";
 	  for (int iLayer= 0; iLayer<m_number_layer;iLayer++)
       { 
 		 

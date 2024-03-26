@@ -108,7 +108,7 @@ int testScribeIO(std::string &soutputFile, std::string &meshFile)
 	svarptr->set_cur(0);
 	svarptr->get(stemp);
 
-	std::string toutputFile = "E:\\temp\\new_nc2\\temperature_1.nc";
+	std::string toutputFile = ".\\temperature_1.nc";
 	NetcdfSchismOutput10 *toutPtr = new NetcdfSchismOutput10(toutputFile);
 	toutPtr->set_mesh_bottom(meshPtr->get_mesh_data_ptr(), 0);
 	toutPtr->get_node_bottom(nodes_bottom, 0);
@@ -125,16 +125,12 @@ int testScribeIO(std::string &soutputFile, std::string &meshFile)
 	return 0;
 }
 
-int testZCoreProvider(std::string &file1, std::string &out)
+//file1 is a schism scribeio 2d  file,like out2d_*.nc, out is a txt file 
+//to output context from 2d file
+int testZCoreProvider(std::string & meshFile, std::string &out)
 {
 
-	ifstream *f1 = new ifstream(file1, ios::binary);
-	cout << f1->is_open() << " \n";
-
-	delete f1;
-
-	std::string mdoutputFile = "E:\\temp\\new_nc2\\salinity_1.nc";
-	std::string meshFile = "E:\\temp\\new_nc2\\out2d_1.nc";
+	//std::string meshFile = ".\\out2d_1.nc";
 
 	SCHISMMeshProvider10 *meshPtr = new ZCoordMeshProvider10(meshFile);
 
@@ -325,25 +321,57 @@ int testZCoreProvider(std::string &file1, std::string &out)
 	return 0;
 }
 
+void test_hotstart_nc(const std::string& hotstart)
+{
+	int counter = 0;  // Initialize counter to 0.
+	int numTIMEs = 0; // Variable for user to enter the amount of TIMEs.
+	
+	NetcdfSchismOutput10* f1=new NetcdfSchismOutput10(hotstart);
+	
+	SCHISMVar10 * SALELVarPtr = f1->get_var("SAL_el");
+	SCHISMDim10 * dimNodePtr = f1->get_dim(MeshConstants10::DIM_MESH_NODES);
+	int numberOfNode = dimNodePtr->size(); 
+	SCHISMDim10 * dimElePtr = f1->get_dim(MeshConstants10::DIM_MESH_FACES);
+	int numberOfEle = dimElePtr->size();
+
+	SCHISMDim10 * dimLayerPtr      = f1->get_dim(MeshConstants10::DIM_LAYERS);
+    int numberOfLayer           = dimLayerPtr->size();
+    double * sal=new double[numberOfEle*numberOfLayer];
+
+	ofstream outfile;
+    outfile.open ("nc_10_out.txt");
+	SALELVarPtr->set_cur(0);
+	SALELVarPtr->get(sal);
+	
+	delete sal;
+	outfile.close();
+}
+
 void main(int argc, char *argv[])
 {
 	std::string meshFile;
 	std::string soutputFile;
 	// The first arg is an out2d file, if it exists.
 	// The second one is a SCHISM file to test.
-	meshFile = argc > 1 ? argv[1] : "E:/temp/test/b1/out2d_1.nc";
-	soutputFile = argc > 2 ? argv[2] : "E:/temp/test/depth_averaged_salinity_75.nc";
+	meshFile = argc > 1 ? argv[1] : "out2d_1.nc";
+	soutputFile = argc > 2 ? argv[2] : "depth_averaged_salinity_75.nc";
+	std::string hotstartFile;
+	hotstartFile= argc > 3 ? argv[3] : "hotstart_schout_1.nc";
+	test_hotstart_nc(hotstartFile);
 	test_netcdf4(meshFile);
 	testScribeIO(soutputFile, meshFile);
+	testZCoreProvider(meshFile, "out2dmesh.out");
 }
 
-void test_prism_CENTER()
+void test_prism_center(std::string& file1, std::string& file2)
 {
+	//std::string file1 = "1_elev.61";
+	//std::string file2 = "1_salt.70";
+
 	int counter = 0;  // Initialize counter to 0.
 	int numTIMEs = 0; // Variable for user to enter the amount of TIMEs.
 
-	std::string file1 = "1_elev.61";
-	std::string file2 = "1_salt.70";
+
 
 	SCHISMFile10 *f2 = new SCHISMFile10(file2);
 	SCHISMFile10 *f2_1 = new SCHISMFile10(file2);

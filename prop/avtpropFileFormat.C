@@ -1,40 +1,40 @@
 /*****************************************************************************
-*
-* Copyright (c) 2000 - 2011, Lawrence Livermore National Security, LLC
-* Produced at the Lawrence Livermore National Laboratory
-* LLNL-CODE-442911
-* All rights reserved.
-*
-* This file is  part of VisIt. For  details, see https://visit.llnl.gov/.  The
-* full copyright notice is contained in the file COPYRIGHT located at the root
-* of the VisIt distribution or at http://www.llnl.gov/visit/copyright.html.
-*
-* Redistribution  and  use  in  source  and  binary  forms,  with  or  without
-* modification, are permitted provided that the following conditions are met:
-*
-*  - Redistributions of  source code must  retain the above  copyright notice,
-*    this list of conditions and the disclaimer below.
-*  - Redistributions in binary form must reproduce the above copyright notice,
-*    this  list of  conditions  and  the  disclaimer (as noted below)  in  the
-*    documentation and/or other materials provided with the distribution.
-*  - Neither the name of  the LLNS/LLNL nor the names of  its contributors may
-*    be used to endorse or promote products derived from this software without
-*    specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT  HOLDERS AND CONTRIBUTORS "AS IS"
-* AND ANY EXPRESS OR  IMPLIED WARRANTIES, INCLUDING,  BUT NOT  LIMITED TO, THE
-* IMPLIED WARRANTIES OF MERCHANTABILITY AND  FITNESS FOR A PARTICULAR  PURPOSE
-* ARE  DISCLAIMED. IN  NO EVENT  SHALL LAWRENCE  LIVERMORE NATIONAL  SECURITY,
-* LLC, THE  U.S.  DEPARTMENT OF  ENERGY  OR  CONTRIBUTORS BE  LIABLE  FOR  ANY
-* DIRECT,  INDIRECT,   INCIDENTAL,   SPECIAL,   EXEMPLARY,  OR   CONSEQUENTIAL
-* DAMAGES (INCLUDING, BUT NOT  LIMITED TO, PROCUREMENT OF  SUBSTITUTE GOODS OR
-* SERVICES; LOSS OF  USE, DATA, OR PROFITS; OR  BUSINESS INTERRUPTION) HOWEVER
-* CAUSED  AND  ON  ANY  THEORY  OF  LIABILITY,  WHETHER  IN  CONTRACT,  STRICT
-* LIABILITY, OR TORT  (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY  WAY
-* OUT OF THE  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-* DAMAGE.
-*
-*****************************************************************************/
+ *
+ * Copyright (c) 2000 - 2011, Lawrence Livermore National Security, LLC
+ * Produced at the Lawrence Livermore National Laboratory
+ * LLNL-CODE-442911
+ * All rights reserved.
+ *
+ * This file is  part of VisIt. For  details, see https://visit.llnl.gov/.  The
+ * full copyright notice is contained in the file COPYRIGHT located at the root
+ * of the VisIt distribution or at http://www.llnl.gov/visit/copyright.html.
+ *
+ * Redistribution  and  use  in  source  and  binary  forms,  with  or  without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  - Redistributions of  source code must  retain the above  copyright notice,
+ *    this list of conditions and the disclaimer below.
+ *  - Redistributions in binary form must reproduce the above copyright notice,
+ *    this  list of  conditions  and  the  disclaimer (as noted below)  in  the
+ *    documentation and/or other materials provided with the distribution.
+ *  - Neither the name of  the LLNS/LLNL nor the names of  its contributors may
+ *    be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT  HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR  IMPLIED WARRANTIES, INCLUDING,  BUT NOT  LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND  FITNESS FOR A PARTICULAR  PURPOSE
+ * ARE  DISCLAIMED. IN  NO EVENT  SHALL LAWRENCE  LIVERMORE NATIONAL  SECURITY,
+ * LLC, THE  U.S.  DEPARTMENT OF  ENERGY  OR  CONTRIBUTORS BE  LIABLE  FOR  ANY
+ * DIRECT,  INDIRECT,   INCIDENTAL,   SPECIAL,   EXEMPLARY,  OR   CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT  LIMITED TO, PROCUREMENT OF  SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF  USE, DATA, OR PROFITS; OR  BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED  AND  ON  ANY  THEORY  OF  LIABILITY,  WHETHER  IN  CONTRACT,  STRICT
+ * LIABILITY, OR TORT  (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY  WAY
+ * OUT OF THE  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ *
+ *****************************************************************************/
 
 // ************************************************************************* //
 //                            avtpropFileFormat.C                           //
@@ -49,30 +49,29 @@
 #include <vtkStructuredGrid.h>
 #include <vtkUnstructuredGrid.h>
 
-
+#include <vtkCellType.h>
 #include <vtkPoints.h>
-#include <vtkCellType.h> 
 
-#include <avtDatabaseMetaData.h>
-#include <avtVariableCache.h>
 #include <DBOptionsAttributes.h>
 #include <Expression.h>
+#include <avtDatabaseMetaData.h>
+#include <avtVariableCache.h>
 
-#include <InvalidVariableException.h>
-#include <InvalidFilesException.h>
-#include <InvalidDBTypeException.h>
 #include <DBYieldedNoDataException.h>
-#include <FileDoesNotExistException.h>
 #include <DebugStream.h>
+#include <FileDoesNotExistException.h>
+#include <InvalidDBTypeException.h>
+#include <InvalidFilesException.h>
+#include <InvalidVariableException.h>
 
+#include <fstream>
 #include <iostream>
-#include <fstream>  
-#include <sstream> 
-using std::ios;
+#include <sstream>
 using std::ifstream;
+using std::ios;
 
-const std::string HGRID="hgrid.gr3";
-const std::string GR3MESH2D ="Mesh_2D";
+const std::string HGRID = "hgrid.gr3";
+const std::string GR3MESH2D = "Mesh_2D";
 const int         MAXIMUMNODEPERCELL = 4;
 
 // ****************************************************************************
@@ -83,56 +82,48 @@ const int         MAXIMUMNODEPERCELL = 4;
 //
 // ****************************************************************************
 
-avtpropFileFormat::avtpropFileFormat(const char *filename)
+avtpropFileFormat::avtpropFileFormat(const char* filename)
     : avtSTSDFileFormat(filename),
       m_propFile(filename),
-      m_mesh2DName("2D_Mesh_")
-{
+      m_mesh2DName("2D_Mesh_") {
 
- 	std::string propFile(filename);
-	size_t startPos       = propFile.find_last_of(".");
+    std::string propFile(filename);
+    size_t      startPos = propFile.find_last_of(".");
     std::string suffix;
-	
-    if (!(startPos == std::string::npos))
-    {
-       suffix  = propFile.substr(startPos+1,4);
+
+    if (!(startPos == std::string::npos)) {
+        suffix = propFile.substr(startPos + 1, 4);
     }
 
-    if(!(suffix=="prop"))
-    { 
-	EXCEPTION1(InvalidDBTypeException,"This file cann't be opend as prop file\n")
+    if (!(suffix == "prop")) {
+        EXCEPTION1(InvalidDBTypeException,
+                   "This file cann't be opend as prop file\n")
     }
 
-  
     // INITIALIZE DATA MEMBERS
 
- 
+    size_t dotstart = startPos;
+    size_t lastslash = propFile.find_last_of("/\\");
+    m_variableName = propFile.substr(lastslash + 1, dotstart - lastslash - 1);
+    m_workingPath = propFile.substr(0, lastslash + 1);
 
-  size_t dotstart  = startPos;
-  size_t lastslash = propFile.find_last_of("/\\");
-  m_variableName     = propFile.substr(lastslash+1,dotstart-lastslash-1);
-  m_workingPath      = propFile.substr(0,lastslash+1);
+    bool re = false;
 
-  bool re=false;
+    re = loadGridFile();
 
-  re= loadGridFile();
- 
-  if (!re)
-   {
-     EXCEPTION1(FileDoesNotExistException,"a valid hgrid.gr3 side by side with prop file\n");
-   }
+    if (!re) {
+        EXCEPTION1(FileDoesNotExistException,
+                   "a valid hgrid.gr3 side by side with prop file\n");
+    }
 
-   re     = loadVar();
-   if (!re)
-   {
-     stringstream msgStream(stringstream::out);
-     msgStream <<"Fail to load variable data";
-     EXCEPTION3(DBYieldedNoDataException,filename,"propFilePlugin",msgStream.str());
-   }
-
-  
+    re = loadVar();
+    if (!re) {
+        stringstream msgStream(stringstream::out);
+        msgStream << "Fail to load variable data";
+        EXCEPTION3(DBYieldedNoDataException, filename, "propFilePlugin",
+                   msgStream.str());
+    }
 }
-
 
 // ****************************************************************************
 //  Method: avtpropFileFormat::FreeUpResources
@@ -148,32 +139,23 @@ avtpropFileFormat::avtpropFileFormat(const char *filename)
 //
 // ****************************************************************************
 
-void
-avtpropFileFormat::FreeUpResources(void)
-{
-  if (m_nodeXPtr)
-    {
-       delete m_nodeXPtr;
+void avtpropFileFormat::FreeUpResources(void) {
+    if (m_nodeXPtr) {
+        delete m_nodeXPtr;
     }
-  if (m_nodeYPtr)
-    {
-       delete m_nodeYPtr;
+    if (m_nodeYPtr) {
+        delete m_nodeYPtr;
     }
-  if (m_varPtr)
-    {
-       delete m_varPtr;
+    if (m_varPtr) {
+        delete m_varPtr;
     }
-  if(m_faceNodesPtr)
-    {
-       delete m_faceNodesPtr;
+    if (m_faceNodesPtr) {
+        delete m_faceNodesPtr;
     }
-  if(m_depPtr)
-    {
-      delete m_depPtr; 
+    if (m_depPtr) {
+        delete m_depPtr;
     }
-
 }
-
 
 // ****************************************************************************
 //  Method: avtpropFileFormat::PopulateDatabaseMetaData
@@ -188,46 +170,40 @@ avtpropFileFormat::FreeUpResources(void)
 //
 // ****************************************************************************
 
-void
-avtpropFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md)
-{
-  //
-  // CODE TO ADD A MESH
-    
-  string meshname =  GR3MESH2D;
+void avtpropFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData* md) {
+    //
+    // CODE TO ADD A MESH
 
+    string meshname = GR3MESH2D;
 
-  // AVT_RECTILINEAR_MESH, AVT_CURVILINEAR_MESH, AVT_UNSTRUCTURED_MESH,
-  // AVT_POINT_MESH, AVT_SURFACE_MESH, AVT_UNKNOWN_MESH
+    // AVT_RECTILINEAR_MESH, AVT_CURVILINEAR_MESH, AVT_UNSTRUCTURED_MESH,
+    // AVT_POINT_MESH, AVT_SURFACE_MESH, AVT_UNKNOWN_MESH
     avtMeshType mt = AVT_UNSTRUCTURED_MESH;
-  //
-  int nblocks = 1;  
-  int block_origin = 0;
-  int spatial_dimension = 2;
-  int topological_dimension = 2;
-  double *extents = NULL;
-    
+    //
+    int     nblocks = 1;
+    int     block_origin = 0;
+    int     spatial_dimension = 2;
+    int     topological_dimension = 2;
+    double* extents = NULL;
 
-  // Here's the call that tells the meta-data object that we have a mesh:
-  //
-  AddMeshToMetaData(md, meshname, mt, extents, nblocks, block_origin,
-                       spatial_dimension, topological_dimension);
-    
-
-  //
-  // CODE TO ADD A SCALAR VARIABLE
-  //
-  string mesh_for_this_var = meshname; 
-  string varname = m_variableName;
+    // Here's the call that tells the meta-data object that we have a mesh:
+    //
+    AddMeshToMetaData(md, meshname, mt, extents, nblocks, block_origin,
+                      spatial_dimension, topological_dimension);
 
     //
-  // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
-  avtCentering cent = AVT_ZONECENT;
-  //
-  //
-  // Here's the call that tells the meta-data object that we have a var
-  AddScalarVarToMetaData(md, varname, mesh_for_this_var, cent);  
+    // CODE TO ADD A SCALAR VARIABLE
+    //
+    string mesh_for_this_var = meshname;
+    string varname = m_variableName;
 
+    //
+    // AVT_NODECENT, AVT_ZONECENT, AVT_UNKNOWN_CENT
+    avtCentering cent = AVT_ZONECENT;
+    //
+    //
+    // Here's the call that tells the meta-data object that we have a var
+    AddScalarVarToMetaData(md, varname, mesh_for_this_var, cent);
 }
 
 // ****************************************************************************
@@ -247,107 +223,80 @@ avtpropFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData *md)
 //
 // ****************************************************************************
 
-vtkDataSet *
-avtpropFileFormat::GetMesh(const char *meshname)
-{
- 
-  int   nDims              = 2;
-  int   numNodes           = m_numMeshNodes;
-  int   numCells           = m_numMeshFaces;
+vtkDataSet* avtpropFileFormat::GetMesh(const char* meshname) {
 
-  int   domainID           = 0;
-  int   timeState          = 0;
-  std::string material("all");
-  std::string cacheMeshID(meshname);
+    int nDims = 2;
+    int numNodes = m_numMeshNodes;
+    int numCells = m_numMeshFaces;
 
-     
-  vtkObject * cachedMesh   = cache->GetVTKObject(cacheMeshID.c_str(),
-                                                 avtVariableCache::DATASET_NAME,
-                                                 timeState, 
-                                                 domainID, 
-                                                 material.c_str());
+    int         domainID = 0;
+    int         timeState = 0;
+    std::string material("all");
+    std::string cacheMeshID(meshname);
 
- 
-  if(cachedMesh!=NULL)
-   {
-     vtkUnstructuredGrid *uGrid = (vtkUnstructuredGrid *)cachedMesh;
-     uGrid->Register(NULL);
-     return uGrid;
-   }
+    vtkObject* cachedMesh =
+        cache->GetVTKObject(cacheMeshID.c_str(), avtVariableCache::DATASET_NAME,
+                            timeState, domainID, material.c_str());
 
-  debug1<<"start creating mesh\n";
-
-  vtkUnstructuredGrid *uGrid = vtkUnstructuredGrid::New();
-
-  vtkPoints *points      = vtkPoints::New();
-  points->SetNumberOfPoints(numNodes);
-  float * pointPtr       = (float *) points->GetVoidPointer(0);
-        
-  for(int iNode=0;iNode < numNodes; iNode++)
-    {
-             
-      float x            = m_nodeXPtr[iNode];
-      float y            = m_nodeYPtr[iNode];
-      *pointPtr++        = x;
-      *pointPtr++        = y;
-      // must put a dummy z value as visit manaul example does
-      *pointPtr++       = 0.0;
-          
-     }
-  uGrid ->SetPoints(points);
-  points->Delete();
-  uGrid ->Allocate( m_numMeshFaces);
-       
-  int * nodesPtrTemp = m_faceNodesPtr;
-  for(int iCell = 0; iCell < m_numMeshFaces; ++iCell)
-    {
-        int num_nodes = nodesPtrTemp[0];
-		  
-		if (num_nodes ==3)
-		{
-        vtkIdType verts[3];
-        for(int iNode=1;iNode<4;++iNode)
-        {
-            verts[iNode-1] = nodesPtrTemp[iNode]-1;
-			   
-        } 
-        uGrid->InsertNextCell(VTK_TRIANGLE, 3, verts);
-		}
-		else if (num_nodes ==4 )
-		{
-        vtkIdType verts[4];
-        for(int iNode=1;iNode<5;++iNode)
-        {
-            verts[iNode-1] = nodesPtrTemp[iNode]-1;
-			    
-        } 
-        uGrid->InsertNextCell(VTK_QUAD, 4, verts);
-
-		}
-		else
-		{
-			stringstream msgStream(stringstream::out);
-            msgStream <<"invalid cell type with number of nodes: " <<num_nodes;
-		throw InvalidVariableException(msgStream.str());
-		}
-		 
-		 nodesPtrTemp += (MAXIMUMNODEPERCELL+1);
+    if (cachedMesh != NULL) {
+        vtkUnstructuredGrid* uGrid = (vtkUnstructuredGrid*)cachedMesh;
+        uGrid->Register(NULL);
+        return uGrid;
     }
-    
-   
-      
-    cache->CacheVTKObject(GR3MESH2D.c_str(), 
-                          avtVariableCache::DATASET_NAME, 
-                          timeState, 
-                          domainID,
-                          material.c_str(), 
-                          uGrid); 
-    debug1<<GR3MESH2D<<" cached \n";
-     
-    return uGrid;
-  
-}
 
+    debug1 << "start creating mesh\n";
+
+    vtkUnstructuredGrid* uGrid = vtkUnstructuredGrid::New();
+
+    vtkPoints* points = vtkPoints::New();
+    points->SetNumberOfPoints(numNodes);
+    float* pointPtr = (float*)points->GetVoidPointer(0);
+
+    for (int iNode = 0; iNode < numNodes; iNode++) {
+
+        float x = m_nodeXPtr[iNode];
+        float y = m_nodeYPtr[iNode];
+        *pointPtr++ = x;
+        *pointPtr++ = y;
+        // must put a dummy z value as visit manaul example does
+        *pointPtr++ = 0.0;
+    }
+    uGrid->SetPoints(points);
+    points->Delete();
+    uGrid->Allocate(m_numMeshFaces);
+
+    int* nodesPtrTemp = m_faceNodesPtr;
+    for (int iCell = 0; iCell < m_numMeshFaces; ++iCell) {
+        int num_nodes = nodesPtrTemp[0];
+
+        if (num_nodes == 3) {
+            vtkIdType verts[3];
+            for (int iNode = 1; iNode < 4; ++iNode) {
+                verts[iNode - 1] = nodesPtrTemp[iNode] - 1;
+            }
+            uGrid->InsertNextCell(VTK_TRIANGLE, 3, verts);
+        } else if (num_nodes == 4) {
+            vtkIdType verts[4];
+            for (int iNode = 1; iNode < 5; ++iNode) {
+                verts[iNode - 1] = nodesPtrTemp[iNode] - 1;
+            }
+            uGrid->InsertNextCell(VTK_QUAD, 4, verts);
+        } else {
+            stringstream msgStream(stringstream::out);
+            msgStream << "invalid cell type with number of nodes: "
+                      << num_nodes;
+            throw InvalidVariableException(msgStream.str());
+        }
+
+        nodesPtrTemp += (MAXIMUMNODEPERCELL + 1);
+    }
+
+    cache->CacheVTKObject(GR3MESH2D.c_str(), avtVariableCache::DATASET_NAME,
+                          timeState, domainID, material.c_str(), uGrid);
+    debug1 << GR3MESH2D << " cached \n";
+
+    return uGrid;
+}
 
 // ****************************************************************************
 //  Method: avtpropFileFormat::GetVar
@@ -365,24 +314,19 @@ avtpropFileFormat::GetMesh(const char *meshname)
 //
 // ****************************************************************************
 
-vtkDataArray *
-avtpropFileFormat::GetVar(const char *varname)
-{
-    
-  int ntuples        = m_numMeshFaces; 
-  vtkDoubleArray *rv = vtkDoubleArray::New();
-  rv->SetNumberOfTuples(ntuples);
-  int idata = 0;    
-  for( int iFace = 0 ; iFace < m_numMeshFaces; iFace++)
-    {
-       float valTemp = m_varPtr[iFace];
-       rv->SetTuple1(idata, valTemp);  
-       idata++;             
-    }
-   return rv;
-   
-}
+vtkDataArray* avtpropFileFormat::GetVar(const char* varname) {
 
+    int             ntuples = m_numMeshFaces;
+    vtkDoubleArray* rv = vtkDoubleArray::New();
+    rv->SetNumberOfTuples(ntuples);
+    int idata = 0;
+    for (int iFace = 0; iFace < m_numMeshFaces; iFace++) {
+        float valTemp = m_varPtr[iFace];
+        rv->SetTuple1(idata, valTemp);
+        idata++;
+    }
+    return rv;
+}
 
 // ****************************************************************************
 //  Method: avtpropFileFormat::GetVectorVar
@@ -400,96 +344,79 @@ avtpropFileFormat::GetVar(const char *varname)
 //
 // ****************************************************************************
 
-vtkDataArray *
-avtpropFileFormat::GetVectorVar(const char *varname)
-{
-    return 0;
-}
+vtkDataArray* avtpropFileFormat::GetVectorVar(const char* varname) { return 0; }
 
-
-bool  avtpropFileFormat::loadVar()
-{
-  ifstream*    gr3FileStream = new ifstream(m_propFile.c_str()); 
-  if (!gr3FileStream->good())
-   {
-       debug1<<m_propFile<<" is invlalid \n";
-       return false;
-   }
-
-  m_varPtr = new float [m_numMeshFaces];
-
-  std::string  lineTemp;
-  for(int iFace=0;iFace<m_numMeshFaces;iFace++)
-   {
-    int numFace;
-    std::getline(*gr3FileStream,lineTemp);
-    std::stringstream faceStream(lineTemp);
-    faceStream>>numFace>>m_varPtr[iFace];
-   }  
-  return true;
-}
-
-
-bool  avtpropFileFormat::loadGridFile()
-{
-  ifstream*    gr3FileStream =NULL;
-
-  try
-  {
-      gr3FileStream = new ifstream((m_workingPath+HGRID).c_str()); 
-  }
-  catch(...)
-  {
-    EXCEPTION1(InvalidFilesException,"a valid hgrid.gr3 file must be side by side with prop file");
-    return false;
-  }
-
-
-  if (!gr3FileStream->good())
-   {
-       return false;
-   }
-
-  std::string  lineTemp;
-  std::getline(*gr3FileStream,lineTemp);
-  std::stringstream headstream(lineTemp);
- 
-
-  std::getline(*gr3FileStream,lineTemp);
-  std::stringstream sizeStream(lineTemp);
-  sizeStream>>m_numMeshFaces>>m_numMeshNodes;
-  int stepsize =  MAXIMUMNODEPERCELL+1;
-  m_nodeXPtr     = new float [m_numMeshNodes];
-  m_nodeYPtr     = new float [m_numMeshNodes];
-  m_faceNodesPtr = new int   [stepsize*m_numMeshFaces];
-  m_depPtr       = new float [m_numMeshNodes];
-
-  for(int iNode=0;iNode<m_numMeshNodes;iNode++)
-    {
-     int valtemp;
-     std::getline(*gr3FileStream,lineTemp);
-     std::stringstream nodeStream(lineTemp);
-     nodeStream>>valtemp>>m_nodeXPtr[iNode]>>m_nodeYPtr[iNode]>>m_depPtr[iNode];
+bool avtpropFileFormat::loadVar() {
+    ifstream* gr3FileStream = new ifstream(m_propFile.c_str());
+    if (!gr3FileStream->good()) {
+        debug1 << m_propFile << " is invlalid \n";
+        return false;
     }
-   
 
-  for(int iFace=0;iFace<m_numMeshFaces;iFace++)
-    {
-     int valtemp;
-     int numNode;
-     std::getline(*gr3FileStream,lineTemp);
-     std::stringstream faceStream(lineTemp);
-     faceStream>>valtemp>>numNode;
-	 m_faceNodesPtr[iFace*stepsize] = numNode;
-	  
-	 for(int iNode=0;iNode<numNode;iNode++)
-	    {
-          faceStream>>m_faceNodesPtr[iFace*stepsize+iNode+1];
-	    }
-     }
-   
-  debug1<<"finish load data\n";
-  gr3FileStream->close();
-  delete gr3FileStream;
-  return true;
+    m_varPtr = new float[m_numMeshFaces];
+
+    std::string lineTemp;
+    for (int iFace = 0; iFace < m_numMeshFaces; iFace++) {
+        int numFace;
+        std::getline(*gr3FileStream, lineTemp);
+        std::stringstream faceStream(lineTemp);
+        faceStream >> numFace >> m_varPtr[iFace];
+    }
+    return true;
+}
+
+bool avtpropFileFormat::loadGridFile() {
+    ifstream* gr3FileStream = NULL;
+
+    try {
+        gr3FileStream = new ifstream((m_workingPath + HGRID).c_str());
+    } catch (...) {
+        EXCEPTION1(
+            InvalidFilesException,
+            "a valid hgrid.gr3 file must be side by side with prop file");
+        return false;
+    }
+
+    if (!gr3FileStream->good()) {
+        return false;
+    }
+
+    std::string lineTemp;
+    std::getline(*gr3FileStream, lineTemp);
+    std::stringstream headstream(lineTemp);
+
+    std::getline(*gr3FileStream, lineTemp);
+    std::stringstream sizeStream(lineTemp);
+    sizeStream >> m_numMeshFaces >> m_numMeshNodes;
+    int stepsize = MAXIMUMNODEPERCELL + 1;
+    m_nodeXPtr = new float[m_numMeshNodes];
+    m_nodeYPtr = new float[m_numMeshNodes];
+    m_faceNodesPtr = new int[stepsize * m_numMeshFaces];
+    m_depPtr = new float[m_numMeshNodes];
+
+    for (int iNode = 0; iNode < m_numMeshNodes; iNode++) {
+        int valtemp;
+        std::getline(*gr3FileStream, lineTemp);
+        std::stringstream nodeStream(lineTemp);
+        nodeStream >> valtemp >> m_nodeXPtr[iNode] >> m_nodeYPtr[iNode] >>
+            m_depPtr[iNode];
+    }
+
+    for (int iFace = 0; iFace < m_numMeshFaces; iFace++) {
+        int valtemp;
+        int numNode;
+        std::getline(*gr3FileStream, lineTemp);
+        std::stringstream faceStream(lineTemp);
+        faceStream >> valtemp >> numNode;
+        m_faceNodesPtr[iFace * stepsize] = numNode;
+
+        for (int iNode = 0; iNode < numNode; iNode++) {
+            faceStream >> m_faceNodesPtr[iFace * stepsize + iNode + 1];
+        }
+    }
+
+    debug1 << "finish load data\n";
+    gr3FileStream->close();
+    delete gr3FileStream;
+    return true;
 }

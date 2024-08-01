@@ -1,40 +1,40 @@
 /*****************************************************************************
-*
-* Copyright (c) 2000 - 2012, Lawrence Livermore National Security, LLC
-* Produced at the Lawrence Livermore National Laboratory
-* LLNL-CODE-442911
-* All rights reserved.
-*
-* This file is  part of VisIt. For  details, see https://visit.llnl.gov/.  The
-* full copyright notice is contained in the file COPYRIGHT located at the root
-* of the VisIt distribution or at http://www.llnl.gov/visit/copyright.html.
-*
-* Redistribution  and  use  in  source  and  binary  forms,  with  or  without
-* modification, are permitted provided that the following conditions are met:
-*
-*  - Redistributions of  source code must  retain the above  copyright notice,
-*    this list of conditions and the disclaimer below.
-*  - Redistributions in binary form must reproduce the above copyright notice,
-*    this  list of  conditions  and  the  disclaimer (as noted below)  in  the
-*    documentation and/or other materials provided with the distribution.
-*  - Neither the name of  the LLNS/LLNL nor the names of  its contributors may
-*    be used to endorse or promote products derived from this software without
-*    specific prior written permission.
-*
-* THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT  HOLDERS AND CONTRIBUTORS "AS IS"
-* AND ANY EXPRESS OR  IMPLIED WARRANTIES, INCLUDING,  BUT NOT  LIMITED TO, THE
-* IMPLIED WARRANTIES OF MERCHANTABILITY AND  FITNESS FOR A PARTICULAR  PURPOSE
-* ARE  DISCLAIMED. IN  NO EVENT  SHALL LAWRENCE  LIVERMORE NATIONAL  SECURITY,
-* LLC, THE  U.S.  DEPARTMENT OF  ENERGY  OR  CONTRIBUTORS BE  LIABLE  FOR  ANY
-* DIRECT,  INDIRECT,   INCIDENTAL,   SPECIAL,   EXEMPLARY,  OR   CONSEQUENTIAL
-* DAMAGES (INCLUDING, BUT NOT  LIMITED TO, PROCUREMENT OF  SUBSTITUTE GOODS OR
-* SERVICES; LOSS OF  USE, DATA, OR PROFITS; OR  BUSINESS INTERRUPTION) HOWEVER
-* CAUSED  AND  ON  ANY  THEORY  OF  LIABILITY,  WHETHER  IN  CONTRACT,  STRICT
-* LIABILITY, OR TORT  (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY  WAY
-* OUT OF THE  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
-* DAMAGE.
-*
-*****************************************************************************/
+ *
+ * Copyright (c) 2000 - 2012, Lawrence Livermore National Security, LLC
+ * Produced at the Lawrence Livermore National Laboratory
+ * LLNL-CODE-442911
+ * All rights reserved.
+ *
+ * This file is  part of VisIt. For  details, see https://visit.llnl.gov/.  The
+ * full copyright notice is contained in the file COPYRIGHT located at the root
+ * of the VisIt distribution or at http://www.llnl.gov/visit/copyright.html.
+ *
+ * Redistribution  and  use  in  source  and  binary  forms,  with  or  without
+ * modification, are permitted provided that the following conditions are met:
+ *
+ *  - Redistributions of  source code must  retain the above  copyright notice,
+ *    this list of conditions and the disclaimer below.
+ *  - Redistributions in binary form must reproduce the above copyright notice,
+ *    this  list of  conditions  and  the  disclaimer (as noted below)  in  the
+ *    documentation and/or other materials provided with the distribution.
+ *  - Neither the name of  the LLNS/LLNL nor the names of  its contributors may
+ *    be used to endorse or promote products derived from this software without
+ *    specific prior written permission.
+ *
+ * THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT  HOLDERS AND CONTRIBUTORS "AS IS"
+ * AND ANY EXPRESS OR  IMPLIED WARRANTIES, INCLUDING,  BUT NOT  LIMITED TO, THE
+ * IMPLIED WARRANTIES OF MERCHANTABILITY AND  FITNESS FOR A PARTICULAR  PURPOSE
+ * ARE  DISCLAIMED. IN  NO EVENT  SHALL LAWRENCE  LIVERMORE NATIONAL  SECURITY,
+ * LLC, THE  U.S.  DEPARTMENT OF  ENERGY  OR  CONTRIBUTORS BE  LIABLE  FOR  ANY
+ * DIRECT,  INDIRECT,   INCIDENTAL,   SPECIAL,   EXEMPLARY,  OR   CONSEQUENTIAL
+ * DAMAGES (INCLUDING, BUT NOT  LIMITED TO, PROCUREMENT OF  SUBSTITUTE GOODS OR
+ * SERVICES; LOSS OF  USE, DATA, OR PROFITS; OR  BUSINESS INTERRUPTION) HOWEVER
+ * CAUSED  AND  ON  ANY  THEORY  OF  LIABILITY,  WHETHER  IN  CONTRACT,  STRICT
+ * LIABILITY, OR TORT  (INCLUDING NEGLIGENCE OR OTHERWISE)  ARISING IN ANY  WAY
+ * OUT OF THE  USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH
+ * DAMAGE.
+ *
+ *****************************************************************************/
 
 // ************************************************************************* //
 //                            avtSCHISMFileFormat.C                           //
@@ -42,24 +42,23 @@
 
 #include <avtSCHISMFileFormat.h>
 
-#include <string>
 #include <iostream>
-#include <sstream>
-#include <time.h>
 #include <math.h>
+#include <sstream>
+#include <string>
+#include <time.h>
 
+#include <vtkCellArray.h>
+#include <vtkCellType.h>
 #include <vtkDoubleArray.h>
 #include <vtkFloatArray.h>
-#include <vtkRectilinearGrid.h>
-#include <vtkRectilinearGrid.h>
-#include <vtkUnstructuredGrid.h>
-#include <vtkSmartPointer.h>
-#include <vtkCellArray.h>
-#include <vtkPolyhedron.h>
-#include <vtkPlaneSource.h>
 #include <vtkMath.h>
+#include <vtkPlaneSource.h>
 #include <vtkPoints.h>
-#include <vtkCellType.h> 
+#include <vtkPolyhedron.h>
+#include <vtkRectilinearGrid.h>
+#include <vtkSmartPointer.h>
+#include <vtkUnstructuredGrid.h>
 
 #include <avtDatabaseMetaData.h>
 #include <avtVariableCache.h>
@@ -67,22 +66,21 @@
 #include <DBOptionsAttributes.h>
 #include <Expression.h>
 
-#include <InvalidVariableException.h>
-#include <InvalidDBTypeException.h>
-#include <InvalidTimeStepException.h>
-#include <InvalidFilesException.h>
 #include <DBYieldedNoDataException.h>
 #include <DebugStream.h>
-//L3 #include <malloc.h>
+#include <InvalidDBTypeException.h>
+#include <InvalidFilesException.h>
+#include <InvalidTimeStepException.h>
+#include <InvalidVariableException.h>
+// L3 #include <malloc.h>
 #if defined(__MACH__)
 #include <stdlib.h>
 #else
 #include <malloc.h>
 #endif
 
-#include "netcdfcpp.h"
 #include "FileFormatFavorFactory.h"
-
+#include "netcdfcpp.h"
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat constructor
@@ -92,23 +90,20 @@
 //
 // ****************************************************************************
 
-avtSCHISMFileFormat::avtSCHISMFileFormat(const char *filename)
+avtSCHISMFileFormat::avtSCHISMFileFormat(const char* filename)
     : avtMTSDFileFormat(&filename, 1),
-	  m_data_file(filename)
-{
-  
-	//based on file type reset m_impl to proper implementation favor
-	NcFile*           outputNcFilePtr = new NcFile(filename,NcFile::ReadOnly);
-	if (outputNcFilePtr->is_valid()==0)
-	{
-		m_impl.reset((FileFormatFavorFactory::Instance())->CreateInstance("native_binary"));
-	}
-	else
-	{
-		 m_impl.reset(FileFormatFavorFactory::Instance()->CreateInstance("combine10_nc4_double_xy"));
-	}
-}
+      m_data_file(filename) {
 
+    // based on file type reset m_impl to proper implementation favor
+    NcFile* outputNcFilePtr = new NcFile(filename, NcFile::ReadOnly);
+    if (outputNcFilePtr->is_valid() == 0) {
+        m_impl.reset((FileFormatFavorFactory::Instance())
+                         ->CreateInstance("native_binary"));
+    } else {
+        m_impl.reset(FileFormatFavorFactory::Instance()->CreateInstance(
+            "combine10_nc4_double_xy"));
+    }
+}
 
 // ****************************************************************************
 //  Method: avtEMSTDFileFormat::GetNTimesteps
@@ -121,14 +116,9 @@ avtSCHISMFileFormat::avtSCHISMFileFormat(const char *filename)
 //
 // ****************************************************************************
 
-int
-avtSCHISMFileFormat::GetNTimesteps(void)
-{
-  return m_impl->GetNTimesteps(m_data_file);
+int avtSCHISMFileFormat::GetNTimesteps(void) {
+    return m_impl->GetNTimesteps(m_data_file);
 }
-
-
-
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat::FreeUpResources
@@ -144,12 +134,7 @@ avtSCHISMFileFormat::GetNTimesteps(void)
 //
 // ****************************************************************************
 
-void
-avtSCHISMFileFormat::FreeUpResources(void)
-{
-   m_impl->FreeUpResources();
-   
-}
+void avtSCHISMFileFormat::FreeUpResources(void) { m_impl->FreeUpResources(); }
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat::GetMesh
@@ -170,13 +155,10 @@ avtSCHISMFileFormat::FreeUpResources(void)
 //
 // ****************************************************************************
 
-vtkDataSet *
-avtSCHISMFileFormat::GetMesh(int a_timeState, const char *mesh_name)
-{
-	return m_impl->GetMesh(a_timeState,this,mesh_name);
+vtkDataSet* avtSCHISMFileFormat::GetMesh(int         a_timeState,
+                                         const char* mesh_name) {
+    return m_impl->GetMesh(a_timeState, this, mesh_name);
 }
-
-
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat::GetVar
@@ -196,13 +178,11 @@ avtSCHISMFileFormat::GetMesh(int a_timeState, const char *mesh_name)
 //
 // ****************************************************************************
 
-vtkDataArray *
-avtSCHISMFileFormat::GetVar(int a_timeState, const char *a_varName)
-{
+vtkDataArray* avtSCHISMFileFormat::GetVar(int         a_timeState,
+                                          const char* a_varName) {
 
-   return m_impl->GetVar(a_timeState,a_varName);
+    return m_impl->GetVar(a_timeState, a_varName);
 }
-
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat::GetVectorVar
@@ -222,99 +202,77 @@ avtSCHISMFileFormat::GetVar(int a_timeState, const char *a_varName)
 //
 // ****************************************************************************
 
-vtkDataArray *
-avtSCHISMFileFormat::GetVectorVar(int a_timeState, const char *a_varName)
-{
-  return m_impl->GetVectorVar(a_timeState,a_varName);
+vtkDataArray* avtSCHISMFileFormat::GetVectorVar(int         a_timeState,
+                                                const char* a_varName) {
+    return m_impl->GetVectorVar(a_timeState, a_varName);
 }
-
-
-
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat::ActivateTimestep
 //
 //  Purpose:
-//      
-//      
+//
+//
 //  Programmer: qshu -- generated by xml2avt
 //  Creation:   Mon Aug 6 09:53:36 PDT 2012
 //
 // ****************************************************************************
 
-void  avtSCHISMFileFormat::ActivateTimestep()
-{
-	m_impl->ActivateTimestep(m_data_file);
+void avtSCHISMFileFormat::ActivateTimestep() {
+    m_impl->ActivateTimestep(m_data_file);
 }
-
 
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat::GetTimes
 //
 //  Purpose:
 //      overloaded public interface to return time steps
-//      
-//     
+//
+//
 //
 //  Programmer: qshu
 //  Creation:   Mon Aug 15 03:02:00 PDT 2012
 //
 // ****************************************************************************
-void   avtSCHISMFileFormat::GetTimes(std::vector<double> & a_times)
-{
-	m_impl->GetTimes(a_times);
+void avtSCHISMFileFormat::GetTimes(std::vector<double>& a_times) {
+    m_impl->GetTimes(a_times);
 }
 
+void avtSCHISMFileFormat::addMeshToMetaData(
+    avtDatabaseMetaData* a_metaData,
+    const std::string&   a_mesh_name,
+    const avtMeshType&   a_mt,
+    double*              a_extents,
+    const int&           a_nblocks,
+    const int&           a_block_origin,
+    const int&           a_spatial_dimension,
+    const int&           a_topological_dimension) {
+    AddMeshToMetaData(a_metaData, a_mesh_name, a_mt, a_extents, a_nblocks,
+                      a_block_origin, a_spatial_dimension,
+                      a_topological_dimension);
+}
 
- void avtSCHISMFileFormat::addMeshToMetaData(avtDatabaseMetaData * a_metaData, 
-                         const std::string & a_mesh_name, 
-                         const avtMeshType & a_mt, 
-                         double           *  a_extents, 
-                         const int        &  a_nblocks, 
-                         const int        &  a_block_origin,
-                         const int        &  a_spatial_dimension, 
-                         const int        &  a_topological_dimension)
- {
-	 AddMeshToMetaData(a_metaData, 
-                       a_mesh_name, 
-                       a_mt, 
-                       a_extents, 
-                       a_nblocks, 
-                       a_block_origin,
-                       a_spatial_dimension, 
-                       a_topological_dimension);
+void avtSCHISMFileFormat::PopulateDatabaseMetaData(
+    avtDatabaseMetaData* a_metaData, int a_timeState) {
+    m_impl->PopulateDatabaseMetaData(a_metaData, this, a_timeState);
+}
 
- }
+void avtSCHISMFileFormat::addScalarVarToMetaData(
+    avtDatabaseMetaData* a_metaData,
+    const std::string&   a_label,
+    const std::string&   a_mesh,
+    const avtCentering&  a_center) {
+    AddScalarVarToMetaData(a_metaData, a_label, a_mesh, a_center);
+}
 
+void avtSCHISMFileFormat::addVectorVarToMetaData(
+    avtDatabaseMetaData* a_metaData,
+    const std::string&   a_varLabel,
+    const std::string&   a_mesh,
+    const avtCentering&  a_center,
+    const int&           a_comps) {
 
-  void   avtSCHISMFileFormat::PopulateDatabaseMetaData(avtDatabaseMetaData * a_metaData, 
-                                                       int                   a_timeState)
-  {
-	  m_impl->PopulateDatabaseMetaData(a_metaData, this,a_timeState);
-  }
+    AddVectorVarToMetaData(a_metaData, a_varLabel, a_mesh, a_center, a_comps);
+}
 
-  
-  void   avtSCHISMFileFormat::addScalarVarToMetaData(avtDatabaseMetaData * a_metaData, 
-	                           const std::string & a_label,   
-							   const std::string & a_mesh,
-							   const avtCentering& a_center)
-  {
-	  AddScalarVarToMetaData(a_metaData, a_label, a_mesh, a_center);
-  }
-
-  void   avtSCHISMFileFormat::addVectorVarToMetaData(avtDatabaseMetaData * a_metaData,
-	                           const std::string &  a_varLabel,
-							   const std::string &  a_mesh,
-							   const avtCentering&  a_center,
-							   const int &          a_comps)
-  {
-
-	   AddVectorVarToMetaData(a_metaData,a_varLabel, a_mesh, a_center,a_comps);  
-  }
-
-
-
-    avtVariableCache * avtSCHISMFileFormat::get_cache()
-	{
-		return this->cache;
-	}
+avtVariableCache* avtSCHISMFileFormat::get_cache() { return this->cache; }

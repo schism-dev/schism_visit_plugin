@@ -11,10 +11,6 @@
       ${NETCDF_CXX_LIB}
       ${NETCDF_LIB}
     </LIBS>
-    <DEFINES>
-      ${NETCDF_CXX_LIB}
-      ${NETCDF_LIB}
-    </DEFINES>
     <Files components="M">
       avtMDSCHISMFileFormat.C
       avtMDSCHISMFileFormat.h

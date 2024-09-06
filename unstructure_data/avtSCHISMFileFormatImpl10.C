@@ -1765,9 +1765,12 @@ void avtSCHISMFileFormatImpl10::insert8NodesPolyhedron(
         faces->InsertNextCell(4, faceTop);
         faceNum++;
     }
-
-    a_uGrid->InsertNextCell(VTK_POLYHEDRON, 8, a_verts, faceNum,
-                            faces->GetPointer());
+    vtkNew<vtkIdTypeArray> legacyFaces;
+    faces->ExportLegacyFormat(legacyFaces);
+    a_uGrid->InsertNextCell(VTK_POLYHEDRON, 7, a_verts, faceNum,
+                            legacyFaces->GetPointer(0));
+    // a_uGrid->InsertNextCell(VTK_POLYHEDRON, 8, a_verts, faceNum,
+    //                         faces->GetPointer());
 }
 
 void avtSCHISMFileFormatImpl10::insert7NodesPolyhedron(
@@ -1943,8 +1946,12 @@ void avtSCHISMFileFormatImpl10::insert7NodesPolyhedron(
     faces->InsertNextCell(3, faceCut);
     faceNum++;
     // debug1<<"total face num:"<<faceNum<<"\n";
+    vtkNew<vtkIdTypeArray> legacyFaces;
+    faces->ExportLegacyFormat(legacyFaces);
     a_uGrid->InsertNextCell(VTK_POLYHEDRON, 7, a_verts, faceNum,
-                            faces->GetPointer());
+                            legacyFaces->GetPointer(0));
+    // a_uGrid->InsertNextCell(VTK_POLYHEDRON, 7, a_verts, faceNum,
+    //                         faces->GetPointer());
 }
 
 void avtSCHISMFileFormatImpl10::insertQuad3DCell(

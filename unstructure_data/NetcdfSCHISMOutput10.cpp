@@ -184,32 +184,28 @@ void NetcdfSchismOutput10::fill_node_bottom() {
     if (has_var("bottom_index_node")) {
         node_bottom_name = "bottom_index_node";
     }
-    if (has_var(node_bottom_name))
-	{
+    if (has_var(node_bottom_name)) {
         NcVar* ncvar = m_outputNcFilePtr->get_var(node_bottom_name.c_str());
-        if (ncvar->is_valid()) 
-		{
-			NcDim* dimNodePtr = NULL;
-			NcDim* dimLayerPtr = NULL;
-			try
-			{
+        if (ncvar->is_valid()) {
+            NcDim* dimNodePtr = NULL;
+            NcDim* dimLayerPtr = NULL;
+            try {
                 dimNodePtr = m_outputNcFilePtr->get_dim(
-                MeshConstants10::DIM_MESH_NODES.c_str());
-			}
-			 catch (...) 
-			 {
-                    throw SCHISMFileException10(this->file() + "：node dim is invalid or not exist\n");
-			 }
+                    MeshConstants10::DIM_MESH_NODES.c_str());
+            } catch (...) {
+                throw SCHISMFileException10(
+                    this->file() + "：node dim is invalid or not exist\n");
+            }
 
             long numMeshNodes = 0;
             numMeshNodes = dimNodePtr->size();
-			try
-				{
-				  dimLayerPtr = m_outputNcFilePtr->get_dim
-				  (MeshConstants10::DIM_LAYERS.c_str());
-			    }
-			 catch (...) {
-				 throw SCHISMFileException10(this->file() + "：layer dim is invalid or not exist\n");}
+            try {
+                dimLayerPtr = m_outputNcFilePtr->get_dim(
+                    MeshConstants10::DIM_LAYERS.c_str());
+            } catch (...) {
+                throw SCHISMFileException10(
+                    this->file() + "：layer dim is invalid or not exist\n");
+            }
             long nLayers = 0;
             nLayers = dimLayerPtr->size();
             if (!(m_node_bottom)) {
@@ -235,42 +231,36 @@ void NetcdfSchismOutput10::fill_edge_bottom() {
             m_outputNcFilePtr->get_var(MeshConstants10::EDGE_BOTTOM.c_str());
         if (ncvar->is_valid()) {
 
-			NcDim * dimFacePtr = NULL;
-			NcDim * dimNodePtr = NULL;
-			NcDim * dimEdgePtr = NULL;
+            NcDim* dimFacePtr = NULL;
+            NcDim* dimNodePtr = NULL;
+            NcDim* dimEdgePtr = NULL;
 
-			try
-			{
+            try {
                 dimFacePtr = m_outputNcFilePtr->get_dim(
-                MeshConstants10::DIM_MESH_FACES.c_str());
-			}
-			catch (...)
-			{
-                throw SCHISMFileException10(this->file() + "：face dim is invalid or not exist\n");
-			}
+                    MeshConstants10::DIM_MESH_FACES.c_str());
+            } catch (...) {
+                throw SCHISMFileException10(
+                    this->file() + "：face dim is invalid or not exist\n");
+            }
             long numMeshFaces = 0;
             numMeshFaces = dimFacePtr->size();
-			try
-			{
+            try {
                 dimNodePtr = m_outputNcFilePtr->get_dim(
-                MeshConstants10::DIM_MESH_NODES.c_str());
-			}
-		    catch (...)
-			{
-                throw SCHISMFileException10(this->file() + "：node dim is invalid or not exist\n");
-			}
+                    MeshConstants10::DIM_MESH_NODES.c_str());
+            } catch (...) {
+                throw SCHISMFileException10(
+                    this->file() + "：node dim is invalid or not exist\n");
+            }
             long numMeshNodes = 0;
             numMeshNodes = dimNodePtr->size();
 
-			try
-			{
+            try {
                 dimEdgePtr = m_outputNcFilePtr->get_dim(
-                MeshConstants10::DIM_MESH_EDGES.c_str());
-			}
-		    catch (...)
-			{
-                throw SCHISMFileException10(this->file() + "：edge dim is invalid or not exist\n");
-			}
+                    MeshConstants10::DIM_MESH_EDGES.c_str());
+            } catch (...) {
+                throw SCHISMFileException10(
+                    this->file() + "：edge dim is invalid or not exist\n");
+            }
             long numMeshEdges = 0;
             numMeshEdges = dimEdgePtr->size();
 
@@ -345,23 +335,20 @@ void NetcdfSchismOutput10::fill_ele_bottom() {
             count[0] = numMeshFaces;
             ncvar->get(m_face_bottom, count[0]);
         }
-    }
-	else if (m_node_bottom) // infer from node bottom if node bottom filled
+    } else if (m_node_bottom) // infer from node bottom if node bottom filled
     {
         if (has_var(MeshConstants10::MESH_FACE_NODES)) {
             SCHISMVar10* ncFacePtr =
                 this->get_var(MeshConstants10::MESH_FACE_NODES);
-			NcDim* dimFacePtr = NULL;
-			NcDim* dimNodePtr = NULL;
-			try
-			{
+            NcDim* dimFacePtr = NULL;
+            NcDim* dimNodePtr = NULL;
+            try {
                 dimFacePtr = m_outputNcFilePtr->get_dim(
-                MeshConstants10::DIM_MESH_FACES.c_str());
-			}
-			catch (...)
-			{
-                throw SCHISMFileException10(this->file() + "：face dim is invalid or not exist\n");
-			}
+                    MeshConstants10::DIM_MESH_FACES.c_str());
+            } catch (...) {
+                throw SCHISMFileException10(
+                    this->file() + "：face dim is invalid or not exist\n");
+            }
             long numMeshFaces = 0;
             numMeshFaces = dimFacePtr->size();
             long* faceNodesPtr =
@@ -371,15 +358,13 @@ void NetcdfSchismOutput10::fill_ele_bottom() {
                 throw SCHISMFileException10("fail to read mesh element in " +
                                             this->file());
             }
-			try
-			{
+            try {
                 dimNodePtr = m_outputNcFilePtr->get_dim(
-                MeshConstants10::DIM_MESH_NODES.c_str());
-			}
-			catch (...)
-			{
-                throw SCHISMFileException10(this->file() + "：node dim is invalid or not exist\n");
-			}
+                    MeshConstants10::DIM_MESH_NODES.c_str());
+            } catch (...) {
+                throw SCHISMFileException10(
+                    this->file() + "：node dim is invalid or not exist\n");
+            }
             long numMeshNodes = 0;
             numMeshNodes = dimNodePtr->size();
 

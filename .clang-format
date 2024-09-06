@@ -4,7 +4,7 @@ BasedOnStyle: LLVM
 Language: Cpp
 IndentWidth: 4
 PointerAlignment: Left
-BinPackParameters : false
+BinPackParameters: false
 AlignConsecutiveDeclarations:
     Enabled: true
 # BreakBeforeBraces: GNU

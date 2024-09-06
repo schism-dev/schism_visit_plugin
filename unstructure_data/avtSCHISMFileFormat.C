@@ -82,7 +82,6 @@
 #include "FileFormatFavorFactory.h"
 #include "netcdfcpp.h"
 
-
 // ****************************************************************************
 //  Method: avtSCHISMFileFormat constructor
 //

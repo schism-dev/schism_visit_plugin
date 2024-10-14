@@ -9,6 +9,7 @@
 #include <cmath>
 #include <fstream>
 #include <iostream>
+#include <vector>
 
 using ::testing::EmptyTestEventListener;
 using ::testing::InitGoogleTest;
@@ -33,6 +34,14 @@ namespace
     NetcdfSchismOutput10* scribe3DPtr;
     NetcdfSchismOutput10* hotPtr;
     SCHISMMeshProvider10* meshPtr;
+
+    std::vector<std::string> var_id = { "time", "SCHISM_hgrid_face_nodes", "SCHISM_hgrid_edge_nodes",
+    "SCHISM_hgrid_node_x","SCHISM_hgrid_node_y", "node_bottom_index","SCHISM_hgrid_face_x" ,
+    "SCHISM_hgrid_face_y" ,"ele_bottom_index" ,"SCHISM_hgrid_edge_x" ,"SCHISM_hgrid_edge_y" ,
+    "edge_bottom_index" ,"depth" ,"dry_value_flag" ,"wetdry_elem" ,"zcor" };
+
+    std::vector<std::string> dim_id = {"nSCHISM_hgrid_node","nSCHISM_hgrid_face","nSCHISM_hgrid_face",
+    "nMaxSCHISM_hgrid_face_nodes","nSCHISM_vgrid_layers"};
 
 
     TEST(ScribIO2DTest, scribeAttr) 
@@ -74,13 +83,9 @@ namespace
     TEST(ScribIO2DTest, scribeDim)
     {
 
-        //
-        EXPECT_TRUE(ncMeshPtr->get_dim("nSCHISM_hgrid_node")!= nullptr);
-        EXPECT_TRUE(ncMeshPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(ncMeshPtr->get_dim("nSCHISM_hgrid_edge") != nullptr);
-        EXPECT_TRUE(ncMeshPtr->get_dim("nMaxSCHISM_hgrid_face_nodes") != nullptr);
-        EXPECT_TRUE(ncMeshPtr->get_dim("nSCHISM_vgrid_layers") != nullptr);
-      
+        for (std::vector<std::string>::iterator it = dim_id.begin(); it != dim_id.end(); ++it) {
+            EXPECT_TRUE(ncMeshPtr->get_dim((*it).c_str()) != nullptr);
+        }     
 
     }
 
@@ -88,28 +93,15 @@ namespace
     {
 
         //
-        EXPECT_TRUE(ncScribe3DPtr->get_dim("nSCHISM_hgrid_node") != nullptr);
-        EXPECT_TRUE(ncScribe3DPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(ncScribe3DPtr->get_dim("nSCHISM_hgrid_edge") != nullptr);
-        EXPECT_TRUE(ncScribe3DPtr->get_dim("nMaxSCHISM_hgrid_face_nodes") != nullptr);
-        EXPECT_TRUE(ncScribe3DPtr->get_dim("nSCHISM_vgrid_layers") != nullptr);
 
-        EXPECT_NO_THROW({
-              SCHISMDim10 * dimptr = scribe3DPtr->get_dim("nSCHISM_hgrid_node");;
-         });
-        EXPECT_NO_THROW({
-              SCHISMDim10 * dimptr = scribe3DPtr->get_dim("nSCHISM_hgrid_face");;
-            });
-        EXPECT_NO_THROW({
-              SCHISMDim10 * dimptr = scribe3DPtr->get_dim("nSCHISM_hgrid_edge");;
-            });
-        EXPECT_NO_THROW({
-              SCHISMDim10 * dimptr = scribe3DPtr->get_dim("nMaxSCHISM_hgrid_face_nodes");;
-            });
-        EXPECT_NO_THROW({
-              SCHISMDim10 * dimptr = scribe3DPtr->get_dim("nSCHISM_vgrid_layers");;
-            });
+        for (std::vector<std::string>::iterator it = dim_id.begin(); it != dim_id.end(); ++it) {
+            EXPECT_TRUE(ncScribe3DPtr->get_dim((*it).c_str()) != nullptr);
+        }
 
+        for (std::vector<std::string>::iterator it = dim_id.begin(); it != dim_id.end(); ++it) {
+            EXPECT_NO_THROW({SCHISMDim10 * dimptr = scribe3DPtr->get_dim(*it);
+             });
+        }
 
     }
 
@@ -117,35 +109,28 @@ namespace
     {
 
         //
-        EXPECT_TRUE(ncPtr->get_dim("nSCHISM_hgrid_node") != nullptr);
-        EXPECT_TRUE(ncPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(ncPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(ncPtr->get_dim("nMaxSCHISM_hgrid_face_nodes") != nullptr);
-        EXPECT_TRUE(ncPtr->get_dim("nSCHISM_vgrid_layers") != nullptr);
-        EXPECT_TRUE(soutPtr->get_dim("nSCHISM_hgrid_node") != nullptr);
-        EXPECT_TRUE(soutPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(soutPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(soutPtr->get_dim("nMaxSCHISM_hgrid_face_nodes") != nullptr);
-        EXPECT_TRUE(soutPtr->get_dim("nSCHISM_vgrid_layers") != nullptr);
+        for (std::vector<std::string>::iterator it = dim_id.begin(); it != dim_id.end(); ++it) {
+            EXPECT_TRUE(ncPtr->get_dim((*it).c_str()) != nullptr);
+        }
 
+        for (std::vector<std::string>::iterator it = dim_id.begin(); it != dim_id.end(); ++it) {
+            EXPECT_NO_THROW({ SCHISMDim10 * dimptr = soutPtr->get_dim(*it);
+                });
+        }
     }
 
     TEST(HotSchoutTest, HotDim)
     {
         //test a hotstart nc file in schout style
         //hotstart nc file can be viewed by VisIt
+        for (std::vector<std::string>::iterator it = dim_id.begin(); it != dim_id.end(); ++it) {
+            EXPECT_TRUE(ncHotStartPtr->get_dim((*it).c_str()) != nullptr);
+        }
 
-        EXPECT_TRUE(ncHotStartPtr->get_dim("nSCHISM_hgrid_node") != nullptr);
-        EXPECT_TRUE(ncHotStartPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(ncHotStartPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(ncHotStartPtr->get_dim("nMaxSCHISM_hgrid_face_nodes") != nullptr);
-        EXPECT_TRUE(ncHotStartPtr->get_dim("nSCHISM_vgrid_layers") != nullptr);
-        EXPECT_TRUE(hotPtr->get_dim("nSCHISM_hgrid_node") != nullptr);
-        EXPECT_TRUE(hotPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(hotPtr->get_dim("nSCHISM_hgrid_face") != nullptr);
-        EXPECT_TRUE(hotPtr->get_dim("nMaxSCHISM_hgrid_face_nodes") != nullptr);
-        EXPECT_TRUE(hotPtr->get_dim("nSCHISM_vgrid_layers") != nullptr);
-
+        for (std::vector<std::string>::iterator it = dim_id.begin(); it != dim_id.end(); ++it) {
+            EXPECT_NO_THROW({ SCHISMDim10 * dimptr = hotPtr->get_dim(*it);
+                });
+        }
     }
 
     TEST(ScribIO2DTest, scribeMesh)
@@ -161,42 +146,14 @@ namespace
     {
         // This test is named "mesh", and belongs to the "ScribeIOTest"
         // test case.
-        
-        EXPECT_TRUE(ncPtr->get_var("time")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_face_nodes")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_edge_nodes")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_node_x")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_node_y")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("node_bottom_index")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_face_x")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_face_y")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("ele_bottom_index")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_edge_x")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("SCHISM_hgrid_edge_y")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("edge_bottom_index")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("depth")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("dry_value_flag")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("wetdry_elem")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("zcor")->is_valid());
-        EXPECT_TRUE(ncPtr->get_var("elev")->is_valid());
 
-        EXPECT_TRUE(soutPtr->inquire_var("time"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_face_nodes"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_edge_nodes"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_node_x"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_node_y"));
-        EXPECT_TRUE(soutPtr->inquire_var("node_bottom_index"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_face_x"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_face_y"));
-        EXPECT_TRUE(soutPtr->inquire_var("ele_bottom_index"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_edge_x"));
-        EXPECT_TRUE(soutPtr->inquire_var("SCHISM_hgrid_edge_y"));
-        EXPECT_TRUE(soutPtr->inquire_var("edge_bottom_index"));
-        EXPECT_TRUE(soutPtr->inquire_var("depth"));
-        EXPECT_TRUE(soutPtr->inquire_var("dry_value_flag"));
-        EXPECT_TRUE(soutPtr->inquire_var("wetdry_elem"));
-        EXPECT_TRUE(soutPtr->inquire_var("zcor"));
-        EXPECT_TRUE(soutPtr->inquire_var("elev"));
+        for (std::vector<std::string>::iterator it = var_id.begin(); it != var_id.end(); ++it) {
+            EXPECT_TRUE(ncPtr->get_var((*it).c_str())->is_valid());
+        }
+
+        for (std::vector<std::string>::iterator it = var_id.begin(); it != var_id.end(); ++it) {
+            EXPECT_TRUE(soutPtr->inquire_var(*it));
+        }
        
     }
 
@@ -205,41 +162,16 @@ namespace
         // This test is named "mesh", and belongs to the "ScribeIOTest"
         // test case.
 
-        EXPECT_TRUE(ncHotStartPtr->get_var("time")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_face_nodes")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_edge_nodes")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_node_x")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_node_y")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("node_bottom_index")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_face_x")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_face_y")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("ele_bottom_index")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_edge_x")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("SCHISM_hgrid_edge_y")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("edge_bottom_index")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("depth")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("dry_value_flag")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("wetdry_elem")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("zcor")->is_valid());
-        EXPECT_TRUE(ncHotStartPtr->get_var("elev")->is_valid());
 
-        EXPECT_TRUE(hotPtr->inquire_var("time"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_face_nodes"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_edge_nodes"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_node_x"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_node_y"));
-        EXPECT_TRUE(hotPtr->inquire_var("node_bottom_index"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_face_x"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_face_y"));
-        EXPECT_TRUE(hotPtr->inquire_var("ele_bottom_index"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_edge_x"));
-        EXPECT_TRUE(hotPtr->inquire_var("SCHISM_hgrid_edge_y"));
-        EXPECT_TRUE(hotPtr->inquire_var("edge_bottom_index"));
-        EXPECT_TRUE(hotPtr->inquire_var("depth"));
-        EXPECT_TRUE(hotPtr->inquire_var("dry_value_flag"));
-        EXPECT_TRUE(hotPtr->inquire_var("wetdry_elem"));
-        EXPECT_TRUE(hotPtr->inquire_var("zcor"));
-        EXPECT_TRUE(hotPtr->inquire_var("elev"));
+        for (std::vector<std::string>::iterator it = var_id.begin(); it != var_id.end(); ++it) {
+            EXPECT_TRUE(ncHotStartPtr->get_var((*it).c_str())->is_valid());
+        }
+
+        for (std::vector<std::string>::iterator it = var_id.begin(); it != var_id.end(); ++it) {
+            EXPECT_TRUE(hotPtr->inquire_var(*it));
+        }
+
+
 
     }
 
@@ -252,24 +184,25 @@ namespace
         EXPECT_NO_THROW({
         SCHISMVar10 * svarptr = soutPtr->get_var(varID);
          });
-        
+   
     }
 
     TEST(ScribIO3DTest, scribeVar)
     {
         // This test is named "scribevar", and belongs to the "ScribeIOTest"
         // test case.
-        std::string varID("time");
-        EXPECT_TRUE(scribe3DPtr->inquire_var(varID));
-       
+        std::string var_name("time");
+        EXPECT_TRUE(scribe3DPtr->inquire_var(var_name));
+        EXPECT_NO_THROW({
+        SCHISMVar10 * svarptr = scribe3DPtr->get_var(var_name);;
+            });
 
         size_t      found_underline = scribe3DFile.find_last_of("_");
-        std::string var_name = scribe3DFile.substr(0, found_underline);
+        var_name = scribe3DFile.substr(0, found_underline);
         EXPECT_TRUE(scribe3DPtr->inquire_var(var_name));
-
         EXPECT_NO_THROW({
-          SCHISMVar10* svarptr = scribe3DPtr->get_var(varID);;
-         });  
+            SCHISMVar10 * svarptr = scribe3DPtr->get_var(var_name);;
+            });
 
     }
 }

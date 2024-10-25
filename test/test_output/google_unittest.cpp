@@ -43,6 +43,11 @@ namespace
     std::vector<std::string> dim_id = {"nSCHISM_hgrid_node","nSCHISM_hgrid_face","nSCHISM_hgrid_face",
     "nMaxSCHISM_hgrid_face_nodes","nSCHISM_vgrid_layers"};
 
+    long max_num_node_test = 30000;
+    long max_num_ele_test = 60000;
+    long max_num_side_test = 60000;
+    long max_num_layer_test = 60;
+
 
     TEST(ScribIO2DTest, scribeAttr) 
     {
@@ -119,7 +124,7 @@ namespace
         }
     }
 
-    TEST(HotSchoutTest, HotDim)
+    TEST(HotSchoutTest, hotDim)
     {
         //test a hotstart nc file in schout style
         //hotstart nc file can be viewed by VisIt
@@ -137,8 +142,80 @@ namespace
     {
         // This test is named "mesh", and belongs to the "ScribeIOTest"
         // test case.
-        EXPECT_EQ(23456, meshPtr->numberOfNode());
-        EXPECT_EQ(23, meshPtr->numberOfLayer());
+        EXPECT_EQ(20641, meshPtr->numberOfNode());
+        EXPECT_EQ(59615, meshPtr->numberOfSide());
+        EXPECT_EQ(38960, meshPtr->numberOfElement());
+        EXPECT_EQ(54, meshPtr->numberOfLayer());
+
+        float* cache = new float[max_num_node_test * 3];
+        int step = 1;
+
+        EXPECT_NO_THROW(
+            {
+            meshPtr->fillPointCoord2D(cache, step); 
+            }
+        );
+
+
+        delete[] cache;
+
+        long* eleCache = new long[max_num_ele_test * 5];
+        EXPECT_NO_THROW(
+            {
+             meshPtr->fillMeshElement(eleCache);
+            }
+        );
+
+        delete[] eleCache;
+
+        int* kbs = new int[max_num_side_test];
+        EXPECT_NO_THROW
+        (
+            {
+              meshPtr->fillKbs(kbs, 0);
+            }
+        );
+        delete [] kbs;
+
+        int* kbp = new int[max_num_node_test];
+        EXPECT_NO_THROW(
+            {
+              meshPtr->fillKbp00(kbp, 0);
+            }
+        );
+        delete [] kbp;
+
+        int* kbe = new int[max_num_ele_test];
+        EXPECT_NO_THROW(
+            {
+              meshPtr->fillKbe(kbe, 0);
+            }
+        );
+        delete[] kbe;
+
+        float* nodeCoord3D = new float[3 * max_num_layer_test * max_num_node_test];
+        EXPECT_NO_THROW(
+            {
+              meshPtr->fillPointCoord3D(nodeCoord3D, 0);
+            }
+        );
+        delete [] nodeCoord3D;
+       
+        float* sideCoord3D = new float[3 * max_num_layer_test * max_num_side_test];
+        EXPECT_NO_THROW(
+            {
+              meshPtr->fillSideCenterCoord3D(sideCoord3D, 0);
+            }
+        );
+        delete[] sideCoord3D;
+
+        float* zCache = new float[max_num_layer_test * max_num_ele_test];
+        EXPECT_NO_THROW(
+            {
+              meshPtr->zEleCenter3D(zCache, 0);
+            }
+        );
+        delete[] zCache;
     }
 
 
@@ -201,7 +278,7 @@ namespace
         var_name = scribe3DFile.substr(0, found_underline);
         EXPECT_TRUE(scribe3DPtr->inquire_var(var_name));
         EXPECT_NO_THROW({
-            SCHISMVar10 * svarptr = scribe3DPtr->get_var(var_name);;
+            SCHISMVar10 * svarptr = scribe3DPtr->get_var(var_name);
             });
 
     }
